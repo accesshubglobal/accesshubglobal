@@ -1,52 +1,123 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState } from "react";
+import "./App.css";
+import "./i18n";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import Header from "./components/Header";
+import HeroSection from "./components/HeroSection";
+import ProgramsSection from "./components/ProgramsSection";
+import ServicesSection from "./components/ServicesSection";
+import DestinationsSection from "./components/DestinationsSection";
+import ScholarshipsSection from "./components/ScholarshipsSection";
+import HousingSection from "./components/HousingSection";
+import TestimonialsSection from "./components/TestimonialsSection";
+import ContactSection from "./components/ContactSection";
+import Footer from "./components/Footer";
+import AuthModal from "./components/AuthModal";
+import UserDashboard from "./components/UserDashboard";
+import AdminCMS from "./components/AdminCMS";
+import LiveChat from "./components/LiveChat";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Protected Route Component
+const ProtectedRoute = ({ children, requireAdmin = false }) => {
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
 const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const { isAuthenticated } = useAuth();
+
+  const openAuth = (mode = 'login') => {
+    setAuthMode(mode);
+    setShowAuthModal(true);
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="min-h-screen bg-white">
+      <Header onOpenAuth={openAuth} />
+      <HeroSection onOpenAuth={openAuth} />
+      <ProgramsSection onOpenAuth={openAuth} />
+      <ServicesSection />
+      <DestinationsSection />
+      <ScholarshipsSection />
+      <HousingSection />
+      <TestimonialsSection />
+      <ContactSection />
+      <Footer />
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authMode}
+      />
+      
+      {/* Live Chat */}
+      <LiveChat onOpenAuth={openAuth} />
     </div>
+  );
+};
+
+const DashboardPage = () => {
+  return (
+    <UserDashboard onClose={() => window.location.href = '/'} />
+  );
+};
+
+const AdminPage = () => {
+  return (
+    <AdminCMS onClose={() => window.location.href = '/'} />
   );
 };
 
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <NotificationProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminPage />
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </BrowserRouter>
+        </NotificationProvider>
+      </AuthProvider>
     </div>
   );
 }

@@ -1,0 +1,2207 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  LayoutDashboard, Users, GraduationCap, Building, Home, MessageCircle, FileText, 
+  Settings, LogOut, Plus, Edit, Trash2, Eye, Search, Filter, X, Check, Clock,
+  ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award
+} from 'lucide-react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const API = `${BACKEND_URL}/api`;
+
+const AdminCMS = ({ onClose }) => {
+  const { user, token, logout } = useAuth();
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Data states
+  const [users, setUsers] = useState([]);
+  const [offers, setOffers] = useState([]);
+  const [universities, setUniversities] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [housing, setHousing] = useState([]);
+  const [chats, setChats] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const chatWsRef = useRef(null);
+  const chatMessagesEndRef = useRef(null);
+
+  // Modal states
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showUniversityModal, setShowUniversityModal] = useState(false);
+  const [showHousingModal, setShowHousingModal] = useState(false);
+  const [showReplyModal, setShowReplyModal] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Load stats on mount
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  // Load data when section changes
+  useEffect(() => {
+    switch (activeSection) {
+      case 'users':
+        loadUsers();
+        break;
+      case 'offers':
+        loadOffers();
+        break;
+      case 'universities':
+        loadUniversities();
+        break;
+      case 'messages':
+        loadMessages();
+        break;
+      case 'applications':
+        loadApplications();
+        break;
+      case 'housing':
+        loadHousing();
+        break;
+      case 'chats':
+        loadChats();
+        break;
+      case 'payment-settings':
+        loadPaymentSettings();
+        break;
+      case 'scholarships':
+        loadOffers();
+        break;
+      default:
+        break;
+    }
+  }, [activeSection]);
+
+  const loadStats = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/stats`);
+      setStats(response.data);
+    } catch (err) {
+      console.error('Error loading stats:', err);
+    }
+  };
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/users`);
+      setUsers(response.data);
+    } catch (err) {
+      console.error('Error loading users:', err);
+    }
+    setLoading(false);
+  };
+
+  const loadOffers = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/offers`);
+      setOffers(response.data);
+    } catch (err) {
+      console.error('Error loading offers:', err);
+    }
+    setLoading(false);
+  };
+
+  const loadUniversities = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/universities`);
+      setUniversities(response.data);
+    } catch (err) {
+      console.error('Error loading universities:', err);
+    }
+    setLoading(false);
+  };
+
+  const loadMessages = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/messages`);
+      setMessages(response.data);
+    } catch (err) {
+      console.error('Error loading messages:', err);
+    }
+    setLoading(false);
+  };
+
+  const loadApplications = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/applications`);
+      setApplications(response.data);
+    } catch (err) {
+      console.error('Error loading applications:', err);
+    }
+    setLoading(false);
+  };
+
+  const loadHousing = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/housing`);
+      setHousing(response.data);
+    } catch (err) {
+      console.error('Error loading housing:', err);
+    }
+    setLoading(false);
+  };
+
+  const loadChats = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/chats`);
+      setChats(response.data);
+    } catch (err) {
+      console.error('Error loading chats:', err);
+    }
+    setLoading(false);
+  };
+
+  // Chat functions
+  const openChat = async (chat) => {
+    setActiveChat(chat);
+    setChatMessages(chat.messages || []);
+    
+    // Connect to WebSocket
+    if (chatWsRef.current) {
+      chatWsRef.current.close();
+    }
+    
+    try {
+      chatWsRef.current = new WebSocket(`${WS_URL}/ws/chat/${chat.id}/${token}`);
+      
+      chatWsRef.current.onmessage = (event) => {
+        if (event.data === 'pong') return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'message') {
+            setChatMessages(prev => [...prev, data.message]);
+          }
+        } catch (e) {
+          console.error('Error parsing chat message:', e);
+        }
+      };
+    } catch (error) {
+      console.error('Error connecting to chat WebSocket:', error);
+    }
+  };
+
+  const sendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!newChatMessage.trim() || !activeChat) return;
+    
+    try {
+      const response = await axios.post(
+        `${API}/chat/${activeChat.id}/message`,
+        { content: newChatMessage.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setChatMessages(prev => [...prev, response.data]);
+      setNewChatMessage('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
+  };
+
+  const closeActiveChat = () => {
+    if (chatWsRef.current) {
+      chatWsRef.current.close();
+      chatWsRef.current = null;
+    }
+    setActiveChat(null);
+    setChatMessages([]);
+  };
+
+  // Scroll to bottom of chat
+  useEffect(() => {
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (chatWsRef.current) {
+        chatWsRef.current.close();
+      }
+    };
+  }, []);
+
+  // User actions
+  const toggleUserStatus = async (userId) => {
+    try {
+      await axios.put(`${API}/admin/users/${userId}/toggle-status`);
+      loadUsers();
+    } catch (err) {
+      console.error('Error toggling user status:', err);
+    }
+  };
+
+  const makeAdmin = async (userId) => {
+    try {
+      await axios.put(`${API}/admin/users/${userId}/make-admin`);
+      loadUsers();
+    } catch (err) {
+      console.error('Error making admin:', err);
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur? Cette action est irréversible.')) return;
+    try {
+      await axios.delete(`${API}/admin/users/${userId}`);
+      loadUsers();
+      loadStats();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert(err.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  // Message actions
+  const markAsRead = async (messageId) => {
+    try {
+      await axios.put(`${API}/admin/messages/${messageId}/read`);
+      loadMessages();
+      loadStats();
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
+
+  const replyToMessage = async (messageId, content) => {
+    try {
+      await axios.post(`${API}/admin/messages/${messageId}/reply`, { content });
+      loadMessages();
+      setShowReplyModal(null);
+    } catch (err) {
+      console.error('Error replying:', err);
+    }
+  };
+
+  // Application actions
+  const updateApplicationStatus = async (appId, status) => {
+    try {
+      await axios.put(`${API}/admin/applications/${appId}/status?status=${status}`);
+      loadApplications();
+      loadStats();
+    } catch (err) {
+      console.error('Error updating status:', err);
+    }
+  };
+
+  // Offer actions
+  const deleteOffer = async (offerId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette offre?')) return;
+    try {
+      await axios.delete(`${API}/admin/offers/${offerId}`);
+      loadOffers();
+      loadStats();
+    } catch (err) {
+      console.error('Error deleting offer:', err);
+    }
+  };
+
+  // University actions
+  const deleteUniversity = async (uniId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette université?')) return;
+    try {
+      await axios.delete(`${API}/admin/universities/${uniId}`);
+      loadUniversities();
+      loadStats();
+    } catch (err) {
+      console.error('Error deleting university:', err);
+    }
+  };
+
+  // Payment Settings state
+  const [paymentSettings, setPaymentSettings] = useState(null);
+  const [showPaymentSettings, setShowPaymentSettings] = useState(false);
+
+  const loadPaymentSettings = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/payment-settings`);
+      setPaymentSettings(response.data);
+    } catch (err) {
+      console.error('Error loading payment settings:', err);
+    }
+  };
+
+  const savePaymentSettings = async (settings) => {
+    try {
+      await axios.post(`${API}/admin/payment-settings`, settings);
+      setPaymentSettings(settings);
+      setShowPaymentSettings(false);
+    } catch (err) {
+      console.error('Error saving payment settings:', err);
+    }
+  };
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+    { id: 'offers', label: 'Offres', icon: GraduationCap, badge: stats?.offers },
+    { id: 'universities', label: 'Universités', icon: Building, badge: stats?.universities },
+    { id: 'scholarships', label: 'Bourses/Financement', icon: Award },
+    { id: 'users', label: 'Utilisateurs', icon: Users, badge: stats?.users },
+    { id: 'applications', label: 'Candidatures', icon: FileText, badge: stats?.pendingApplications },
+    { id: 'messages', label: 'Messages', icon: MessageCircle, badge: stats?.unreadMessages },
+    { id: 'chats', label: 'Chat en direct', icon: Headphones, badge: chats?.length },
+    { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
+    { id: 'payment-settings', label: 'Paiements', icon: Settings },
+  ];
+
+  const getStatusBadge = (status) => {
+    const config = {
+      pending: { color: 'bg-yellow-100 text-yellow-700', label: 'En attente' },
+      reviewing: { color: 'bg-blue-100 text-blue-700', label: 'En examen' },
+      accepted: { color: 'bg-green-100 text-green-700', label: 'Acceptée' },
+      rejected: { color: 'bg-red-100 text-red-700', label: 'Refusée' }
+    };
+    const c = config[status] || config.pending;
+    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.color}`}>{c.label}</span>;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-[#1e3a5f] text-white flex flex-col">
+        <div className="p-6 border-b border-white/10">
+          <h1 className="text-xl font-bold">Admin CMS</h1>
+          <p className="text-sm text-blue-200">Winner's Consulting</p>
+        </div>
+        
+        <nav className="flex-1 py-4">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center justify-between px-6 py-3 text-left transition-colors ${
+                  activeSection === item.id
+                    ? 'bg-white/10 border-r-4 border-white'
+                    : 'hover:bg-white/5'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <Icon size={18} />
+                  {item.label}
+                </span>
+                {item.badge > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <button
+            onClick={() => { logout(); onClose(); }}
+            className="w-full flex items-center gap-3 px-4 py-2 text-red-300 hover:bg-red-500/20 rounded-lg transition-colors"
+          >
+            <LogOut size={18} />
+            Déconnexion
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {menuItems.find(m => m.id === activeSection)?.label}
+            </h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-gray-400 hover:text-gray-600">
+              <Bell size={20} />
+              {stats?.unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {stats.unreadMessages}
+                </span>
+              )}
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white font-bold">
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+                <p className="text-xs text-gray-500">Administrateur</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="p-8">
+          {/* Dashboard */}
+          {activeSection === 'dashboard' && stats && (
+            <div className="space-y-6">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-6">
+                <StatCard 
+                  title="Utilisateurs" 
+                  value={stats.users} 
+                  icon={Users}
+                  color="blue"
+                />
+                <StatCard 
+                  title="Offres actives" 
+                  value={stats.offers} 
+                  icon={GraduationCap}
+                  color="green"
+                />
+                <StatCard 
+                  title="Candidatures" 
+                  value={stats.applications} 
+                  icon={FileText}
+                  color="purple"
+                  subtitle={`${stats.pendingApplications} en attente`}
+                />
+                <StatCard 
+                  title="Messages" 
+                  value={stats.messages} 
+                  icon={MessageCircle}
+                  color="orange"
+                  subtitle={`${stats.unreadMessages} non lus`}
+                />
+              </div>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-4">Actions rapides</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => { setActiveSection('offers'); setShowOfferModal(true); }}
+                      className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <Plus size={18} />
+                      Nouvelle offre
+                    </button>
+                    <button 
+                      onClick={() => { setActiveSection('universities'); setShowUniversityModal(true); }}
+                      className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      <Plus size={18} />
+                      Nouvelle université
+                    </button>
+                    <button 
+                      onClick={() => setActiveSection('applications')}
+                      className="flex items-center gap-2 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      <FileText size={18} />
+                      Voir candidatures
+                    </button>
+                    <button 
+                      onClick={() => setActiveSection('messages')}
+                      className="flex items-center gap-2 p-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
+                    >
+                      <MessageCircle size={18} />
+                      Voir messages
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-4">Statistiques globales</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Universités partenaires</span>
+                      <span className="font-semibold">{stats.universities}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Logements disponibles</span>
+                      <span className="font-semibold">{stats.housing}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Taux d'acceptation</span>
+                      <span className="font-semibold text-green-600">78%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Users Section */}
+          {activeSection === 'users' && (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Liste des utilisateurs ({users.length})</h3>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Rechercher..." 
+                      className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1a56db]"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {loading ? (
+                <div className="p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utilisateur</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white text-sm font-bold">
+                              {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{u.firstName} {u.lastName}</p>
+                              <p className="text-xs text-gray-500">{u.phone || 'Pas de téléphone'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{u.email}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {u.role === 'admin' ? 'Admin' : 'Utilisateur'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {u.isActive ? 'Actif' : 'Inactif'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleUserStatus(u.id)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                u.isActive ? 'hover:bg-red-50 text-red-500' : 'hover:bg-green-50 text-green-500'
+                              }`}
+                              title={u.isActive ? 'Désactiver' : 'Activer'}
+                            >
+                              {u.isActive ? <X size={16} /> : <Check size={16} />}
+                            </button>
+                            {u.role !== 'admin' && (
+                              <button
+                                onClick={() => makeAdmin(u.id)}
+                                className="p-2 hover:bg-purple-50 text-purple-500 rounded-lg transition-colors"
+                                title="Promouvoir admin"
+                              >
+                                <Users size={16} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => deleteUser(u.id)}
+                              className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                              title="Supprimer l'utilisateur"
+                              data-testid={`delete-user-${u.id}`}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* Offers Section */}
+          {activeSection === 'offers' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Offres de programmes ({offers.length})</h3>
+                <button
+                  onClick={() => { setEditingItem(null); setShowOfferModal(true); }}
+                  className="flex items-center gap-2 bg-[#1a56db] text-white px-4 py-2 rounded-lg hover:bg-[#1648b8] transition-colors"
+                >
+                  <Plus size={18} />
+                  Nouvelle offre
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                {loading ? (
+                  <div className="p-12 text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                  </div>
+                ) : offers.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <GraduationCap size={48} className="mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500">Aucune offre pour le moment</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programme</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Université</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vues</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {offers.map((offer) => (
+                        <tr key={offer.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={offer.image} 
+                                alt={offer.title}
+                                className="w-12 h-12 object-cover rounded-lg"
+                              />
+                              <div>
+                                <p className="font-medium text-gray-900">{offer.title}</p>
+                                <p className="text-xs text-gray-500">{offer.degree} • {offer.duration}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">{offer.university}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              offer.hasScholarship && !offer.isPartialScholarship ? 'bg-green-100 text-green-700' :
+                              offer.isPartialScholarship ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {offer.hasScholarship && !offer.isPartialScholarship ? 'Bourse Complète' :
+                               offer.isPartialScholarship ? 'Bourse Partielle' : 'Auto-financé'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">{offer.views?.toLocaleString() || 0}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => { setEditingItem(offer); setShowOfferModal(true); }}
+                                className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => deleteOffer(offer.id)}
+                                className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Universities Section */}
+          {activeSection === 'universities' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Universités partenaires ({universities.length})</h3>
+                <button
+                  onClick={() => { setEditingItem(null); setShowUniversityModal(true); }}
+                  className="flex items-center gap-2 bg-[#1a56db] text-white px-4 py-2 rounded-lg hover:bg-[#1648b8] transition-colors"
+                >
+                  <Plus size={18} />
+                  Nouvelle université
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6">
+                {loading ? (
+                  <div className="col-span-3 p-12 text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                  </div>
+                ) : universities.length === 0 ? (
+                  <div className="col-span-3 bg-white rounded-xl p-12 text-center">
+                    <Building size={48} className="mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500">Aucune université pour le moment</p>
+                  </div>
+                ) : (
+                  universities.map((uni) => (
+                    <div key={uni.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="h-32 bg-gray-100">
+                        {uni.image && (
+                          <img src={uni.image} alt={uni.name} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h4 className="font-semibold text-gray-900">{uni.name}</h4>
+                        <p className="text-sm text-gray-500">{uni.city}, {uni.country}</p>
+                        <div className="flex items-center justify-between mt-4">
+                          <span className="text-xs text-gray-400">{uni.views || 0} vues</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setEditingItem(uni); setShowUniversityModal(true); }}
+                              className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => deleteUniversity(uni.id)}
+                              className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Applications Section */}
+          {activeSection === 'applications' && (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b">
+                <h3 className="font-semibold text-gray-900">Candidatures ({applications.length})</h3>
+              </div>
+              
+              {loading ? (
+                <div className="p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                </div>
+              ) : applications.length === 0 ? (
+                <div className="p-12 text-center">
+                  <FileText size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">Aucune candidature pour le moment</p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Candidat</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programme</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paiement</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {applications.map((app) => (
+                      <tr key={app.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-gray-900">{app.firstName || app.userName?.split(' ')[0]} {app.lastName || app.userName?.split(' ')[1]}</p>
+                          <p className="text-xs text-gray-500">{app.userEmail}</p>
+                          {app.nationality && <p className="text-xs text-gray-400">{app.nationality}</p>}
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-gray-600">{app.offerTitle}</p>
+                          {app.documents?.length > 0 && (
+                            <p className="text-xs text-green-600">{app.documents.length} documents</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {app.paymentStatus ? (
+                            <div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                app.paymentStatus === 'verified' ? 'bg-green-100 text-green-700' :
+                                app.paymentStatus === 'submitted' ? 'bg-blue-100 text-blue-700' :
+                                app.paymentStatus === 'rejected' ? 'bg-red-100 text-red-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {app.paymentStatus === 'verified' ? 'Vérifié' :
+                                 app.paymentStatus === 'submitted' ? 'Soumis' :
+                                 app.paymentStatus === 'rejected' ? 'Rejeté' : 'En attente'}
+                              </span>
+                              {app.paymentProof && (
+                                <a href={`${BACKEND_URL}${app.paymentProof}`} target="_blank" rel="noopener noreferrer" 
+                                   className="block text-xs text-blue-500 hover:underline mt-1">
+                                  Voir preuve
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-gray-600 text-sm">
+                          {new Date(app.createdAt).toLocaleDateString('fr-FR')}
+                        </td>
+                        <td className="px-6 py-4">{getStatusBadge(app.status)}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-2">
+                            <select
+                              value={app.status}
+                              onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
+                              className="text-sm border border-gray-200 rounded-lg px-3 py-1 focus:outline-none focus:border-[#1a56db]"
+                            >
+                              <option value="pending">En attente</option>
+                              <option value="reviewing">En examen</option>
+                              <option value="accepted">Acceptée</option>
+                              <option value="rejected">Refusée</option>
+                            </select>
+                            {app.paymentStatus && (
+                              <select
+                                value={app.paymentStatus}
+                                onChange={async (e) => {
+                                  try {
+                                    await axios.put(`${API}/admin/applications/${app.id}/payment-status?payment_status=${e.target.value}`);
+                                    loadApplications();
+                                  } catch (err) {
+                                    console.error('Error updating payment status:', err);
+                                  }
+                                }}
+                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-green-500"
+                              >
+                                <option value="pending">Paiement: En attente</option>
+                                <option value="submitted">Paiement: Soumis</option>
+                                <option value="verified">Paiement: Vérifié</option>
+                                <option value="rejected">Paiement: Rejeté</option>
+                              </select>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* Messages Section */}
+          {activeSection === 'messages' && (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b">
+                <h3 className="font-semibold text-gray-900">Messages ({messages.length})</h3>
+              </div>
+              
+              {loading ? (
+                <div className="p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="p-12 text-center">
+                  <MessageCircle size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">Aucun message pour le moment</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className={`p-6 ${!msg.isRead ? 'bg-blue-50' : ''}`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900">{msg.senderName}</p>
+                            {!msg.isRead && (
+                              <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">Nouveau</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">{msg.senderEmail}</p>
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {new Date(msg.createdAt).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                      <h4 className="font-medium text-gray-800 mb-2">{msg.subject}</h4>
+                      <p className="text-gray-600 text-sm mb-4">{msg.content}</p>
+                      
+                      {msg.replies && msg.replies.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                          <p className="text-xs text-gray-500 mb-2">Réponses:</p>
+                          {msg.replies.map((reply, idx) => (
+                            <div key={idx} className="text-sm text-gray-700 mb-2">
+                              <span className="font-medium">{reply.adminName}:</span> {reply.content}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        {!msg.isRead && (
+                          <button
+                            onClick={() => markAsRead(msg.id)}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Marquer comme lu
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setShowReplyModal(msg)}
+                          className="text-sm text-green-600 hover:underline"
+                        >
+                          Répondre
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Housing Section */}
+          {activeSection === 'housing' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Logements ({housing.length})</h3>
+                <button 
+                  onClick={() => { setEditingItem(null); setShowHousingModal(true); }}
+                  className="flex items-center gap-2 bg-[#1a56db] text-white px-4 py-2 rounded-lg hover:bg-[#1648b8] transition-colors"
+                >
+                  <Plus size={18} />
+                  Nouveau logement
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                {loading ? (
+                  <div className="p-12 text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                  </div>
+                ) : housing.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Home size={48} className="mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500">Aucun logement pour le moment</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-6 p-6">
+                    {housing.map((h) => (
+                      <div key={h.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
+                        <div className="h-32 bg-gray-100">
+                          {h.image && <img src={h.image} alt={h.type} className="w-full h-full object-cover" />}
+                        </div>
+                        <div className="p-4">
+                          <h4 className="font-semibold text-gray-900">{h.type}</h4>
+                          <p className="text-sm text-gray-500">{h.location}, {h.city}</p>
+                          <p className="text-[#1a56db] font-medium mt-2">{h.priceRange}</p>
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => { setEditingItem(h); setShowHousingModal(true); }}
+                              className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (window.confirm('Supprimer ce logement?')) {
+                                  await axios.delete(`${API}/admin/housing/${h.id}`);
+                                  loadHousing();
+                                }
+                              }}
+                              className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Chats Section */}
+          {activeSection === 'chats' && (
+            <div className="flex gap-6 h-[calc(100vh-200px)]">
+              {/* Chat List */}
+              <div className="w-80 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-gray-900">Conversations actives ({chats.length})</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {loading ? (
+                    <div className="p-8 text-center">
+                      <div className="animate-spin w-6 h-6 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                    </div>
+                  ) : chats.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <Headphones size={40} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-gray-500 text-sm">Aucun chat actif</p>
+                    </div>
+                  ) : (
+                    chats.map((chat) => (
+                      <button
+                        key={chat.id}
+                        onClick={() => openChat(chat)}
+                        className={`w-full p-4 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                          activeChat?.id === chat.id ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white text-sm font-bold">
+                            {chat.userName?.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{chat.userName}</p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {chat.messages?.length > 0 
+                                ? chat.messages[chat.messages.length - 1].content 
+                                : 'Nouvelle conversation'}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Chat Window */}
+              <div className="flex-1 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+                {activeChat ? (
+                  <>
+                    {/* Chat Header */}
+                    <div className="p-4 border-b flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white text-sm font-bold">
+                          {activeChat.userName?.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{activeChat.userName}</p>
+                          <p className="text-xs text-gray-500">{activeChat.userEmail}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={closeActiveChat}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                      {chatMessages.length === 0 ? (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          Début de la conversation
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {chatMessages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                                  msg.isAdmin
+                                    ? 'bg-[#1a56db] text-white rounded-br-md'
+                                    : 'bg-white text-gray-800 shadow-sm rounded-bl-md'
+                                }`}
+                              >
+                                <p className="text-sm">{msg.content}</p>
+                                <p className={`text-xs mt-1 ${msg.isAdmin ? 'text-blue-100' : 'text-gray-400'}`}>
+                                  {new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          <div ref={chatMessagesEndRef} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Input */}
+                    <form onSubmit={sendChatMessage} className="p-4 border-t">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newChatMessage}
+                          onChange={(e) => setNewChatMessage(e.target.value)}
+                          placeholder="Écrivez votre message..."
+                          className="flex-1 px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-[#1a56db]"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!newChatMessage.trim()}
+                          className="w-10 h-10 bg-[#1a56db] hover:bg-[#1648b8] text-white rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
+                        >
+                          <Send size={18} />
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <Headphones size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Sélectionnez une conversation</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Settings Section */}
+          {activeSection === 'payment-settings' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Paramètres de paiement</h3>
+              </div>
+
+              {paymentSettings ? (
+                <PaymentSettingsForm
+                  settings={paymentSettings}
+                  onSave={savePaymentSettings}
+                />
+              ) : (
+                <div className="bg-white rounded-xl p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Scholarships Section - Shows scholarship offers */}
+          {activeSection === 'scholarships' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Bourses & Opportunités de Financement</h3>
+                <button
+                  onClick={() => { setEditingOffer(null); setShowOfferModal(true); }}
+                  className="flex items-center gap-2 bg-[#1a56db] text-white px-4 py-2 rounded-lg hover:bg-[#1648b8] transition-colors"
+                >
+                  <Plus size={18} />
+                  Nouvelle Bourse
+                </button>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Les bourses sont gérées via les offres. Pour ajouter une nouvelle bourse, créez une offre avec le type "Bourse Complète" ou "Bourse Partielle".
+                </p>
+              </div>
+              
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b">
+                  <h4 className="font-medium text-gray-900">Offres avec bourses ({offers.filter(o => o.hasScholarship).length})</h4>
+                </div>
+                {loading ? (
+                  <div className="p-12 text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                  </div>
+                ) : offers.filter(o => o.hasScholarship).length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Award size={48} className="mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500">Aucune offre avec bourse</p>
+                    <p className="text-sm text-gray-400">Créez une offre avec l'option "Bourse" activée</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Offre</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Université</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Couverture</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {offers.filter(o => o.hasScholarship).map((offer) => (
+                        <tr key={offer.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <img src={offer.image || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=100'} alt="" className="w-10 h-10 rounded object-cover" />
+                              <div>
+                                <p className="font-medium text-gray-900">{offer.title}</p>
+                                <p className="text-xs text-gray-500">{offer.degree} • {offer.duration}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">{offer.university}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              offer.isPartialScholarship ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                            }`}>
+                              {offer.isPartialScholarship ? 'Bourse Partielle' : 'Bourse Complète'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {offer.scholarshipTuition === 0 ? 'Frais: 100%' : `Frais réduits: ${offer.scholarshipTuition?.toLocaleString() || 0}`}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => { setEditingOffer(offer); setShowOfferModal(true); }}
+                                className="p-2 text-gray-500 hover:text-[#1a56db] hover:bg-blue-50 rounded-lg transition-colors"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => deleteOffer(offer.id)}
+                                className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Reply Modal */}
+      {showReplyModal && (
+        <ReplyModal 
+          message={showReplyModal}
+          onClose={() => setShowReplyModal(null)}
+          onSubmit={replyToMessage}
+        />
+      )}
+
+      {/* Offer Modal */}
+      {showOfferModal && (
+        <OfferFormModal
+          offer={editingItem}
+          onClose={() => { setShowOfferModal(false); setEditingItem(null); }}
+          onSuccess={() => { setShowOfferModal(false); setEditingItem(null); loadOffers(); loadStats(); }}
+        />
+      )}
+
+      {/* University Modal */}
+      {showUniversityModal && (
+        <UniversityFormModal
+          university={editingItem}
+          onClose={() => { setShowUniversityModal(false); setEditingItem(null); }}
+          onSuccess={() => { setShowUniversityModal(false); setEditingItem(null); loadUniversities(); loadStats(); }}
+        />
+      )}
+
+      {/* Housing Modal */}
+      {showHousingModal && (
+        <HousingFormModal
+          housing={editingItem}
+          onClose={() => { setShowHousingModal(false); setEditingItem(null); }}
+          onSuccess={() => { setShowHousingModal(false); setEditingItem(null); loadHousing(); loadStats(); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Stat Card Component
+const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
+  const colors = {
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
+    purple: 'bg-purple-50 text-purple-600',
+    orange: 'bg-orange-50 text-orange-600'
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 rounded-lg ${colors[color]}`}>
+          <Icon size={24} />
+        </div>
+        <TrendingUp size={20} className="text-green-500" />
+      </div>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+      <p className="text-gray-500">{title}</p>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  );
+};
+
+// Reply Modal Component
+const ReplyModal = ({ message, onClose, onSubmit }) => {
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    await onSubmit(message.id, content);
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative bg-white rounded-xl w-full max-w-lg overflow-hidden">
+        <div className="p-6 border-b">
+          <h3 className="font-semibold text-gray-900">Répondre au message</h3>
+          <p className="text-sm text-gray-500">À: {message.senderName} ({message.senderEmail})</p>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-1">{message.subject}</p>
+            <p className="text-sm text-gray-600">{message.content}</p>
+          </div>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] resize-none"
+            rows={4}
+            placeholder="Votre réponse..."
+            required
+          />
+          <div className="flex gap-3 mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50"
+            >
+              {loading ? 'Envoi...' : 'Envoyer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Offer Form Modal
+const OfferFormModal = ({ offer, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState(offer || {
+    title: '',
+    university: '',
+    city: '',
+    country: 'Chine',
+    countryCode: 'CN',
+    category: 'engineering',
+    categoryLabel: 'Ingénierie',
+    degree: 'Master',
+    duration: '2 ans',
+    teachingLanguage: 'Anglais',
+    intake: 'Automne 2025',
+    deadline: '',
+    image: '',
+    originalTuition: 0,
+    scholarshipTuition: 0,
+    currency: 'CNY',
+    scholarshipType: '',
+    hasScholarship: false,
+    isPartialScholarship: false,
+    isSelfFinanced: true,
+    isOnline: false,
+    isNew: true,
+    badges: [],
+    description: '',
+    requirements: { age: '', previousDegree: '', gpa: '', language: '', otherRequirements: [] },
+    scholarshipDetails: { tuitionCovered: false, accommodationCovered: false, monthlyAllowance: 0, insuranceCovered: false },
+    fees: { originalTuition: 0, scholarshipTuition: 0, accommodationDouble: 0, accommodationSingle: 0, registrationFee: 0, insuranceFee: 0, applicationFee: 0 },
+    documents: [],
+    serviceFee: 0
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (offer) {
+        await axios.put(`${API}/admin/offers/${offer.id}`, formData);
+      } else {
+        await axios.post(`${API}/admin/offers`, formData);
+      }
+      onSuccess();
+    } catch (err) {
+      console.error('Error saving offer:', err);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+        <div className="p-6 border-b sticky top-0 bg-white">
+          <h3 className="font-semibold text-gray-900">
+            {offer ? 'Modifier l\'offre' : 'Nouvelle offre'}
+          </h3>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Université</label>
+              <input
+                type="text"
+                value={formData.university}
+                onChange={(e) => setFormData({...formData, university: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+              <select
+                value={formData.countryCode}
+                onChange={(e) => setFormData({
+                  ...formData, 
+                  countryCode: e.target.value,
+                  country: e.target.value === 'CN' ? 'Chine' : 'France',
+                  currency: e.target.value === 'CN' ? 'CNY' : 'EUR'
+                })}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="CN">Chine</option>
+                <option value="FR">France</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Diplôme</label>
+              <select
+                value={formData.degree}
+                onChange={(e) => setFormData({...formData, degree: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="Licence">Licence</option>
+                <option value="Master">Master</option>
+                <option value="Doctorat">Doctorat</option>
+                <option value="MBA">MBA</option>
+                <option value="Certificat">Certificat</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+              <select
+                value={formData.category}
+                onChange={(e) => {
+                  const categoryMap = {
+                    'engineering': 'Ingénierie',
+                    'medicine': 'Médecine',
+                    'business': 'Gestion',
+                    'economics': 'Économie',
+                    'science': 'Sciences',
+                    'law': 'Droit',
+                    'arts': 'Arts & Design',
+                    'literature': 'Littérature',
+                    'chinese': 'Langue Chinoise',
+                    'french': 'Langue Française'
+                  };
+                  setFormData({
+                    ...formData, 
+                    category: e.target.value,
+                    categoryLabel: categoryMap[e.target.value] || e.target.value
+                  });
+                }}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="engineering">Ingénierie</option>
+                <option value="medicine">Médecine</option>
+                <option value="business">Gestion</option>
+                <option value="economics">Économie</option>
+                <option value="science">Sciences</option>
+                <option value="law">Droit</option>
+                <option value="arts">Arts & Design</option>
+                <option value="literature">Littérature</option>
+                <option value="chinese">Langue Chinoise</option>
+                <option value="french">Langue Française</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Durée</label>
+              <input
+                type="text"
+                value={formData.duration}
+                onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                placeholder="Ex: 2 ans"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Frais originaux</label>
+              <input
+                type="number"
+                value={formData.originalTuition}
+                onChange={(e) => setFormData({...formData, originalTuition: Number(e.target.value)})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Frais après bourse</label>
+              <input
+                type="number"
+                value={formData.scholarshipTuition}
+                onChange={(e) => setFormData({...formData, scholarshipTuition: Number(e.target.value)})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+            <input
+              type="url"
+              value={formData.image}
+              onChange={(e) => setFormData({...formData, image: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Fees Section */}
+          <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+            <h4 className="font-medium text-gray-900 mb-3">Frais de service Winner's Consulting</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Frais de dossier ({formData.currency})</label>
+                <input
+                  type="number"
+                  value={formData.fees?.applicationFee || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...formData.fees, applicationFee: Number(e.target.value)}})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Frais de service ({formData.currency})</label>
+                <input
+                  type="number"
+                  value={formData.serviceFee || 0}
+                  onChange={(e) => setFormData({...formData, serviceFee: Number(e.target.value)})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.hasScholarship}
+                onChange={(e) => {
+                  const hasScholarship = e.target.checked;
+                  setFormData({
+                    ...formData, 
+                    hasScholarship,
+                    isSelfFinanced: !hasScholarship,
+                    scholarshipType: hasScholarship ? 'Bourse Complète' : '',
+                    badges: hasScholarship ? ['Bourse Complète'] : []
+                  });
+                }}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Bourse disponible</span>
+            </label>
+            {formData.hasScholarship && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isPartialScholarship}
+                  onChange={(e) => {
+                    const isPartial = e.target.checked;
+                    setFormData({
+                      ...formData, 
+                      isPartialScholarship: isPartial,
+                      scholarshipType: isPartial ? 'Bourse Partielle' : 'Bourse Complète',
+                      badges: [isPartial ? 'Bourse Partielle' : 'Bourse Complète']
+                    });
+                  }}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-700">Bourse Partielle</span>
+              </label>
+            )}
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isOnline}
+                onChange={(e) => setFormData({...formData, isOnline: e.target.checked})}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Cours en ligne</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isNew}
+                onChange={(e) => setFormData({...formData, isNew: e.target.checked})}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Nouveauté</span>
+            </label>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50"
+            >
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// University Form Modal
+const UniversityFormModal = ({ university, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState(university || {
+    name: '',
+    city: '',
+    country: 'Chine',
+    countryCode: 'CN',
+    image: '',
+    ranking: '',
+    badges: []
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (university) {
+        await axios.put(`${API}/admin/universities/${university.id}`, formData);
+      } else {
+        await axios.post(`${API}/admin/universities`, formData);
+      }
+      onSuccess();
+    } catch (err) {
+      console.error('Error saving university:', err);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative bg-white rounded-xl w-full max-w-lg overflow-hidden">
+        <div className="p-6 border-b">
+          <h3 className="font-semibold text-gray-900">
+            {university ? 'Modifier l\'université' : 'Nouvelle université'}
+          </h3>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+              <select
+                value={formData.countryCode}
+                onChange={(e) => setFormData({
+                  ...formData, 
+                  countryCode: e.target.value,
+                  country: e.target.value === 'CN' ? 'Chine' : 'France'
+                })}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="CN">Chine</option>
+                <option value="FR">France</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+            <input
+              type="url"
+              value={formData.image}
+              onChange={(e) => setFormData({...formData, image: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="https://..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Classement</label>
+            <input
+              type="text"
+              value={formData.ranking}
+              onChange={(e) => setFormData({...formData, ranking: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="Ex: Top 100 QS"
+            />
+          </div>
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50"
+            >
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Housing Form Modal
+const HousingFormModal = ({ housing, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState(housing || {
+    type: '',
+    location: '',
+    city: '',
+    country: 'Chine',
+    priceRange: '',
+    priceMin: 0,
+    priceMax: 0,
+    currency: 'CNY',
+    image: '',
+    amenities: [],
+    description: ''
+  });
+  const [amenityInput, setAmenityInput] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (housing) {
+        await axios.put(`${API}/admin/housing/${housing.id}`, formData);
+      } else {
+        await axios.post(`${API}/admin/housing`, formData);
+      }
+      onSuccess();
+    } catch (err) {
+      console.error('Error saving housing:', err);
+    }
+    setLoading(false);
+  };
+
+  const addAmenity = () => {
+    if (amenityInput.trim()) {
+      setFormData({
+        ...formData,
+        amenities: [...(formData.amenities || []), amenityInput.trim()]
+      });
+      setAmenityInput('');
+    }
+  };
+
+  const removeAmenity = (index) => {
+    setFormData({
+      ...formData,
+      amenities: formData.amenities.filter((_, i) => i !== index)
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-auto">
+        <div className="p-6 border-b sticky top-0 bg-white">
+          <h3 className="font-semibold text-gray-900">
+            {housing ? 'Modifier le logement' : 'Nouveau logement'}
+          </h3>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type de logement</label>
+            <input
+              type="text"
+              value={formData.type}
+              onChange={(e) => setFormData({...formData, type: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="Ex: Studio meublé, Chambre universitaire"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                placeholder="Ex: Campus, Quartier"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                required
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+              <select
+                value={formData.country}
+                onChange={(e) => setFormData({
+                  ...formData, 
+                  country: e.target.value,
+                  currency: e.target.value === 'Chine' ? 'CNY' : 'EUR'
+                })}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="Chine">Chine</option>
+                <option value="France">France</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fourchette de prix</label>
+              <input
+                type="text"
+                value={formData.priceRange}
+                onChange={(e) => setFormData({...formData, priceRange: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                placeholder="Ex: 3000-5000 CNY/mois"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+            <input
+              type="url"
+              value={formData.image}
+              onChange={(e) => setFormData({...formData, image: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="https://..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Équipements</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={amenityInput}
+                onChange={(e) => setAmenityInput(e.target.value)}
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+                placeholder="WiFi, Cuisine équipée..."
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAmenity())}
+              />
+              <button
+                type="button"
+                onClick={addAmenity}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                Ajouter
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(formData.amenities || []).map((amenity, index) => (
+                <span key={index} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm flex items-center gap-1">
+                  {amenity}
+                  <button type="button" onClick={() => removeAmenity(index)} className="hover:text-blue-900">
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] resize-none"
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50"
+            >
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Payment Settings Form Component
+const PaymentSettingsForm = ({ settings, onSave }) => {
+  const [formData, setFormData] = useState(settings);
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    await onSave(formData);
+    setLoading(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-6">
+      {/* QR Codes Section */}
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          QR Codes de paiement
+        </h4>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">WeChat Pay QR Code URL</label>
+            <input
+              type="url"
+              value={formData.wechatQrCode}
+              onChange={(e) => setFormData({...formData, wechatQrCode: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="https://..."
+            />
+            {formData.wechatQrCode && (
+              <img src={formData.wechatQrCode} alt="WeChat QR" className="mt-2 w-32 h-32 object-cover rounded-lg border" />
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Alipay QR Code URL</label>
+            <input
+              type="url"
+              value={formData.alipayQrCode}
+              onChange={(e) => setFormData({...formData, alipayQrCode: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              placeholder="https://..."
+            />
+            {formData.alipayQrCode && (
+              <img src={formData.alipayQrCode} alt="Alipay QR" className="mt-2 w-32 h-32 object-cover rounded-lg border" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* PayPal Section */}
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+          PayPal
+        </h4>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email PayPal</label>
+          <input
+            type="email"
+            value={formData.paypalEmail}
+            onChange={(e) => setFormData({...formData, paypalEmail: e.target.value})}
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            placeholder="payments@example.com"
+          />
+        </div>
+      </div>
+
+      {/* Bank Transfer Section */}
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+          Virement bancaire
+        </h4>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la banque</label>
+            <input
+              type="text"
+              value={formData.bankName}
+              onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Titulaire du compte</label>
+            <input
+              type="text"
+              value={formData.bankAccountName}
+              onChange={(e) => setFormData({...formData, bankAccountName: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Numéro de compte</label>
+            <input
+              type="text"
+              value={formData.bankAccountNumber}
+              onChange={(e) => setFormData({...formData, bankAccountNumber: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Code SWIFT</label>
+            <input
+              type="text"
+              value={formData.bankSwiftCode}
+              onChange={(e) => setFormData({...formData, bankSwiftCode: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">IBAN (optionnel)</label>
+            <input
+              type="text"
+              value={formData.bankIban}
+              onChange={(e) => setFormData({...formData, bankIban: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Application Fee Section */}
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+          Frais de dossier
+        </h4>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Montant des frais</label>
+            <input
+              type="number"
+              value={formData.applicationFee}
+              onChange={(e) => setFormData({...formData, applicationFee: Number(e.target.value)})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Devise</label>
+            <select
+              value={formData.currency}
+              onChange={(e) => setFormData({...formData, currency: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+            >
+              <option value="EUR">Euro (EUR)</option>
+              <option value="CNY">Yuan (CNY)</option>
+              <option value="USD">Dollar (USD)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <div className="pt-4 border-t flex justify-end gap-4">
+        {saved && (
+          <span className="flex items-center gap-2 text-green-600">
+            <Check size={18} />
+            Enregistré!
+          </span>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-6 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50 flex items-center gap-2"
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          ) : (
+            <Check size={18} />
+          )}
+          Enregistrer les paramètres
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default AdminCMS;
