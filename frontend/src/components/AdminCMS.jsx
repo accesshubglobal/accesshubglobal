@@ -1470,6 +1470,7 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
     fees: { originalTuition: 0, scholarshipTuition: 0, accommodationDouble: 0, accommodationSingle: 0, registrationFee: 0, insuranceFee: 0, applicationFee: 0, booksFee: 0, otherFees: [] },
     admissionConditions: [],
     requiredDocuments: [],
+    documentTemplates: [{}, {}, {}],
     documents: [],
     serviceFee: 0
   });
@@ -1971,6 +1972,169 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
                     + {suggestion}
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: Documents requis + Templates à uploader */}
+          <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+            <div className="mb-4">
+              <h4 className="font-medium text-gray-900 flex items-center gap-2 mb-3">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Documents Requis pour Candidature
+              </h4>
+              
+              {/* Documents prédéfinis avec checkboxes */}
+              <div className="bg-white rounded-lg p-3 border border-green-200 mb-3">
+                <p className="text-xs font-medium text-gray-600 mb-2">Documents standards (cochez ceux requis) :</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    'Passeport',
+                    'Photo d\'identité',
+                    'Diplôme de baccalauréat',
+                    'Relevé de notes',
+                    'Certificat de langue (IELTS/TOEFL/HSK)',
+                    'Lettre de motivation',
+                    'CV / Curriculum Vitae',
+                    'Lettres de recommandation (2)',
+                    'Certificat de naissance',
+                    'Certificat médical',
+                    'Preuve de ressources financières',
+                    'Portfolio (pour arts/design)'
+                  ].map((doc, idx) => (
+                    <label key={idx} className="flex items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={(formData.requiredDocuments || []).includes(doc)}
+                        onChange={(e) => {
+                          const docs = formData.requiredDocuments || [];
+                          if (e.target.checked) {
+                            setFormData({...formData, requiredDocuments: [...docs, doc]});
+                          } else {
+                            setFormData({...formData, requiredDocuments: docs.filter(d => d !== doc)});
+                          }
+                        }}
+                        className="mt-0.5 rounded border-gray-300"
+                      />
+                      <span className="text-gray-700">{doc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Documents personnalisés */}
+              <div className="bg-white rounded-lg p-3 border border-green-200 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-gray-600">Documents personnalisés :</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const customDoc = prompt('Nom du document personnalisé :');
+                      if (customDoc && customDoc.trim()) {
+                        const docs = formData.requiredDocuments || [];
+                        if (!docs.includes(customDoc.trim())) {
+                          setFormData({...formData, requiredDocuments: [...docs, customDoc.trim()]});
+                        }
+                      }
+                    }}
+                    className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                  >
+                    + Ajouter
+                  </button>
+                </div>
+                {(formData.requiredDocuments || []).filter(doc => 
+                  !['Passeport', 'Photo d\'identité', 'Diplôme de baccalauréat', 'Relevé de notes', 
+                    'Certificat de langue (IELTS/TOEFL/HSK)', 'Lettre de motivation', 'CV / Curriculum Vitae',
+                    'Lettres de recommandation (2)', 'Certificat de naissance', 'Certificat médical',
+                    'Preuve de ressources financières', 'Portfolio (pour arts/design)'].includes(doc)
+                ).map((doc, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-1 px-2 bg-green-50 rounded mb-1">
+                    <span className="text-sm text-gray-700">{doc}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const docs = (formData.requiredDocuments || []).filter(d => d !== doc);
+                        setFormData({...formData, requiredDocuments: docs});
+                      }}
+                      className="text-red-500 hover:text-red-700 text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {(formData.requiredDocuments || []).filter(doc => 
+                  !['Passeport', 'Photo d\'identité', 'Diplôme de baccalauréat', 'Relevé de notes', 
+                    'Certificat de langue (IELTS/TOEFL/HSK)', 'Lettre de motivation', 'CV / Curriculum Vitae',
+                    'Lettres de recommandation (2)', 'Certificat de naissance', 'Certificat médical',
+                    'Preuve de ressources financières', 'Portfolio (pour arts/design)'].includes(doc)
+                ).length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-2">Aucun document personnalisé</p>
+                )}
+              </div>
+            </div>
+
+            {/* Templates à uploader (pour que l'utilisateur télécharge et re-upload) */}
+            <div className="border-t border-green-200 pt-3">
+              <h5 className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Templates de Documents (à uploader pour les étudiants)
+              </h5>
+              <p className="text-xs text-gray-500 mb-3">
+                Uploadez jusqu'à 3 documents templates (contrats, formulaires) que les étudiants devront télécharger, remplir/signer et re-uploader.
+              </p>
+              
+              <div className="space-y-2">
+                {[0, 1, 2].map((index) => (
+                  <div key={index} className="bg-white rounded-lg p-2 border border-green-200">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Template {index + 1} {index === 0 && '(Ex: Contrat d\'inscription)'}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.documentTemplates?.[index]?.name || ''}
+                        onChange={(e) => {
+                          const templates = formData.documentTemplates || [{}, {}, {}];
+                          templates[index] = { ...templates[index], name: e.target.value };
+                          setFormData({...formData, documentTemplates: templates});
+                        }}
+                        className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                        placeholder="Nom du document"
+                      />
+                      <input
+                        type="url"
+                        value={formData.documentTemplates?.[index]?.url || ''}
+                        onChange={(e) => {
+                          const templates = formData.documentTemplates || [{}, {}, {}];
+                          templates[index] = { ...templates[index], url: e.target.value };
+                          setFormData({...formData, documentTemplates: templates});
+                        }}
+                        className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                        placeholder="URL du fichier (https://...)"
+                      />
+                    </div>
+                    {formData.documentTemplates?.[index]?.url && (
+                      <a
+                        href={formData.documentTemplates[index].url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-green-600 hover:underline mt-1 inline-block"
+                      >
+                        → Prévisualiser
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  💡 <strong>Workflow :</strong> 1) Vous uploadez les templates ici → 2) L'étudiant les télécharge → 3) L'étudiant remplit/signe → 4) L'étudiant les re-upload dans sa candidature → 5) Vous téléchargez et validez
+                </p>
               </div>
             </div>
           </div>
