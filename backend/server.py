@@ -28,15 +28,6 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-
-from fastapi.staticfiles import StaticFiles
-
-app.mount(
-    "/api/files",
-    StaticFiles(directory="/app/uploads"),
-    name="files"
-)
-
 # Security
 SECRET_KEY = os.environ.get('JWT_SECRET', 'winners-consulting-secret-key-2025')
 ALGORITHM = "HS256"
