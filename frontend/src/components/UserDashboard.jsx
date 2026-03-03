@@ -848,6 +848,7 @@ const UserDashboard = ({ onClose }) => {
       {/* Application Modal for Favorites */}
       {showApplicationModal && selectedOfferForApplication && (
         <ApplicationModal
+          isOpen={showApplicationModal}
           offer={selectedOfferForApplication}
           onClose={() => {
             setShowApplicationModal(false);
