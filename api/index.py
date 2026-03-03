@@ -1004,6 +1004,20 @@ class PasswordResetConfirm(BaseModel):
     token: str
     newPassword: str
 
+class PaymentSettings(BaseModel):
+    id: str = "payment_settings"
+    wechatQrCode: str = "https://customer-assets.emergentagent.com/job_chinese-education/artifacts/rnrsxqg6_445.PNG"
+    alipayQrCode: str = "https://customer-assets.emergentagent.com/job_chinese-education/artifacts/liko6316_2355.jpg"
+    paypalEmail: str = "payments@winners-consulting.com"
+    bankName: str = "Bank of China"
+    bankAccountName: str = "Winner's Consulting Ltd"
+    bankAccountNumber: str = "6222 0000 1234 5678 9012"
+    bankSwiftCode: str = "BKCHCNBJ"
+    bankIban: str = ""
+    applicationFee: float = 50
+    currency: str = "EUR"
+
+
 @api_router.post("/auth/password-reset-request")
 async def request_password_reset(request: PasswordResetRequest):
     database = get_db()
@@ -1056,6 +1070,40 @@ async def reset_password(request: PasswordResetConfirm):
     
     await database.password_resets.update_one({"token": request.token}, {"$set": {"used": True}})
     
+
+# ============= PAYMENT SETTINGS ROUTES =============
+
+@api_router.get("/admin/payment-settings")
+async def get_payment_settings(admin: dict = Depends(get_admin_user)):
+    database = get_db()
+    settings = await database.payment_settings.find_one({"id": "payment_settings"}, {"_id": 0})
+    if not settings:
+        # Return default settings
+        default = PaymentSettings()
+        return default.model_dump()
+    return settings
+
+@api_router.post("/admin/payment-settings")
+async def update_payment_settings(settings: PaymentSettings, admin: dict = Depends(get_admin_user)):
+    database = get_db()
+    settings_dict = settings.model_dump()
+    await database.payment_settings.update_one(
+        {"id": "payment_settings"},
+        {"$set": settings_dict},
+        upsert=True
+    )
+    return {"message": "Paramètres de paiement mis à jour"}
+
+# Public endpoint to get payment settings (for users during application)
+@api_router.get("/payment-settings")
+async def get_public_payment_settings():
+    database = get_db()
+    settings = await database.payment_settings.find_one({"id": "payment_settings"}, {"_id": 0})
+    if not settings:
+        default = PaymentSettings()
+        return default.model_dump()
+    return settings
+
     return {"message": "Mot de passe mis à jour avec succès"}
 
 # Include the router
