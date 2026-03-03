@@ -660,13 +660,29 @@ async def create_application(app_data: ApplicationCreate, current_user: dict = D
     await db.applications.insert_one(serialize_doc(application.model_dump()))
     return {"message": "Candidature soumise avec succès", "id": application.id}
 
+from bson import ObjectId
+
 @api_router.get("/applications")
 async def get_my_applications(current_user: dict = Depends(get_current_user)):
     applications = await db.applications.find(
         {"userId": current_user["id"]},
         {"_id": 0}
     ).sort("createdAt", -1).to_list(100)
-    return applications
+
+    result = []
+
+    for app in applications:
+        offer = await db.offers.find_one(
+            {"_id": ObjectId(app["offerId"])},
+            {"_id": 0}
+        )
+
+        result.append({
+            **app,
+            "offer": offer
+        })
+
+    return result
 
 # ============= UNIVERSITIES ROUTES =============
 
