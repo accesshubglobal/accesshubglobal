@@ -1606,6 +1606,51 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
                 placeholder="Ex: 2 ans"
               />
             </div>
+            
+            {/* SECTION 1: Champs simples ajoutés */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Langue d'enseignement</label>
+              <select
+                value={formData.teachingLanguage || 'Anglais'}
+                onChange={(e) => setFormData({...formData, teachingLanguage: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="Anglais">Anglais</option>
+                <option value="Français">Français</option>
+                <option value="Chinois">Chinois</option>
+                <option value="Bilingue (Anglais/Chinois)">Bilingue (Anglais/Chinois)</option>
+                <option value="Bilingue (Français/Anglais)">Bilingue (Français/Anglais)</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rentrée</label>
+              <select
+                value={formData.intake || 'Automne 2025'}
+                onChange={(e) => setFormData({...formData, intake: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              >
+                <option value="Automne 2025">Automne 2025</option>
+                <option value="Printemps 2025">Printemps 2025</option>
+                <option value="Automne 2026">Automne 2026</option>
+                <option value="Printemps 2026">Printemps 2026</option>
+                <option value="Septembre 2025">Septembre 2025</option>
+                <option value="Février 2025">Février 2025</option>
+                <option value="Septembre 2026">Septembre 2026</option>
+                <option value="Février 2026">Février 2026</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date limite de candidature</label>
+              <input
+                type="date"
+                value={formData.deadline || ''}
+                onChange={(e) => setFormData({...formData, deadline: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Frais originaux</label>
               <input
