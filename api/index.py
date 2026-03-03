@@ -107,6 +107,9 @@ class OfferCreate(BaseModel):
     requirements: dict = {}
     scholarshipDetails: dict = {}
     fees: dict = {}
+    admissionConditions: List[dict] = []
+    requiredDocuments: List[str] = []
+    documentTemplates: List[dict] = []
     documents: List[str] = []
     serviceFee: float = 0
 
@@ -141,6 +144,9 @@ class Offer(BaseModel):
     requirements: dict = {}
     scholarshipDetails: dict = {}
     fees: dict = {}
+    admissionConditions: List[dict] = []
+    requiredDocuments: List[str] = []
+    documentTemplates: List[dict] = []
     documents: List[str] = []
     serviceFee: float = 0
     views: int = 0
