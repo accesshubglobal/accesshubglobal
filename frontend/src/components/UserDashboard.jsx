@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import ApplicationModal from './ApplicationModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -28,6 +29,10 @@ const UserDashboard = ({ onClose }) => {
   
   // Application detail state
   const [selectedApplication, setSelectedApplication] = useState(null);
+  
+  // Application modal state for favorites
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [selectedOfferForApplication, setSelectedOfferForApplication] = useState(null);
 
   useEffect(() => {
     if (activeTab === 'favorites') loadFavorites();
@@ -333,6 +338,16 @@ const UserDashboard = ({ onClose }) => {
                                   <Eye size={12} />
                                   {offer.views?.toLocaleString()} vues
                                 </span>
+                                <button
+                                  onClick={() => {
+                                    setSelectedOfferForApplication(offer);
+                                    setShowApplicationModal(true);
+                                  }}
+                                  className="ml-auto px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
+                                >
+                                  <Send size={16} />
+                                  Postuler
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -828,6 +843,25 @@ const UserDashboard = ({ onClose }) => {
             </form>
           </div>
         </div>
+      )}
+      
+      {/* Application Modal for Favorites */}
+      {showApplicationModal && selectedOfferForApplication && (
+        <ApplicationModal
+          offer={selectedOfferForApplication}
+          onClose={() => {
+            setShowApplicationModal(false);
+            setSelectedOfferForApplication(null);
+          }}
+          onSuccess={() => {
+            setShowApplicationModal(false);
+            setSelectedOfferForApplication(null);
+            // Reload applications to show the new one
+            if (activeTab === 'applications') {
+              loadApplications();
+            }
+          }}
+        />
       )}
     </div>
   );
