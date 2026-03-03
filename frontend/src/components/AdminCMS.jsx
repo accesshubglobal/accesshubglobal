@@ -1475,6 +1475,23 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
     serviceFee: 0
   });
 
+  // Update formData when offer prop changes (for edit mode)
+  useEffect(() => {
+    if (offer) {
+      setFormData({
+        ...offer,
+        // Ensure arrays are initialized even if missing from offer
+        admissionConditions: offer.admissionConditions || [],
+        requiredDocuments: offer.requiredDocuments || [],
+        documentTemplates: offer.documentTemplates || [{}, {}, {}],
+        fees: {
+          ...offer.fees,
+          otherFees: offer.fees?.otherFees || []
+        }
+      });
+    }
+  }, [offer]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
