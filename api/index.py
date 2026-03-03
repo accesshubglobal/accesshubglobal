@@ -10,7 +10,6 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 from passlib.context import CryptContext
-from mangum import Mangum
 
 # MongoDB connection - using environment variables
 mongo_url = os.environ.get('MONGO_URL', '')
@@ -1078,5 +1077,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Vercel handler
-handler = Mangum(app)
+# Vercel handler - FastAPI natively supported by Vercel
+# No need for Mangum adapter
+app = app
