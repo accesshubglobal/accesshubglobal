@@ -79,8 +79,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     try {
       const response = await axios.post(`${API}/upload`, formDataUpload, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -112,8 +111,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     try {
       const response = await axios.post(`${API}/upload`, formDataUpload, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          'Authorization': `Bearer ${token}`
         }
       });
 
