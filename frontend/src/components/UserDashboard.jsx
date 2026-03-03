@@ -548,70 +548,78 @@ const UserDashboard = ({ onClose }) => {
 
                         {/* Messages Thread */}
                         <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                          {/* Original Message */}
-                          <div className="bg-white rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 bg-[#1a56db] rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                              </div>
-                              <span className="font-medium">Vous</span>
-                              <span className="text-xs text-gray-400">
-                                {new Date(selectedMessage.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <p className="text-gray-700">{selectedMessage.content}</p>
-                            {selectedMessage.attachments?.length > 0 && (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {selectedMessage.attachments.map((url, idx) => (
-                                  <a 
-                                    key={idx}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-lg text-sm text-[#1a56db] hover:bg-gray-200"
-                                  >
-                                    <Paperclip size={14} />
-                                    Pièce jointe {idx + 1}
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Replies */}
-                          {selectedMessage.replies?.map((reply, idx) => (
-                            <div key={idx} className={`rounded-lg p-4 ${reply.isAdmin ? 'bg-blue-50 ml-4' : 'bg-white'}`}>
+                          {/* Original Message - User (Left) */}
+                          <div className="flex justify-start">
+                            <div className="bg-blue-50 rounded-lg p-4 max-w-[75%] border-l-4 border-[#1a56db]">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                                  reply.isAdmin ? 'bg-purple-500' : 'bg-[#1a56db]'
-                                }`}>
-                                  {reply.isAdmin ? 'WC' : user?.firstName?.charAt(0) + user?.lastName?.charAt(0)}
+                                <div className="w-8 h-8 bg-[#1a56db] rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                  {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
                                 </div>
-                                <span className="font-medium">
-                                  {reply.isAdmin ? (reply.adminName || 'Équipe Winner\'s') : 'Vous'}
-                                </span>
-                                {reply.isAdmin && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Admin</span>}
+                                <span className="font-medium text-[#1a56db]">Vous</span>
                                 <span className="text-xs text-gray-400">
-                                  {new Date(reply.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(selectedMessage.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <p className="text-gray-700">{reply.content}</p>
-                              {reply.attachments?.length > 0 && (
+                              <p className="text-gray-700">{selectedMessage.content}</p>
+                              {selectedMessage.attachments?.length > 0 && (
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {reply.attachments.map((url, aidx) => (
+                                  {selectedMessage.attachments.map((url, idx) => (
                                     <a 
-                                      key={aidx}
+                                      key={idx}
                                       href={url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-lg text-sm text-[#1a56db] hover:bg-gray-200"
+                                      className="flex items-center gap-1 px-3 py-1 bg-white rounded-lg text-sm text-[#1a56db] hover:bg-gray-100"
                                     >
                                       <Paperclip size={14} />
-                                      Pièce jointe {aidx + 1}
+                                      Pièce jointe {idx + 1}
                                     </a>
                                   ))}
                                 </div>
                               )}
+                            </div>
+                          </div>
+
+                          {/* Replies - Positioned left (user) or right (admin) */}
+                          {selectedMessage.replies?.map((reply, idx) => (
+                            <div key={idx} className={`flex ${reply.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`rounded-lg p-4 max-w-[75%] ${
+                                reply.isAdmin 
+                                  ? 'bg-green-50 border-r-4 border-green-500' 
+                                  : 'bg-blue-50 border-l-4 border-[#1a56db]'
+                              }`}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                                    reply.isAdmin ? 'bg-green-600' : 'bg-[#1a56db]'
+                                  }`}>
+                                    {reply.isAdmin ? 'WC' : user?.firstName?.charAt(0) + user?.lastName?.charAt(0)}
+                                  </div>
+                                  <span className={`font-medium ${reply.isAdmin ? 'text-green-700' : 'text-[#1a56db]'}`}>
+                                    {reply.isAdmin ? (reply.adminName || 'Équipe Winner\'s') : 'Vous'}
+                                  </span>
+                                  {reply.isAdmin && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Admin</span>}
+                                  <span className="text-xs text-gray-400">
+                                    {new Date(reply.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="text-gray-700">{reply.content}</p>
+                                {reply.attachments?.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {reply.attachments.map((url, aidx) => (
+                                      <a 
+                                        key={aidx}
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 px-3 py-1 bg-white rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+                                      >
+                                        <Paperclip size={14} />
+                                        Pièce jointe {aidx + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
