@@ -1692,6 +1692,137 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
             />
           </div>
 
+          {/* SECTION 2: Frais universitaires détaillés */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Frais Universitaires ({formData.currency || 'CNY'})
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Frais de scolarité</label>
+                <input
+                  type="number"
+                  value={formData.fees?.tuitionFee || formData.originalTuition || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...(formData.fees || {}), tuitionFee: Number(e.target.value)}})}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Frais d'inscription</label>
+                <input
+                  type="number"
+                  value={formData.fees?.registrationFee || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...(formData.fees || {}), registrationFee: Number(e.target.value)}})}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Logement (double)</label>
+                <input
+                  type="number"
+                  value={formData.fees?.accommodationDouble || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...(formData.fees || {}), accommodationDouble: Number(e.target.value)}})}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Logement (simple)</label>
+                <input
+                  type="number"
+                  value={formData.fees?.accommodationSingle || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...(formData.fees || {}), accommodationSingle: Number(e.target.value)}})}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Assurance</label>
+                <input
+                  type="number"
+                  value={formData.fees?.insuranceFee || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...(formData.fees || {}), insuranceFee: Number(e.target.value)}})}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Livres et matériels</label>
+                <input
+                  type="number"
+                  value={formData.fees?.booksFee || 0}
+                  onChange={(e) => setFormData({...formData, fees: {...(formData.fees || {}), booksFee: Number(e.target.value)}})}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            
+            {/* Autres frais personnalisés */}
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-gray-600">Autres frais (optionnel)</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const otherFees = formData.fees?.otherFees || [];
+                    setFormData({
+                      ...formData,
+                      fees: {
+                        ...(formData.fees || {}),
+                        otherFees: [...otherFees, { name: '', amount: 0 }]
+                      }
+                    });
+                  }}
+                  className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  + Ajouter
+                </button>
+              </div>
+              {(formData.fees?.otherFees || []).map((fee, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={fee.name}
+                    onChange={(e) => {
+                      const otherFees = [...(formData.fees?.otherFees || [])];
+                      otherFees[index] = { ...otherFees[index], name: e.target.value };
+                      setFormData({...formData, fees: {...(formData.fees || {}), otherFees}});
+                    }}
+                    className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                    placeholder="Nom du frais"
+                  />
+                  <input
+                    type="number"
+                    value={fee.amount}
+                    onChange={(e) => {
+                      const otherFees = [...(formData.fees?.otherFees || [])];
+                      otherFees[index] = { ...otherFees[index], amount: Number(e.target.value) };
+                      setFormData({...formData, fees: {...(formData.fees || {}), otherFees}});
+                    }}
+                    className="w-28 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                    placeholder="Montant"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const otherFees = (formData.fees?.otherFees || []).filter((_, i) => i !== index);
+                      setFormData({...formData, fees: {...(formData.fees || {}), otherFees}});
+                    }}
+                    className="px-2 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Fees Section */}
           <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
             <h4 className="font-medium text-gray-900 mb-3">Frais de service Winner's Consulting</h4>
