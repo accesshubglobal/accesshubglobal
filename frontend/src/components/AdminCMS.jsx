@@ -1467,7 +1467,9 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
     description: '',
     requirements: { age: '', previousDegree: '', gpa: '', language: '', otherRequirements: [] },
     scholarshipDetails: { tuitionCovered: false, accommodationCovered: false, monthlyAllowance: 0, insuranceCovered: false },
-    fees: { originalTuition: 0, scholarshipTuition: 0, accommodationDouble: 0, accommodationSingle: 0, registrationFee: 0, insuranceFee: 0, applicationFee: 0 },
+    fees: { originalTuition: 0, scholarshipTuition: 0, accommodationDouble: 0, accommodationSingle: 0, registrationFee: 0, insuranceFee: 0, applicationFee: 0, booksFee: 0, otherFees: [] },
+    admissionConditions: [],
+    requiredDocuments: [],
     documents: [],
     serviceFee: 0
   });
@@ -1846,6 +1848,129 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
                   placeholder="0"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Conditions d'admission */}
+          <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Conditions d'Admission
+              </h4>
+              <button
+                type="button"
+                onClick={() => {
+                  const admissionConditions = formData.admissionConditions || [];
+                  setFormData({
+                    ...formData,
+                    admissionConditions: [...admissionConditions, { condition: '', description: '' }]
+                  });
+                }}
+                className="text-sm px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Ajouter une condition
+              </button>
+            </div>
+            
+            {(formData.admissionConditions || []).length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">
+                Aucune condition d'admission ajoutée. Cliquez sur "Ajouter une condition" pour commencer.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {(formData.admissionConditions || []).map((item, index) => (
+                  <div key={index} className="bg-white rounded-lg p-3 border border-purple-200">
+                    <div className="flex gap-3">
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Condition {index + 1}
+                          </label>
+                          <input
+                            type="text"
+                            value={item.condition}
+                            onChange={(e) => {
+                              const admissionConditions = [...(formData.admissionConditions || [])];
+                              admissionConditions[index] = { ...admissionConditions[index], condition: e.target.value };
+                              setFormData({...formData, admissionConditions});
+                            }}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-purple-500"
+                            placeholder="Ex: Diplôme de baccalauréat"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            value={item.description}
+                            onChange={(e) => {
+                              const admissionConditions = [...(formData.admissionConditions || [])];
+                              admissionConditions[index] = { ...admissionConditions[index], description: e.target.value };
+                              setFormData({...formData, admissionConditions});
+                            }}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-purple-500 resize-none"
+                            rows={2}
+                            placeholder="Ex: Un diplôme de fin d'études secondaires reconnu est requis avec une moyenne minimale de 12/20"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const admissionConditions = (formData.admissionConditions || []).filter((_, i) => i !== index);
+                          setFormData({...formData, admissionConditions});
+                        }}
+                        className="self-start p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Supprimer cette condition"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Suggestion de conditions courantes */}
+            <div className="mt-3 pt-3 border-t border-purple-200">
+              <p className="text-xs text-gray-500 mb-2">Suggestions courantes :</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'Diplôme requis',
+                  'Niveau de langue',
+                  'Âge minimum/maximum',
+                  'Expérience professionnelle',
+                  'Tests standardisés (IELTS, TOEFL, HSK)',
+                  'Lettre de motivation'
+                ].map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      const admissionConditions = formData.admissionConditions || [];
+                      const exists = admissionConditions.some(c => c.condition === suggestion);
+                      if (!exists) {
+                        setFormData({
+                          ...formData,
+                          admissionConditions: [...admissionConditions, { condition: suggestion, description: '' }]
+                        });
+                      }
+                    }}
+                    className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+                  >
+                    + {suggestion}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
