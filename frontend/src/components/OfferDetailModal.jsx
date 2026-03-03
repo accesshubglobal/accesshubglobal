@@ -388,43 +388,48 @@ const OfferDetailModal = ({ offer, isOpen, onClose, onOpenAuth }) => {
                     </div>
                   )}
 
-                  {/* Requirements */}
+                  {/* Conditions d'admission - NEW FORMAT */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <div className="w-1 h-6 bg-[#1a56db] rounded"></div>
                       Conditions d'admission
                     </h3>
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between py-2 border-b border-gray-200">
-                        <span className="text-gray-600">Âge requis</span>
-                        <span className="font-medium">{offer.requirements.age}</span>
+                    {offer.admissionConditions && offer.admissionConditions.length > 0 ? (
+                      <div className="bg-purple-50 rounded-xl p-4 space-y-4 border border-purple-100">
+                        {offer.admissionConditions.map((item, index) => (
+                          <div key={index} className="bg-white rounded-lg p-4 border border-purple-200">
+                            <div className="flex items-start gap-3">
+                              <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+                                {index + 1}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-gray-900 mb-2">{item.condition}</h4>
+                                <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex justify-between py-2 border-b border-gray-200">
-                        <span className="text-gray-600">Diplôme précédent</span>
-                        <span className="font-medium text-right max-w-[60%]">{offer.requirements.previousDegree}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-200">
-                        <span className="text-gray-600">Moyenne requise</span>
-                        <span className="font-medium">{offer.requirements.gpa}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-200">
-                        <span className="text-gray-600">Exigence linguistique</span>
-                        <span className="font-medium text-right max-w-[60%]">{offer.requirements.language}</span>
-                      </div>
-                      {offer.requirements.otherRequirements.length > 0 && (
-                        <div className="pt-2">
-                          <p className="text-gray-600 mb-2">Autres exigences:</p>
-                          <ul className="space-y-1">
-                            {offer.requirements.otherRequirements.map((req, index) => (
-                              <li key={index} className="flex items-center gap-2 text-sm">
-                                <Check size={14} className="text-[#1a56db]" />
-                                {req}
-                              </li>
-                            ))}
-                          </ul>
+                    ) : (
+                      <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                        <div className="flex justify-between py-2 border-b border-gray-200">
+                          <span className="text-gray-600">Âge requis</span>
+                          <span className="font-medium">{offer.requirements?.age || 'Non spécifié'}</span>
                         </div>
-                      )}
-                    </div>
+                        <div className="flex justify-between py-2 border-b border-gray-200">
+                          <span className="text-gray-600">Diplôme précédent</span>
+                          <span className="font-medium text-right max-w-[60%]">{offer.requirements?.previousDegree || 'Non spécifié'}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-200">
+                          <span className="text-gray-600">Moyenne requise</span>
+                          <span className="font-medium">{offer.requirements?.gpa || 'Non spécifié'}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-gray-200">
+                          <span className="text-gray-600">Exigence linguistique</span>
+                          <span className="font-medium text-right max-w-[60%]">{offer.requirements?.language || 'Non spécifié'}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Description */}
@@ -439,30 +444,83 @@ const OfferDetailModal = ({ offer, isOpen, onClose, onOpenAuth }) => {
               )}
 
               {activeTab === 'documents' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <div className="w-1 h-6 bg-[#1a56db] rounded"></div>
-                    Documents à fournir
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    {offer.documents.map((doc, index) => (
-                      <div 
-                        key={index}
-                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="w-8 h-8 bg-[#1a56db] rounded flex items-center justify-center text-white text-sm font-medium">
-                          {index + 1}
-                        </div>
-                        <span className="text-gray-700 flex-1">{doc}</span>
-                        <button className="text-[#1a56db] hover:text-[#1648b8]">
-                          <Download size={18} />
-                        </button>
+                <div className="space-y-6">
+                  {/* Required Documents */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="w-1 h-6 bg-[#1a56db] rounded"></div>
+                      Documents requis pour candidature
+                    </h3>
+                    {offer.requiredDocuments && offer.requiredDocuments.length > 0 ? (
+                      <div className="grid md:grid-cols-2 gap-3">
+                        {offer.requiredDocuments.map((doc, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200"
+                          >
+                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white">
+                              <Check size={18} />
+                            </div>
+                            <span className="text-gray-700 flex-1 font-medium">{doc}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        <FileText size={48} className="mx-auto mb-2 opacity-50" />
+                        <p>Aucun document spécifié pour cette offre</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      <strong>Note:</strong> Tous les documents doivent être traduits en anglais ou en chinois et certifiés conformes.
+                  
+                  {/* Document Templates (to download, fill, and re-upload) */}
+                  {offer.documentTemplates && offer.documentTemplates.some(t => t.name && t.url) && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <div className="w-1 h-6 bg-blue-600 rounded"></div>
+                        Documents à télécharger, remplir et soumettre
+                      </h3>
+                      <div className="space-y-3">
+                        {offer.documentTemplates.filter(t => t.name && t.url).map((template, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                                <FileText size={20} />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">{template.name}</p>
+                                <p className="text-xs text-gray-500">Téléchargez, remplissez et soumettez lors de votre candidature</p>
+                              </div>
+                            </div>
+                            <a
+                              href={template.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 font-medium"
+                            >
+                              <Download size={18} />
+                              Télécharger
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800 flex items-start gap-2">
+                          <span className="text-lg">💡</span>
+                          <span>
+                            <strong>Workflow :</strong> 1) Téléchargez ces documents → 2) Remplissez/Signez-les → 3) Uploadez-les dans votre formulaire de candidature
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <strong>Note importante :</strong> Tous les documents doivent être traduits en anglais ou en chinois et certifiés conformes à l'original.
                     </p>
                   </div>
                 </div>
@@ -470,67 +528,88 @@ const OfferDetailModal = ({ offer, isOpen, onClose, onOpenAuth }) => {
 
               {activeTab === 'fees' && (
                 <div className="space-y-6">
-                  {/* University Fees */}
+                  {/* University Fees - Detailed */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <div className="w-1 h-6 bg-[#1a56db] rounded"></div>
-                      Frais universitaires
+                      Frais universitaires détaillés ({offer.currency || 'CNY'})
                     </h3>
-                    <div className="bg-gray-50 rounded-xl overflow-hidden">
+                    <div className="bg-blue-50 rounded-xl overflow-hidden border border-blue-100">
                       <table className="w-full">
-                        <tbody>
-                          <tr className="border-b border-gray-200">
-                            <td className="p-4 text-gray-600">Frais de scolarité (original)</td>
-                            <td className="p-4 text-right font-medium">{formatCurrency(offer.fees.originalTuition, offer.currency)}/an</td>
+                        <thead className="bg-blue-100">
+                          <tr>
+                            <th className="text-left py-3 px-4 font-semibold text-gray-700">Catégorie</th>
+                            <th className="text-right py-3 px-4 font-semibold text-gray-700">Montant</th>
                           </tr>
-                          <tr className="border-b border-gray-200 bg-green-50">
-                            <td className="p-4 text-green-700 font-medium">Frais de scolarité (après bourse)</td>
-                            <td className="p-4 text-right font-bold text-green-600">{formatCurrency(offer.fees.scholarshipTuition, offer.currency)}/an</td>
-                          </tr>
-                          <tr className="border-b border-gray-200">
-                            <td className="p-4 text-gray-600">Logement - Chambre double</td>
-                            <td className="p-4 text-right font-medium">{formatCurrency(offer.fees.accommodationDouble, offer.currency)}/an</td>
-                          </tr>
-                          <tr className="border-b border-gray-200">
-                            <td className="p-4 text-gray-600">Logement - Chambre simple</td>
-                            <td className="p-4 text-right font-medium">{formatCurrency(offer.fees.accommodationSingle, offer.currency)}/an</td>
-                          </tr>
-                          {offer.fees.accommodationScholarship === 0 && (
-                            <tr className="border-b border-gray-200 bg-green-50">
-                              <td className="p-4 text-green-700 font-medium">Logement (après bourse)</td>
-                              <td className="p-4 text-right font-bold text-green-600">0 {offer.currency === 'CNY' ? 'CNY' : '€'}/an</td>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {offer.fees?.tuitionFee !== undefined && offer.fees.tuitionFee > 0 && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Frais de scolarité</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.fees.tuitionFee, offer.currency)}</td>
                             </tr>
                           )}
-                          <tr className="border-b border-gray-200">
-                            <td className="p-4 text-gray-600">Frais d'inscription</td>
-                            <td className="p-4 text-right font-medium">{formatCurrency(offer.fees.registrationFee, offer.currency)}</td>
-                          </tr>
-                          <tr>
-                            <td className="p-4 text-gray-600">Assurance</td>
-                            <td className="p-4 text-right font-medium">{formatCurrency(offer.fees.insuranceFee, offer.currency)}/an</td>
-                          </tr>
+                          {offer.fees?.registrationFee !== undefined && offer.fees.registrationFee > 0 && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Frais d'inscription</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.fees.registrationFee, offer.currency)}</td>
+                            </tr>
+                          )}
+                          {offer.fees?.accommodationDouble !== undefined && offer.fees.accommodationDouble > 0 && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Logement (chambre double)</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.fees.accommodationDouble, offer.currency)}</td>
+                            </tr>
+                          )}
+                          {offer.fees?.accommodationSingle !== undefined && offer.fees.accommodationSingle > 0 && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Logement (chambre simple)</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.fees.accommodationSingle, offer.currency)}</td>
+                            </tr>
+                          )}
+                          {offer.fees?.insuranceFee !== undefined && offer.fees.insuranceFee > 0 && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Assurance</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.fees.insuranceFee, offer.currency)}</td>
+                            </tr>
+                          )}
+                          {offer.fees?.booksFee !== undefined && offer.fees.booksFee > 0 && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Livres et matériel</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.fees.booksFee, offer.currency)}</td>
+                            </tr>
+                          )}
+                          {/* Other Fees */}
+                          {offer.fees?.otherFees && offer.fees.otherFees.length > 0 && offer.fees.otherFees.map((fee, index) => (
+                            fee.amount > 0 && (
+                              <tr key={index} className="hover:bg-gray-50">
+                                <td className="py-3 px-4 text-gray-700">{fee.name}</td>
+                                <td className="py-3 px-4 text-right font-semibold">{formatCurrency(fee.amount, offer.currency)}</td>
+                              </tr>
+                            )
+                          ))}
+                          {/* Fallback to old format if no detailed fees */}
+                          {(!offer.fees?.tuitionFee && offer.originalTuition > 0) && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">Frais de scolarité</td>
+                              <td className="py-3 px-4 text-right font-semibold">{formatCurrency(offer.originalTuition, offer.currency)}</td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
                   </div>
 
-                  {/* Service Fees */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <div className="w-1 h-6 bg-orange-500 rounded"></div>
-                      Frais de service Winner's Consulting
-                    </h3>
-                    <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                      <div className="flex justify-between items-center py-2">
-                        <span className="text-gray-700">Frais de dossier (non remboursable)</span>
-                        <span className="font-medium">{formatCurrency(offer.fees?.applicationFee || 0, offer.currency)}</span>
+                  {/* Service Fee */}
+                  {offer.serviceFee > 0 && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700 font-medium">Frais de service Winner's Consulting</span>
+                        <span className="text-xl font-bold text-green-600">{formatCurrency(offer.serviceFee, offer.currency)}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-t border-orange-200">
-                        <span className="text-gray-700">Frais de service</span>
-                        <span className="font-bold text-[#1a56db]">{formatCurrency(offer.serviceFee || 0, offer.currency)}</span>
-                      </div>
+                      <p className="text-sm text-gray-500 mt-2">Assistance complète pour votre candidature</p>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
