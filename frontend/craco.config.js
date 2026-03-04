@@ -1,7 +1,6 @@
 // craco.config.js
 const path = require("path");
 
-
 // Check if we're in development/preview mode (not production build)
 // Craco sets NODE_ENV=development for start, NODE_ENV=production for build
 const isDevServer = process.env.NODE_ENV !== "production";
@@ -32,7 +31,7 @@ if (config.enableHealthCheck) {
   healthPluginInstance = new WebpackHealthPlugin();
 }
 
-const webpackConfig = {
+const cracoConfig = {
   eslint: {
     configure: {
       extends: ["plugin:react-hooks/recommended"],
@@ -44,27 +43,36 @@ const webpackConfig = {
   },
   webpack: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      "@": path.resolve(__dirname, "src"),
     },
     configure: (webpackConfig) => {
-
       // Add ignored patterns to reduce watched directories
-        webpackConfig.watchOptions = {
-          ...webpackConfig.watchOptions,
-          ignored: [
-            '**/node_modules/**',
-            '**/.git/**',
-            '**/build/**',
-            '**/dist/**',
-            '**/coverage/**',
-            '**/public/**',
+      webpackConfig.watchOptions = {
+        ...webpackConfig.watchOptions,
+        ignored: [
+          "**/node_modules/**",
+          "**/.git/**",
+          "**/build/**",
+          "**/dist/**",
+          "**/coverage/**",
+          "**/public/**",
         ],
       };
+
+      // ✅ FIX: avoid AJV/schema-utils "formatMinimum" crash during production build
+      // Root cause: schema-utils validation triggers ajv-keywords with unsupported keyword formatMinimum.
+      // The safest deploy fix is to disable JS minimization (TerserPlugin) in production.
+      if (process.env.NODE_ENV === "production") {
+        webpackConfig.optimization = webpackConfig.optimization || {};
+        webpackConfig.optimization.minimize = false;
+        webpackConfig.optimization.minimizer = [];
+      }
 
       // Add health check plugin to webpack if enabled
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
+
       return webpackConfig;
     },
   },
@@ -72,12 +80,12 @@ const webpackConfig = {
 
 // Only add babel metadata plugin during dev server
 if (config.enableVisualEdits && babelMetadataPlugin) {
-  webpackConfig.babel = {
+  cracoConfig.babel = {
     plugins: [babelMetadataPlugin],
   };
 }
 
-webpackConfig.devServer = (devServerConfig) => {
+cracoConfig.devServer = (devServerConfig) => {
   // Apply visual edits dev server setup only if enabled
   if (config.enableVisualEdits && setupDevServer) {
     devServerConfig = setupDevServer(devServerConfig);
@@ -103,4 +111,4 @@ webpackConfig.devServer = (devServerConfig) => {
   return devServerConfig;
 };
 
-module.exports = webpackConfig;
+module.exports = cracoConfig;
