@@ -602,6 +602,56 @@ async def create_application(app_data: ApplicationCreate, current_user: dict = D
     await database.applications.insert_one(serialize_doc(application.model_dump()))
     return {"message": "Candidature soumise avec succès", "id": application.id}
 
+
+
+
+@api_router.post("/applications/full")
+async def create_full_application(app_data: ApplicationCreate, current_user: dict = Depends(get_current_user)):
+    database = get_db()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not configured (MONGO_URL missing)")
+
+    # Check if already applied
+    existing = await database.applications.find_one({
+        "userId": current_user["id"],
+        "offerId": app_data.offerId
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà postulé à cette offre")
+
+    application = Application(
+        userId=current_user["id"],
+        userName=f"{current_user['firstName']} {current_user['lastName']}",
+        userEmail=current_user["email"],
+        offerId=app_data.offerId,
+        offerTitle=app_data.offerTitle,
+
+        firstName=app_data.firstName,
+        lastName=app_data.lastName,
+        nationality=app_data.nationality,
+        sex=app_data.sex,
+        passportNumber=app_data.passportNumber,
+        dateOfBirth=app_data.dateOfBirth,
+        phoneNumber=app_data.phoneNumber,
+        address=app_data.address,
+        additionalPrograms=app_data.additionalPrograms,
+        documents=app_data.documents,
+        termsAccepted=app_data.termsAccepted,
+
+        paymentMethod=app_data.paymentMethod,
+        paymentProof=app_data.paymentProof,
+        paymentAmount=app_data.paymentAmount,
+
+        paymentStatus="pending",
+        status="pending",
+    )
+
+    await database.applications.insert_one(serialize_doc(application.model_dump()))
+    return {"message": "Candidature soumise avec succès", "id": application.id}
+
+
+
+
 @api_router.get("/applications")
 async def get_my_applications(current_user: dict = Depends(get_current_user)):
     database = get_db()
