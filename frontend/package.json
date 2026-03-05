@@ -41,21 +41,19 @@
     "cra-template": "1.2.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
-    "html2canvas": "^1.4.1",
     "i18next": "^25.8.4",
     "i18next-browser-languagedetector": "^8.2.0",
     "input-otp": "^1.4.2",
-    "jspdf": "^2.5.1",
     "lucide-react": "^0.507.0",
     "next-themes": "^0.4.6",
-    "react": "18.2.0",
+    "react": "^19.0.0",
     "react-day-picker": "8.10.1",
-    "react-dom": "18.2.0",
+    "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.2",
     "react-i18next": "^16.5.4",
     "react-icons": "^5.5.0",
     "react-resizable-panels": "^3.0.1",
-    "react-router-dom": "^6.22.3",
+    "react-router-dom": "^7.5.1",
     "react-scripts": "5.0.1",
     "recharts": "^3.6.0",
     "sonner": "^2.0.3",
@@ -65,11 +63,10 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-  "postinstall": "node -e \"console.log('schema-utils',require('schema-utils/package.json').version); console.log('ajv',require('ajv/package.json').version); console.log('ajv-keywords',require('ajv-keywords/package.json').version);\"",
-  "start": "craco start",
-  "build": "craco build",
-  "test": "craco test"
-},
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -84,7 +81,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@craco/craco": "7.1.0",
+    "@craco/craco": "^7.1.0",
     "@eslint/js": "9.23.0",
     "autoprefixer": "^10.4.20",
     "eslint": "9.23.0",
@@ -95,20 +92,5 @@
     "globals": "15.15.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17"
-  },
- "overrides": {
-  "schema-utils": "3.3.0",
-  "terser-webpack-plugin": {
-    "schema-utils": "3.3.0"
-  },
-  "react-scripts": {
-    "schema-utils": "3.3.0",
-    "terser-webpack-plugin": {
-      "schema-utils": "3.3.0"
-    }
-  },
-  "ajv": "8.12.0",
-  "ajv-formats": "2.1.1",
-  "ajv-keywords": "5.1.0"
-}
+  }
 }

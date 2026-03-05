@@ -1,8 +1,5 @@
 {
   "dependencies": {
     "date-fns": "^3.6.0"
-  },
-  "engines": {
-    "node": "20.x"
   }
 }

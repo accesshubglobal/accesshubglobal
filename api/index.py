@@ -10,8 +10,6 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 from passlib.context import CryptContext
-import base64
-from fastapi.responses import Response
 
 # MongoDB connection - using environment variables
 mongo_url = os.environ.get('MONGO_URL', '')
@@ -602,56 +600,6 @@ async def create_application(app_data: ApplicationCreate, current_user: dict = D
     await database.applications.insert_one(serialize_doc(application.model_dump()))
     return {"message": "Candidature soumise avec succès", "id": application.id}
 
-
-
-
-@api_router.post("/applications/full")
-async def create_full_application(app_data: ApplicationCreate, current_user: dict = Depends(get_current_user)):
-    database = get_db()
-    if database is None:
-        raise HTTPException(status_code=500, detail="Database not configured (MONGO_URL missing)")
-
-    # Check if already applied
-    existing = await database.applications.find_one({
-        "userId": current_user["id"],
-        "offerId": app_data.offerId
-    })
-    if existing:
-        raise HTTPException(status_code=400, detail="Vous avez déjà postulé à cette offre")
-
-    application = Application(
-        userId=current_user["id"],
-        userName=f"{current_user['firstName']} {current_user['lastName']}",
-        userEmail=current_user["email"],
-        offerId=app_data.offerId,
-        offerTitle=app_data.offerTitle,
-
-        firstName=app_data.firstName,
-        lastName=app_data.lastName,
-        nationality=app_data.nationality,
-        sex=app_data.sex,
-        passportNumber=app_data.passportNumber,
-        dateOfBirth=app_data.dateOfBirth,
-        phoneNumber=app_data.phoneNumber,
-        address=app_data.address,
-        additionalPrograms=app_data.additionalPrograms,
-        documents=app_data.documents,
-        termsAccepted=app_data.termsAccepted,
-
-        paymentMethod=app_data.paymentMethod,
-        paymentProof=app_data.paymentProof,
-        paymentAmount=app_data.paymentAmount,
-
-        paymentStatus="pending",
-        status="pending",
-    )
-
-    await database.applications.insert_one(serialize_doc(application.model_dump()))
-    return {"message": "Candidature soumise avec succès", "id": application.id}
-
-
-
-
 @api_router.get("/applications")
 async def get_my_applications(current_user: dict = Depends(get_current_user)):
     database = get_db()
@@ -1163,61 +1111,6 @@ async def get_public_payment_settings():
     return settings
 
     return {"message": "Mot de passe mis à jour avec succès"}
-
-
-
-# ============= FILE UPLOAD (Vercel-safe: store in Mongo) =============
-
-@api_router.post("/upload")
-async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    database = get_db()
-    if database is None:
-        raise HTTPException(status_code=500, detail="Database not configured (MONGO_URL missing)")
-
-    # Read file content
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Empty file")
-
-    file_id = str(uuid.uuid4())
-    doc = {
-        "id": file_id,
-        "originalName": file.filename,
-        "contentType": file.content_type or "application/octet-stream",
-        "size": len(content),
-        "data": base64.b64encode(content).decode("utf-8"),
-        "userId": current_user["id"],
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-    }
-    await database.uploads.insert_one(doc)
-
-    # Frontend expects a URL it can open
-    return {"url": f"/api/files/{file_id}", "filename": file.filename}
-
-
-@api_router.get("/files/{file_id}")
-async def get_file(file_id: str):
-    database = get_db()
-    if database is None:
-        raise HTTPException(status_code=500, detail="Database not configured (MONGO_URL missing)")
-
-    doc = await database.uploads.find_one({"id": file_id}, {"_id": 0})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Fichier non trouvé")
-
-    data = base64.b64decode(doc["data"])
-    headers = {
-        "Content-Disposition": f'inline; filename="{doc.get("originalName","file")}"'
-    }
-    return Response(content=data, media_type=doc.get("contentType", "application/octet-stream"), headers=headers)
-
-
-
-
-
-
-
-
 
 # Include the router
 app.include_router(api_router)
