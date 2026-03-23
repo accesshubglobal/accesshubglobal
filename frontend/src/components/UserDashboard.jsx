@@ -29,6 +29,8 @@ const UserDashboard = ({ onClose }) => {
   
   // Application detail state
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [applicationOfferDetails, setApplicationOfferDetails] = useState(null);
+  const [loadingOfferDetails, setLoadingOfferDetails] = useState(false);
   
   // Application modal state for favorites
   const [showApplicationModal, setShowApplicationModal] = useState(false);
@@ -71,6 +73,34 @@ const UserDashboard = ({ onClose }) => {
       console.error('Error loading messages:', err);
     }
     setLoading(false);
+  };
+
+  // Select application and fetch offer details
+  const handleSelectApplication = async (app) => {
+    setSelectedApplication(app);
+    setApplicationOfferDetails(null);
+    setLoadingOfferDetails(true);
+    try {
+      const res = await axios.get(`${API}/offers/${app.offerId}`);
+      setApplicationOfferDetails(res.data);
+    } catch (err) {
+      console.error('Error fetching offer details:', err);
+    }
+    setLoadingOfferDetails(false);
+  };
+
+  // Download PDF
+  const handleDownloadPDF = async () => {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const element = document.getElementById('application-detail-content');
+    const opt = {
+      margin: 10,
+      filename: `candidature-${selectedApplication.id?.substring(0, 8)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
   };
 
   // Remove from favorites
@@ -375,19 +405,21 @@ const UserDashboard = ({ onClose }) => {
                       <p className="text-sm text-gray-400 mt-2">Postulez à des programmes pour suivre vos candidatures ici</p>
                     </div>
                   ) : selectedApplication ? (
-                    // Application Detail View - ENHANCED WITH FULL INFO + PDF EXPORT
-                    <div>
+                    // Application Detail View - FULL INFO + PDF EXPORT
+                    <div data-testid="application-detail-view">
                       {/* Header with Action Buttons */}
                       <div className="flex items-center justify-between mb-6">
                         <button
-                          onClick={() => setSelectedApplication(null)}
+                          data-testid="back-to-list-btn"
+                          onClick={() => { setSelectedApplication(null); setApplicationOfferDetails(null); }}
                           className="flex items-center gap-2 text-[#1a56db] hover:underline"
                         >
                           <ChevronRight size={16} className="rotate-180" />
                           Retour à la liste
                         </button>
-                        <div className="flex gap-2 no-print">
+                        <div className="flex gap-2">
                           <button
+                            data-testid="print-btn"
                             onClick={() => window.print()}
                             className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
                           >
@@ -397,24 +429,14 @@ const UserDashboard = ({ onClose }) => {
                             Imprimer
                           </button>
                           <button
-                            onClick={() => {
-                              const html2pdf = require('html2pdf.js');
-                              const element = document.getElementById('application-detail-content');
-                              const opt = {
-                                margin: 10,
-                                filename: `candidature-${selectedApplication.id?.substring(0, 8)}.pdf`,
-                                image: { type: 'jpeg', quality: 0.98 },
-                                html2canvas: { scale: 2 },
-                                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                              };
-                              html2pdf().set(opt).from(element).save();
-                            }}
+                            data-testid="download-pdf-btn"
+                            onClick={handleDownloadPDF}
                             className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            PDF
+                            Télécharger PDF
                           </button>
                         </div>
                       </div>
@@ -428,41 +450,217 @@ const UserDashboard = ({ onClose }) => {
                               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                                 {selectedApplication.offerTitle}
                               </h2>
-                              <p className="text-gray-600">{selectedApplication.university || 'Université'}</p>
+                              <p className="text-gray-600">{applicationOfferDetails?.university || selectedApplication.university || 'Université'}</p>
                             </div>
-                            <div className="no-print">
+                            <div>
                               {getStatusBadge(selectedApplication.status)}
                             </div>
                           </div>
                           <p className="text-sm text-gray-500">
-                            Soumise le {new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR', {
+                            Candidature soumise le {new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR', {
                               day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
                           </p>
+                          <p className="text-sm text-gray-400 mt-1">Réf: #{selectedApplication.id?.substring(0, 8) || 'N/A'}</p>
                         </div>
+
+                        {/* Offer Details Section */}
+                        {loadingOfferDetails ? (
+                          <div className="text-center py-4 text-gray-500 text-sm">Chargement des détails de l'offre...</div>
+                        ) : applicationOfferDetails && (
+                          <div data-testid="offer-details-section">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <GraduationCap size={18} className="text-[#1a56db]" />
+                              Détails du Programme
+                            </h3>
+                            <div className="bg-blue-50 rounded-lg p-5 space-y-4 border border-blue-100">
+                              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Université</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.university}</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Ville / Pays</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.city}, {applicationOfferDetails.country}</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Diplôme</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.degree}</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Durée</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.duration}</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Langue d'enseignement</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.teachingLanguage || 'Non précisé'}</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Rentrée</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.intake || 'Non précisé'}</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Date limite</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.deadline || 'Ouvert'}</p>
+                                </div>
+                                {applicationOfferDetails.hasScholarship && (
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Type de bourse</label>
+                                    <p className="font-medium text-green-700">{applicationOfferDetails.scholarshipType}</p>
+                                  </div>
+                                )}
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Catégorie</label>
+                                  <p className="font-medium text-gray-900">{applicationOfferDetails.categoryLabel || applicationOfferDetails.category}</p>
+                                </div>
+                              </div>
+
+                              {applicationOfferDetails.description && (
+                                <div className="pt-3 border-t border-blue-200">
+                                  <label className="block text-xs text-gray-500 mb-1">Description</label>
+                                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{applicationOfferDetails.description}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Fees Section */}
+                        {applicationOfferDetails?.fees && Object.keys(applicationOfferDetails.fees).length > 0 && (
+                          <div data-testid="fees-section">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-[#1a56db]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Frais et Tarifs
+                            </h3>
+                            <div className="bg-amber-50 rounded-lg p-5 border border-amber-100">
+                              <div className="grid md:grid-cols-2 gap-4">
+                                {applicationOfferDetails.fees.originalTuition > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Frais de scolarité</span>
+                                    <span className="font-bold text-gray-900">{Number(applicationOfferDetails.fees.originalTuition).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {applicationOfferDetails.fees.scholarshipTuition > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Scolarité après bourse</span>
+                                    <span className="font-bold text-green-700">{Number(applicationOfferDetails.fees.scholarshipTuition).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {applicationOfferDetails.fees.accommodationDouble > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Hébergement (double)</span>
+                                    <span className="font-bold text-gray-900">{Number(applicationOfferDetails.fees.accommodationDouble).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {applicationOfferDetails.fees.accommodationSingle > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Hébergement (single)</span>
+                                    <span className="font-bold text-gray-900">{Number(applicationOfferDetails.fees.accommodationSingle).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {applicationOfferDetails.fees.registrationFee > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Frais d'inscription</span>
+                                    <span className="font-bold text-gray-900">{Number(applicationOfferDetails.fees.registrationFee).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {applicationOfferDetails.fees.insuranceFee > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Assurance</span>
+                                    <span className="font-bold text-gray-900">{Number(applicationOfferDetails.fees.insuranceFee).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {applicationOfferDetails.fees.applicationFee > 0 && (
+                                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">Frais de dossier</span>
+                                    <span className="font-bold text-gray-900">{Number(applicationOfferDetails.fees.applicationFee).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                )}
+                                {(applicationOfferDetails.fees.otherFees || []).map((fee, idx) => (
+                                  <div key={idx} className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                    <span className="text-sm text-gray-600">{fee.name || fee.label}</span>
+                                    <span className="font-bold text-gray-900">{Number(fee.amount).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              {applicationOfferDetails.serviceFee > 0 && (
+                                <div className="mt-3 pt-3 border-t border-amber-200 flex justify-between items-center">
+                                  <span className="text-sm font-medium text-gray-700">Frais de service Winner's Consulting</span>
+                                  <span className="font-bold text-[#1a56db]">{Number(applicationOfferDetails.serviceFee).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Admission Conditions */}
+                        {applicationOfferDetails?.admissionConditions && applicationOfferDetails.admissionConditions.length > 0 && (
+                          <div data-testid="admission-conditions-section">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <Award size={18} className="text-[#1a56db]" />
+                              Conditions d'Admission
+                            </h3>
+                            <ul className="bg-gray-50 rounded-lg p-5 border border-gray-100 space-y-2">
+                              {applicationOfferDetails.admissionConditions.map((cond, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                                  {cond}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Required Documents from Offer */}
+                        {applicationOfferDetails?.requiredDocuments && applicationOfferDetails.requiredDocuments.length > 0 && (
+                          <div data-testid="required-docs-section">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <FileText size={18} className="text-[#1a56db]" />
+                              Documents Requis par le Programme
+                            </h3>
+                            <ul className="bg-gray-50 rounded-lg p-5 border border-gray-100 space-y-2">
+                              {applicationOfferDetails.requiredDocuments.map((doc, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <FileText size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                                  {doc}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
                         {/* Personal Info */}
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                             <User size={18} className="text-[#1a56db]" />
-                            Informations Personnelles
+                            Informations du Candidat
                           </h3>
                           <div className="grid md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
                             <div>
-                              <label className="block text-xs text-gray-500 mb-1">Nom complet</label>
-                              <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+                              <label className="block text-xs text-gray-500 mb-1">Nom</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.lastName || user?.lastName || 'Non renseigné'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Prénom</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.firstName || user?.firstName || 'Non renseigné'}</p>
                             </div>
                             <div>
                               <label className="block text-xs text-gray-500 mb-1">Email</label>
-                              <p className="font-medium text-gray-900">{user?.email}</p>
+                              <p className="font-medium text-gray-900">{selectedApplication.userEmail || user?.email}</p>
                             </div>
                             <div>
                               <label className="block text-xs text-gray-500 mb-1">Téléphone</label>
-                              <p className="font-medium text-gray-900">{selectedApplication.phone || user?.phone || 'Non renseigné'}</p>
+                              <p className="font-medium text-gray-900">{selectedApplication.phoneNumber || selectedApplication.phone || 'Non renseigné'}</p>
                             </div>
                             <div>
                               <label className="block text-xs text-gray-500 mb-1">Nationalité</label>
                               <p className="font-medium text-gray-900">{selectedApplication.nationality || 'Non renseigné'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Sexe</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.sex || 'Non renseigné'}</p>
                             </div>
                             <div>
                               <label className="block text-xs text-gray-500 mb-1">Date de naissance</label>
@@ -471,73 +669,71 @@ const UserDashboard = ({ onClose }) => {
                               </p>
                             </div>
                             <div>
+                              <label className="block text-xs text-gray-500 mb-1">N° Passeport</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.passportNumber || 'Non renseigné'}</p>
+                            </div>
+                            <div className="md:col-span-2">
                               <label className="block text-xs text-gray-500 mb-1">Adresse</label>
                               <p className="font-medium text-gray-900">{selectedApplication.address || 'Non renseigné'}</p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Academic Background */}
-                        {selectedApplication.previousDegree && (
+                        {/* Additional Programs */}
+                        {selectedApplication.additionalPrograms && selectedApplication.additionalPrograms.length > 0 && (
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                              <GraduationCap size={18} className="text-[#1a56db]" />
-                              Formation Académique
+                              <Star size={18} className="text-[#1a56db]" />
+                              Programmes Supplémentaires
                             </h3>
-                            <div className="bg-gray-50 rounded-lg p-4 grid md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">Diplôme précédent</label>
-                                <p className="font-medium text-gray-900">{selectedApplication.previousDegree}</p>
-                              </div>
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">Université/École</label>
-                                <p className="font-medium text-gray-900">{selectedApplication.previousUniversity || 'Non renseigné'}</p>
-                              </div>
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">Année obtention</label>
-                                <p className="font-medium text-gray-900">{selectedApplication.graduationYear || 'Non renseigné'}</p>
-                              </div>
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">Moyenne (GPA)</label>
-                                <p className="font-medium text-gray-900">{selectedApplication.gpa || 'Non renseigné'}</p>
-                              </div>
-                            </div>
+                            <ul className="bg-gray-50 rounded-lg p-4 space-y-2">
+                              {selectedApplication.additionalPrograms.map((prog, idx) => (
+                                <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                                  <ChevronRight size={14} className="text-blue-500" />
+                                  {prog}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
 
-                        {/* Documents */}
+                        {/* Documents Submitted */}
                         {selectedApplication.documents && selectedApplication.documents.length > 0 && (
-                          <div>
+                          <div data-testid="submitted-docs-section">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                               <FileText size={18} className="text-[#1a56db]" />
                               Documents Soumis ({selectedApplication.documents.length})
                             </h3>
                             <div className="grid md:grid-cols-2 gap-3">
-                              {selectedApplication.documents.map((doc, idx) => (
-                                <a
-                                  key={idx}
-                                  href={doc}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors no-print-link"
-                                >
-                                  <FileText size={20} className="text-blue-600" />
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm text-gray-900">Document {idx + 1}</p>
-                                    <p className="text-xs text-gray-500">Cliquez pour voir</p>
-                                  </div>
-                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                  </svg>
-                                </a>
-                              ))}
+                              {selectedApplication.documents.map((doc, idx) => {
+                                const docUrl = typeof doc === 'string' ? doc : doc?.url;
+                                const docName = typeof doc === 'object' ? doc?.name : `Document ${idx + 1}`;
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={docUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                                  >
+                                    <FileText size={20} className="text-blue-600" />
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm text-gray-900">{docName}</p>
+                                      <p className="text-xs text-gray-500">Cliquez pour voir</p>
+                                    </div>
+                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  </a>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
 
                         {/* Payment Info */}
                         {(selectedApplication.paymentMethod || selectedApplication.paymentProof) && (
-                          <div>
+                          <div data-testid="payment-section">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                               <svg className="w-5 h-5 text-[#1a56db]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -548,24 +744,35 @@ const UserDashboard = ({ onClose }) => {
                               {selectedApplication.paymentMethod && (
                                 <div>
                                   <label className="block text-xs text-gray-500 mb-1">Méthode</label>
-                                  <p className="font-medium text-gray-900 capitalize">{selectedApplication.paymentMethod.replace('_', ' ')}</p>
+                                  <p className="font-medium text-gray-900 capitalize">{selectedApplication.paymentMethod.replace(/_/g, ' ')}</p>
                                 </div>
                               )}
-                              {selectedApplication.paymentAmount && (
+                              {selectedApplication.paymentAmount > 0 && (
                                 <div>
                                   <label className="block text-xs text-gray-500 mb-1">Montant</label>
-                                  <p className="font-medium text-gray-900">{selectedApplication.paymentAmount} €</p>
+                                  <p className="font-medium text-gray-900">{Number(selectedApplication.paymentAmount).toLocaleString()} EUR</p>
+                                </div>
+                              )}
+                              {selectedApplication.paymentStatus && (
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Statut du paiement</label>
+                                  <p className={`font-medium ${selectedApplication.paymentStatus === 'verified' ? 'text-green-600' : selectedApplication.paymentStatus === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>
+                                    {selectedApplication.paymentStatus === 'pending' && 'En attente'}
+                                    {selectedApplication.paymentStatus === 'submitted' && 'Soumis'}
+                                    {selectedApplication.paymentStatus === 'verified' && 'Vérifié'}
+                                    {selectedApplication.paymentStatus === 'rejected' && 'Rejeté'}
+                                  </p>
                                 </div>
                               )}
                               {selectedApplication.paymentProof && (
-                                <div className="md:col-span-2">
+                                <div>
                                   <a
                                     href={selectedApplication.paymentProof}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors no-print-link"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors"
                                   >
-                                    <FileText size={16} />
+                                    <Eye size={16} />
                                     Voir justificatif
                                   </a>
                                 </div>
@@ -575,7 +782,7 @@ const UserDashboard = ({ onClose }) => {
                         )}
 
                         {/* Status Timeline */}
-                        <div>
+                        <div data-testid="status-timeline-section">
                           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                             <Calendar size={18} className="text-[#1a56db]" />
                             Suivi de Candidature
@@ -601,7 +808,7 @@ const UserDashboard = ({ onClose }) => {
                                 <div>
                                   <p className="font-medium text-sm">
                                     {selectedApplication.status === 'reviewing' && 'En cours d\'examen'}
-                                    {selectedApplication.status === 'accepted' && 'Candidature acceptée ✓'}
+                                    {selectedApplication.status === 'accepted' && 'Candidature acceptée'}
                                     {selectedApplication.status === 'rejected' && 'Candidature refusée'}
                                   </p>
                                   {selectedApplication.updatedAt && (
@@ -640,7 +847,7 @@ const UserDashboard = ({ onClose }) => {
                         <div 
                           key={app.id} 
                           className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={() => setSelectedApplication(app)}
+                          onClick={() => handleSelectApplication(app)}
                         >
                           <div className="flex items-start justify-between">
                             <div>
