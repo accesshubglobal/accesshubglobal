@@ -48,6 +48,8 @@ Winner's Consulting est une plateforme de consultation pour études à l'étrang
 - [x] Boutons Imprimer et Télécharger PDF (html2pdf.js)
 - [x] Système de notifications
 - [x] Chat en direct
+- [x] Newsletter fonctionnelle (inscription footer + gestion admin + export CSV)
+- [x] Fix messages admin/user (isAdmin manquant dans reply backend)
 
 ### Backlog (P2)
 - [ ] Paiement en ligne
@@ -59,8 +61,9 @@ Winner's Consulting est une plateforme de consultation pour études à l'étrang
 - **Admin** : admin@winners-consulting.com / Admin2025!
 - **User test** : etudiant@test.com / Test1234!
 
-## Dernier changement (23 Mars 2026)
-- Implémentation complète de la vue détaillée des candidatures
-- Ajout de la récupération des détails de l'offre associée
-- Boutons Imprimer et Télécharger PDF fonctionnels
-- Affichage complet : Programme, Frais, Candidat, Documents, Paiement, Timeline
+## Derniers changements (23 Mars 2026)
+- Newsletter : endpoint POST /api/newsletter/subscribe, GET /api/admin/newsletter, DELETE /api/admin/newsletter/{email}
+- Footer : formulaire connecté à l'API avec feedback visuel
+- AdminCMS : section Newsletter avec tableau, export CSV, suppression
+- Fix isAdmin manquant dans admin reply (server.py)
+- Vue détaillée candidatures avec infos complètes de l'offre + PDF

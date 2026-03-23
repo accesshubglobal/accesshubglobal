@@ -1157,6 +1157,37 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
 
     return {"message": "Mot de passe mis à jour avec succès"}
 
+# ============= NEWSLETTER =============
+
+class NewsletterSubscribe(BaseModel):
+    email: EmailStr
+
+@api_router.post("/newsletter/subscribe")
+async def newsletter_subscribe(data: NewsletterSubscribe):
+    database = get_db()
+    existing = await database.newsletter.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Cet email est déjà inscrit à la newsletter")
+    await database.newsletter.insert_one({
+        "email": data.email,
+        "subscribedAt": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"message": "Inscription à la newsletter réussie"}
+
+@api_router.get("/admin/newsletter")
+async def admin_get_newsletter(admin: dict = Depends(get_admin_user)):
+    database = get_db()
+    subscribers = await database.newsletter.find({}, {"_id": 0}).sort("subscribedAt", -1).to_list(5000)
+    return subscribers
+
+@api_router.delete("/admin/newsletter/{email}")
+async def admin_delete_newsletter(email: str, admin: dict = Depends(get_admin_user)):
+    database = get_db()
+    result = await database.newsletter.delete_one({"email": email})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Abonné non trouvé")
+    return {"message": "Abonné supprimé"}
+
 # Include the router
 app.include_router(api_router)
 
