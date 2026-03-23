@@ -1110,6 +1110,51 @@ async def get_public_payment_settings():
         return default.model_dump()
     return settings
 
+
+# ============= FILE UPLOAD WITH CLOUDINARY =============
+import cloudinary
+import cloudinary.uploader
+from io import BytesIO
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET')
+)
+
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """
+    Upload a file to Cloudinary and return the URL
+    Works in production (Vercel) and local environments
+    """
+    try:
+        # Read file content
+        contents = await file.read()
+        
+        # Upload to Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            BytesIO(contents),
+            folder="winners_consulting",  # Organize files in a folder
+            resource_type="auto",  # Automatically detect file type (image, pdf, etc.)
+            use_filename=True,
+            unique_filename=True
+        )
+        
+        # Return the secure URL
+        return {
+            "url": upload_result['secure_url'],
+            "filename": file.filename,
+            "public_id": upload_result['public_id'],
+            "format": upload_result.get('format', ''),
+            "size": upload_result.get('bytes', 0)
+        }
+        
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du téléchargement: {str(e)}")
+
     return {"message": "Mot de passe mis à jour avec succès"}
 
 # Include the router
