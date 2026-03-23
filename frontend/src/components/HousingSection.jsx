@@ -1,5 +1,5 @@
 import React from 'react';
-import { housingOptions } from '../data/mockData';
+import { housingOptions } from '../data/siteContent';
 import { MapPin, Check, ArrowRight } from 'lucide-react';
 
 const HousingSection = () => {

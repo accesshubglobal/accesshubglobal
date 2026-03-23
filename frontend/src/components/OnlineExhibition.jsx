@@ -1,5 +1,5 @@
 import React from 'react';
-import { onlineExhibitions } from '../data/mockData';
+import { onlineExhibitions } from '../data/siteContent';
 import { Play } from 'lucide-react';
 
 const OnlineExhibition = () => {

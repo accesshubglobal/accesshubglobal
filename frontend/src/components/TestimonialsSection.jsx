@@ -1,5 +1,5 @@
 import React from 'react';
-import { testimonials } from '../data/mockData';
+import { testimonials } from '../data/siteContent';
 import { Star, Quote } from 'lucide-react';
 
 const TestimonialsSection = () => {

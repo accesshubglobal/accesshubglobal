@@ -1,5 +1,5 @@
 import React from 'react';
-import { partnerUniversities } from '../data/mockData';
+import { partnerUniversities } from '../data/siteContent';
 import { Eye } from 'lucide-react';
 
 const PartnerUniversities = () => {

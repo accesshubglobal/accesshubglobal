@@ -1,5 +1,5 @@
 import React from 'react';
-import { services } from '../data/mockData';
+import { services } from '../data/siteContent';
 import { GraduationCap, Flag, Stamp, Home, FileText, Users, Globe, ArrowRight } from 'lucide-react';
 import { FaCheckCircle } from "react-icons/fa";
 

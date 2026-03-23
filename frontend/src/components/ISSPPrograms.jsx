@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { isspPrograms, isspFilters } from '../data/mockData';
+import { isspPrograms, isspFilters } from '../data/siteContent';
 import { ChevronLeft, ChevronRight, MapPin, GraduationCap, Globe } from 'lucide-react';
 
 const ISSPCard = ({ program }) => (

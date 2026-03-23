@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { selfFinancedPrograms, selfFinancedFilters } from '../data/mockData';
+import { selfFinancedPrograms, selfFinancedFilters } from '../data/siteContent';
 import { ChevronLeft, ChevronRight, MapPin, GraduationCap, Globe } from 'lucide-react';
 
 const SelfFinancedCard = ({ program }) => (

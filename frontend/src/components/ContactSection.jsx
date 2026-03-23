@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { faqItems } from '../data/mockData';
+import { faqItems } from '../data/siteContent';
 import { ChevronDown, Send, MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 const ContactSection = () => {

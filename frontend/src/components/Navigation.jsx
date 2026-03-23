@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { categories } from '../data/mockData';
+import { categories } from '../data/siteContent';
 import { ChevronRight } from 'lucide-react';
 
 const Navigation = () => {

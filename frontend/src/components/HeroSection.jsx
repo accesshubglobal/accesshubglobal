@@ -1,5 +1,5 @@
 import React from 'react';
-import { stats } from '../data/mockData';
+import { stats } from '../data/siteContent';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';

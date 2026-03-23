@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { scholarshipPrograms, programFilters } from '../data/mockData';
+import { scholarshipPrograms, programFilters } from '../data/siteContent';
 import { ChevronLeft, ChevronRight, MapPin, GraduationCap, Globe } from 'lucide-react';
 
 const ProgramCard = ({ program }) => (

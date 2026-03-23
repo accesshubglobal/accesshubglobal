@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { scholarshipPrograms } from '../data/mockData';
+import { scholarshipPrograms } from '../data/siteContent';
 import { Calendar, MapPin, Award, CheckCircle, ArrowRight } from 'lucide-react';
 
 const ScholarshipsSection = () => {

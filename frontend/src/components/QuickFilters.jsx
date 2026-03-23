@@ -1,5 +1,5 @@
 import React from 'react';
-import { quickFilters } from '../data/mockData';
+import { quickFilters } from '../data/siteContent';
 
 const QuickFilters = () => {
   return (

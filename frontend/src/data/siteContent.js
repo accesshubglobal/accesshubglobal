@@ -1,3 +1,4 @@
+// Contenu statique du site (pas de données mock - les données viennent de MongoDB)
 // Services
 export const services = [
   {
