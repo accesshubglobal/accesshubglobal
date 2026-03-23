@@ -6,6 +6,35 @@ import { useState } from "react";
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const [showWeChatQR, setShowWeChatQR] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState(null); // 'success' | 'error' | 'loading'
+  const [newsletterMsg, setNewsletterMsg] = useState('');
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+    setNewsletterStatus('loading');
+    try {
+      const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
+      await fetch(`${API}/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail }),
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erreur');
+        setNewsletterStatus('success');
+        setNewsletterMsg('Inscription réussie !');
+        setNewsletterEmail('');
+        setTimeout(() => setNewsletterStatus(null), 4000);
+      });
+    } catch (err) {
+      setNewsletterStatus('error');
+      setNewsletterMsg(err.message || 'Erreur lors de l\'inscription');
+      setTimeout(() => setNewsletterStatus(null), 4000);
+    }
+  };
+
   return (
     <footer className="bg-gray-900 text-white">
       {/* Newsletter Section */}
@@ -16,17 +45,33 @@ const Footer = () => {
               <h3 className="text-2xl font-bold mb-2">Restez Informé</h3>
               <p className="text-gray-400">Recevez les dernières opportunités de bourses et actualités.</p>
             </div>
-            <div className="flex w-full md:w-auto">
-              <input
-                type="email"
-                placeholder="Votre adresse email"
-                className="flex-1 md:w-80 px-4 py-3 rounded-l-lg bg-gray-800 border border-gray-700 focus:border-[#1a56db] outline-none"
-              />
-              <button className="bg-[#1a56db] hover:bg-[#1648b8] px-6 py-3 rounded-r-lg font-medium transition-colors flex items-center gap-2">
-                S'inscrire
-                <ArrowRight size={16} />
-              </button>
-            </div>
+            <form onSubmit={handleNewsletterSubmit} className="flex flex-col w-full md:w-auto">
+              <div className="flex w-full md:w-auto">
+                <input
+                  type="email"
+                  placeholder="Votre adresse email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  required
+                  data-testid="newsletter-email-input"
+                  className="flex-1 md:w-80 px-4 py-3 rounded-l-lg bg-gray-800 border border-gray-700 focus:border-[#1a56db] outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={newsletterStatus === 'loading'}
+                  data-testid="newsletter-submit-btn"
+                  className="bg-[#1a56db] hover:bg-[#1648b8] px-6 py-3 rounded-r-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {newsletterStatus === 'loading' ? 'Envoi...' : "S'inscrire"}
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+              {newsletterStatus && (
+                <p data-testid="newsletter-feedback" className={`mt-2 text-sm ${newsletterStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {newsletterMsg}
+                </p>
+              )}
+            </form>
           </div>
         </div>
       </div>

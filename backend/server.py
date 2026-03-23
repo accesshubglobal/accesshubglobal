@@ -2429,6 +2429,34 @@ async def get_university_rating(uni_id: str):
     await db.universities.update_one({"id": uni_id}, {"$set": {"rating": computed_rating}})
     return {"universityId": uni_id, "rating": computed_rating, "views": views}
 
+# ============= NEWSLETTER =============
+
+class NewsletterSubscribe(BaseModel):
+    email: EmailStr
+
+@api_router.post("/newsletter/subscribe")
+async def newsletter_subscribe(data: NewsletterSubscribe):
+    existing = await db.newsletter.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Cet email est déjà inscrit à la newsletter")
+    await db.newsletter.insert_one({
+        "email": data.email,
+        "subscribedAt": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"message": "Inscription à la newsletter réussie"}
+
+@api_router.get("/admin/newsletter")
+async def admin_get_newsletter(admin: dict = Depends(get_admin_user)):
+    subscribers = await db.newsletter.find({}, {"_id": 0}).sort("subscribedAt", -1).to_list(5000)
+    return subscribers
+
+@api_router.delete("/admin/newsletter/{email}")
+async def admin_delete_newsletter(email: str, admin: dict = Depends(get_admin_user)):
+    result = await db.newsletter.delete_one({"email": email})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Abonné non trouvé")
+    return {"message": "Abonné supprimé"}
+
 # Include router
 app.include_router(api_router)
 
