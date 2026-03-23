@@ -70,30 +70,15 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
 
   // Upload file: try direct Cloudinary first (avoids Vercel 4.5MB limit), fallback to backend
   const uploadFile = async (file) => {
+    // Step 1: Get Cloudinary signature from backend
+    let sigData;
     try {
-      // Get signature from backend
       const sigRes = await axios.get(`${API}/upload/signature`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
-
-      // Upload directly to Cloudinary using fetch (no Authorization header = no CORS issue)
-      const cloudFormData = new FormData();
-      cloudFormData.append('file', file);
-      cloudFormData.append('signature', signature);
-      cloudFormData.append('timestamp', String(timestamp));
-      cloudFormData.append('api_key', api_key);
-      cloudFormData.append('folder', folder);
-
-      const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
-        { method: 'POST', body: cloudFormData }
-      );
-      if (!cloudRes.ok) throw new Error('Cloudinary upload failed');
-      const cloudData = await cloudRes.json();
-      return { url: cloudData.secure_url, filename: file.name };
+      sigData = sigRes.data;
     } catch (sigErr) {
-      // Fallback: upload via backend
+      // Signature endpoint failed - try direct backend upload as fallback
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
       const response = await axios.post(`${API}/upload`, formDataUpload, {
@@ -102,6 +87,40 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
       });
       return { url: response.data.url, filename: file.name };
     }
+
+    // Step 2: Verify we have all required Cloudinary params
+    const { signature, timestamp, cloud_name, api_key, folder } = sigData;
+    if (!api_key || !cloud_name || !signature) {
+      // Cloudinary not configured on server - try direct backend upload
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      const response = await axios.post(`${API}/upload`, formDataUpload, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        timeout: 60000
+      });
+      return { url: response.data.url, filename: file.name };
+    }
+
+    // Step 3: Upload directly to Cloudinary
+    const cloudFormData = new FormData();
+    cloudFormData.append('file', file);
+    cloudFormData.append('signature', signature);
+    cloudFormData.append('timestamp', String(timestamp));
+    cloudFormData.append('api_key', api_key);
+    cloudFormData.append('folder', folder);
+
+    const cloudRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+      { method: 'POST', body: cloudFormData }
+    );
+
+    if (!cloudRes.ok) {
+      const errData = await cloudRes.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || 'Erreur Cloudinary');
+    }
+
+    const cloudData = await cloudRes.json();
+    return { url: cloudData.secure_url, filename: file.name };
   };
 
   const handleDocUpload = async (e, docName) => {
