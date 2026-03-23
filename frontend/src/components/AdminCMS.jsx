@@ -39,6 +39,8 @@ const AdminCMS = ({ onClose }) => {
   const [showReplyModal, setShowReplyModal] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [inlineReply, setInlineReply] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const [uploadingReplyFile, setUploadingReplyFile] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
   // Load stats on mount
@@ -304,11 +306,14 @@ const AdminCMS = ({ onClose }) => {
 
   const replyToMessage = async (messageId, content) => {
     try {
-      await axios.post(`${API}/admin/messages/${messageId}/reply`, { content });
+      await axios.post(`${API}/admin/messages/${messageId}/reply`, {
+        content,
+        attachments: replyAttachments.map(a => a.url)
+      });
       loadMessages();
       setShowReplyModal(null);
       setInlineReply('');
-      // Refresh selected message
+      setReplyAttachments([]);
       if (selectedMessage?.id === messageId) {
         const updated = await axios.get(`${API}/admin/messages`);
         const found = updated.data.find(m => m.id === messageId);
@@ -317,6 +322,40 @@ const AdminCMS = ({ onClose }) => {
     } catch (err) {
       console.error('Error replying:', err);
     }
+  };
+
+  const handleReplyFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Fichier trop volumineux (max 10 Mo)'); return; }
+    setUploadingReplyFile(true);
+    try {
+      // Try Cloudinary direct upload
+      const sigRes = await axios.get(`${API}/upload/signature`);
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('signature', signature);
+      fd.append('timestamp', String(timestamp));
+      fd.append('api_key', api_key);
+      fd.append('folder', folder);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setReplyAttachments(prev => [...prev, { name: file.name, url: data.secure_url }]);
+    } catch (err) {
+      // Fallback backend upload
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await axios.post(`${API}/upload`, fd, { timeout: 60000 });
+        setReplyAttachments(prev => [...prev, { name: file.name, url: res.data.url }]);
+      } catch (e2) {
+        console.error('Upload error:', e2);
+      }
+    }
+    setUploadingReplyFile(false);
+    e.target.value = '';
   };
 
   // Application actions
@@ -1041,6 +1080,17 @@ const AdminCMS = ({ onClose }) => {
                               <span className="text-xs font-medium text-blue-600">{selectedMessage.senderName}</span>
                             </div>
                             <p className="text-sm">{selectedMessage.content}</p>
+                            {selectedMessage.attachments?.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {selectedMessage.attachments.map((url, aidx) => (
+                                  <a key={aidx} href={url} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 underline">
+                                    <FileText size={12} />
+                                    Pièce jointe {aidx + 1}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                             <p className="text-xs text-gray-400 mt-1">
                               {new Date(selectedMessage.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </p>
@@ -1073,6 +1123,17 @@ const AdminCMS = ({ onClose }) => {
                                 )}
                               </div>
                               <p className="text-sm">{reply.content}</p>
+                              {reply.attachments?.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {reply.attachments.map((url, aidx) => (
+                                    <a key={aidx} href={url} target="_blank" rel="noopener noreferrer"
+                                      className={`flex items-center gap-1 text-xs underline ${reply.isAdmin ? 'text-blue-100 hover:text-white' : 'text-blue-600 hover:text-blue-800'}`}>
+                                      <FileText size={12} />
+                                      Pièce jointe {aidx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                               <p className={`text-xs mt-1 ${reply.isAdmin ? 'text-blue-100' : 'text-gray-400'}`}>
                                 {new Date(reply.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                               </p>
@@ -1083,34 +1144,69 @@ const AdminCMS = ({ onClose }) => {
                     </div>
 
                     {/* Reply Input */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (inlineReply.trim()) {
-                          replyToMessage(selectedMessage.id, inlineReply.trim());
-                        }
-                      }}
-                      className="p-4 border-t"
-                    >
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={inlineReply}
-                          onChange={(e) => setInlineReply(e.target.value)}
-                          placeholder="Écrivez votre réponse..."
-                          data-testid="message-reply-input"
-                          className="flex-1 px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-[#1a56db]"
-                        />
-                        <button
-                          type="submit"
-                          disabled={!inlineReply.trim()}
-                          data-testid="message-reply-send-btn"
-                          className="w-10 h-10 bg-[#1a56db] hover:bg-[#1648b8] text-white rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
-                        >
-                          <Send size={18} />
-                        </button>
-                      </div>
-                    </form>
+                    <div className="border-t">
+                      {/* Attached files preview */}
+                      {replyAttachments.length > 0 && (
+                        <div className="px-4 pt-3 flex flex-wrap gap-2">
+                          {replyAttachments.map((att, idx) => (
+                            <div key={idx} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs">
+                              <FileText size={12} />
+                              <span className="max-w-[120px] truncate">{att.name}</span>
+                              <button onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                className="ml-1 hover:text-red-500">
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (inlineReply.trim() || replyAttachments.length > 0) {
+                            replyToMessage(selectedMessage.id, inlineReply.trim() || (replyAttachments.length > 0 ? 'Fichier(s) joint(s)' : ''));
+                          }
+                        }}
+                        className="p-4"
+                      >
+                        <div className="flex gap-2 items-center">
+                          <label
+                            className={`w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors ${uploadingReplyFile ? 'opacity-50 pointer-events-none' : ''}`}
+                            data-testid="admin-reply-attach-btn"
+                          >
+                            {uploadingReplyFile ? (
+                              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                              </svg>
+                            )}
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={handleReplyFileUpload}
+                              accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineReply}
+                            onChange={(e) => setInlineReply(e.target.value)}
+                            placeholder="Écrivez votre réponse..."
+                            data-testid="message-reply-input"
+                            className="flex-1 px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-[#1a56db]"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!inlineReply.trim() && replyAttachments.length === 0}
+                            data-testid="message-reply-send-btn"
+                            className="w-10 h-10 bg-[#1a56db] hover:bg-[#1648b8] text-white rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
+                          >
+                            <Send size={18} />
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </>
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-gray-400">

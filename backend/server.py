@@ -218,6 +218,7 @@ class Message(BaseModel):
 
 class MessageReply(BaseModel):
     content: str
+    attachments: Optional[List[str]] = []
 
 # Application model
 class Application(BaseModel):
@@ -868,6 +869,7 @@ async def admin_reply_message(message_id: str, reply: MessageReply, admin: dict 
         "content": reply.content,
         "isAdmin": True,
         "adminName": f"{admin['firstName']} {admin['lastName']}",
+        "attachments": reply.attachments or [],
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
     await db.messages.update_one(
