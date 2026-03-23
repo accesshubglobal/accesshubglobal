@@ -77,20 +77,21 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
       });
       const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
 
-      // Upload directly to Cloudinary
+      // Upload directly to Cloudinary using fetch (no Authorization header = no CORS issue)
       const cloudFormData = new FormData();
       cloudFormData.append('file', file);
       cloudFormData.append('signature', signature);
-      cloudFormData.append('timestamp', timestamp);
+      cloudFormData.append('timestamp', String(timestamp));
       cloudFormData.append('api_key', api_key);
       cloudFormData.append('folder', folder);
 
-      const cloudRes = await axios.post(
+      const cloudRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
-        cloudFormData,
-        { timeout: 120000 }
+        { method: 'POST', body: cloudFormData }
       );
-      return { url: cloudRes.data.secure_url, filename: file.name };
+      if (!cloudRes.ok) throw new Error('Cloudinary upload failed');
+      const cloudData = await cloudRes.json();
+      return { url: cloudData.secure_url, filename: file.name };
     } catch (sigErr) {
       // Fallback: upload via backend
       const formDataUpload = new FormData();
