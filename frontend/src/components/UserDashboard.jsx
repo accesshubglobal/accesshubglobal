@@ -375,106 +375,265 @@ const UserDashboard = ({ onClose }) => {
                       <p className="text-sm text-gray-400 mt-2">Postulez à des programmes pour suivre vos candidatures ici</p>
                     </div>
                   ) : selectedApplication ? (
-                    // Application Detail View
+                    // Application Detail View - ENHANCED WITH FULL INFO + PDF EXPORT
                     <div>
-                      <button
-                        onClick={() => setSelectedApplication(null)}
-                        className="flex items-center gap-2 text-[#1a56db] mb-6 hover:underline"
-                      >
-                        <ChevronRight size={16} className="rotate-180" />
-                        Retour à la liste
-                      </button>
-                      
-                      <div className="bg-gray-50 rounded-xl p-6">
-                        <div className="flex items-start justify-between mb-6">
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                              {selectedApplication.offerTitle}
-                            </h3>
-                            {getStatusBadge(selectedApplication.status)}
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            Soumise le {new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR')}
-                          </span>
+                      {/* Header with Action Buttons */}
+                      <div className="flex items-center justify-between mb-6">
+                        <button
+                          onClick={() => setSelectedApplication(null)}
+                          className="flex items-center gap-2 text-[#1a56db] hover:underline"
+                        >
+                          <ChevronRight size={16} className="rotate-180" />
+                          Retour à la liste
+                        </button>
+                        <div className="flex gap-2 no-print">
+                          <button
+                            onClick={() => window.print()}
+                            className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Imprimer
+                          </button>
+                          <button
+                            onClick={() => {
+                              const html2pdf = require('html2pdf.js');
+                              const element = document.getElementById('application-detail-content');
+                              const opt = {
+                                margin: 10,
+                                filename: `candidature-${selectedApplication.id?.substring(0, 8)}.pdf`,
+                                image: { type: 'jpeg', quality: 0.98 },
+                                html2canvas: { scale: 2 },
+                                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                              };
+                              html2pdf().set(opt).from(element).save();
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            PDF
+                          </button>
                         </div>
-
-                        {/* Application Summary */}
-                        <div className="bg-white rounded-lg p-6 mb-6">
-                          <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <Award size={18} className="text-[#1a56db]" />
-                            Résumé de la candidature
-                          </h4>
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm text-gray-500 mb-1">Programme</label>
-                              <p className="font-medium">{selectedApplication.offerTitle}</p>
+                      </div>
+                      
+                      {/* Content - Printable */}
+                      <div id="application-detail-content" className="bg-white rounded-xl p-8 shadow-sm space-y-6">
+                        {/* Header */}
+                        <div className="border-b border-gray-200 pb-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                {selectedApplication.offerTitle}
+                              </h2>
+                              <p className="text-gray-600">{selectedApplication.university || 'Université'}</p>
                             </div>
-                            <div>
-                              <label className="block text-sm text-gray-500 mb-1">Candidat</label>
-                              <p className="font-medium">{user?.firstName} {user?.lastName}</p>
-                            </div>
-                            <div>
-                              <label className="block text-sm text-gray-500 mb-1">Email</label>
-                              <p className="font-medium">{user?.email}</p>
-                            </div>
-                            <div>
-                              <label className="block text-sm text-gray-500 mb-1">Téléphone</label>
-                              <p className="font-medium">{user?.phone || 'Non renseigné'}</p>
-                            </div>
-                            <div>
-                              <label className="block text-sm text-gray-500 mb-1">Statut actuel</label>
+                            <div className="no-print">
                               {getStatusBadge(selectedApplication.status)}
                             </div>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            Soumise le {new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR', {
+                              day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+
+                        {/* Personal Info */}
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <User size={18} className="text-[#1a56db]" />
+                            Informations Personnelles
+                          </h3>
+                          <div className="grid md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
                             <div>
-                              <label className="block text-sm text-gray-500 mb-1">Date de soumission</label>
-                              <p className="font-medium">
-                                {new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR', {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                              <label className="block text-xs text-gray-500 mb-1">Nom complet</label>
+                              <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Email</label>
+                              <p className="font-medium text-gray-900">{user?.email}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Téléphone</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.phone || user?.phone || 'Non renseigné'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Nationalité</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.nationality || 'Non renseigné'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Date de naissance</label>
+                              <p className="font-medium text-gray-900">
+                                {selectedApplication.dateOfBirth ? new Date(selectedApplication.dateOfBirth).toLocaleDateString('fr-FR') : 'Non renseigné'}
                               </p>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Adresse</label>
+                              <p className="font-medium text-gray-900">{selectedApplication.address || 'Non renseigné'}</p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Status Timeline */}
-                        <div className="bg-white rounded-lg p-6">
-                          <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <Calendar size={18} className="text-[#1a56db]" />
-                            Historique du statut
-                          </h4>
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                              <div className={`w-3 h-3 rounded-full ${selectedApplication.status !== 'pending' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                        {/* Academic Background */}
+                        {selectedApplication.previousDegree && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <GraduationCap size={18} className="text-[#1a56db]" />
+                              Formation Académique
+                            </h3>
+                            <div className="bg-gray-50 rounded-lg p-4 grid md:grid-cols-2 gap-4">
                               <div>
-                                <p className="font-medium">Candidature soumise</p>
-                                <p className="text-sm text-gray-500">{new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR')}</p>
+                                <label className="block text-xs text-gray-500 mb-1">Diplôme précédent</label>
+                                <p className="font-medium text-gray-900">{selectedApplication.previousDegree}</p>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Université/École</label>
+                                <p className="font-medium text-gray-900">{selectedApplication.previousUniversity || 'Non renseigné'}</p>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Année obtention</label>
+                                <p className="font-medium text-gray-900">{selectedApplication.graduationYear || 'Non renseigné'}</p>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Moyenne (GPA)</label>
+                                <p className="font-medium text-gray-900">{selectedApplication.gpa || 'Non renseigné'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Documents */}
+                        {selectedApplication.documents && selectedApplication.documents.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <FileText size={18} className="text-[#1a56db]" />
+                              Documents Soumis ({selectedApplication.documents.length})
+                            </h3>
+                            <div className="grid md:grid-cols-2 gap-3">
+                              {selectedApplication.documents.map((doc, idx) => (
+                                <a
+                                  key={idx}
+                                  href={doc}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors no-print-link"
+                                >
+                                  <FileText size={20} className="text-blue-600" />
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm text-gray-900">Document {idx + 1}</p>
+                                    <p className="text-xs text-gray-500">Cliquez pour voir</p>
+                                  </div>
+                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Payment Info */}
+                        {(selectedApplication.paymentMethod || selectedApplication.paymentProof) && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-[#1a56db]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              Paiement
+                            </h3>
+                            <div className="bg-gray-50 rounded-lg p-4 grid md:grid-cols-2 gap-4">
+                              {selectedApplication.paymentMethod && (
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Méthode</label>
+                                  <p className="font-medium text-gray-900 capitalize">{selectedApplication.paymentMethod.replace('_', ' ')}</p>
+                                </div>
+                              )}
+                              {selectedApplication.paymentAmount && (
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Montant</label>
+                                  <p className="font-medium text-gray-900">{selectedApplication.paymentAmount} €</p>
+                                </div>
+                              )}
+                              {selectedApplication.paymentProof && (
+                                <div className="md:col-span-2">
+                                  <a
+                                    href={selectedApplication.paymentProof}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors no-print-link"
+                                  >
+                                    <FileText size={16} />
+                                    Voir justificatif
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Status Timeline */}
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <Calendar size={18} className="text-[#1a56db]" />
+                            Suivi de Candidature
+                          </h3>
+                          <div className="space-y-3">
+                            <div className="flex gap-3">
+                              <div className="w-3 h-3 rounded-full bg-green-500 mt-1"></div>
+                              <div>
+                                <p className="font-medium text-sm">Candidature soumise</p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(selectedApplication.createdAt).toLocaleDateString('fr-FR', {
+                                    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                  })}
+                                </p>
                               </div>
                             </div>
                             {selectedApplication.status !== 'pending' && (
-                              <div className="flex items-center gap-4">
-                                <div className={`w-3 h-3 rounded-full ${
+                              <div className="flex gap-3">
+                                <div className={`w-3 h-3 rounded-full mt-1 ${
                                   selectedApplication.status === 'accepted' ? 'bg-green-500' :
-                                  selectedApplication.status === 'rejected' ? 'bg-red-500' :
-                                  'bg-blue-500'
+                                  selectedApplication.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
                                 }`}></div>
                                 <div>
-                                  <p className="font-medium">
+                                  <p className="font-medium text-sm">
                                     {selectedApplication.status === 'reviewing' && 'En cours d\'examen'}
-                                    {selectedApplication.status === 'accepted' && 'Candidature acceptée'}
+                                    {selectedApplication.status === 'accepted' && 'Candidature acceptée ✓'}
                                     {selectedApplication.status === 'rejected' && 'Candidature refusée'}
                                   </p>
+                                  {selectedApplication.updatedAt && (
+                                    <p className="text-xs text-gray-500">
+                                      {new Date(selectedApplication.updatedAt).toLocaleDateString('fr-FR')}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             )}
                           </div>
                         </div>
+
+                        {/* Notes */}
+                        {selectedApplication.notes && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
+                            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedApplication.notes}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-500">
+                          <p>Référence : #{selectedApplication.id?.substring(0, 8) || 'N/A'}</p>
+                          <p className="mt-1">Winner's Consulting - Excellence dans l'éducation internationale</p>
+                        </div>
                       </div>
                     </div>
                   ) : (
+
                     // Applications List
                     <div className="space-y-4">
                       {applications.map((app) => (

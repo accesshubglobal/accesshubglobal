@@ -2,7 +2,7 @@
 
 ## 📋 Résumé du Problème
 
-✅ **Fonctionne** : Preview Emergent (https://vercel-connection.preview.emergentagent.com)  
+✅ **Fonctionne** : Preview Emergent (https://offre-details-view.preview.emergentagent.com)  
 ❌ **Ne fonctionne PAS** : Production Vercel (https://votre-site.vercel.app)
 
 ### Symptômes
