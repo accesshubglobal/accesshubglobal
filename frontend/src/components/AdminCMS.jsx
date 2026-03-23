@@ -37,6 +37,8 @@ const AdminCMS = ({ onClose }) => {
   const [showUniversityModal, setShowUniversityModal] = useState(false);
   const [showHousingModal, setShowHousingModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [inlineReply, setInlineReply] = useState('');
   const [editingItem, setEditingItem] = useState(null);
 
   // Load stats on mount
@@ -305,6 +307,13 @@ const AdminCMS = ({ onClose }) => {
       await axios.post(`${API}/admin/messages/${messageId}/reply`, { content });
       loadMessages();
       setShowReplyModal(null);
+      setInlineReply('');
+      // Refresh selected message
+      if (selectedMessage?.id === messageId) {
+        const updated = await axios.get(`${API}/admin/messages`);
+        const found = updated.data.find(m => m.id === messageId);
+        if (found) setSelectedMessage(found);
+      }
     } catch (err) {
       console.error('Error replying:', err);
     }
@@ -922,115 +931,196 @@ const AdminCMS = ({ onClose }) => {
 
           {/* Messages Section */}
           {activeSection === 'messages' && (
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b">
-                <h3 className="font-semibold text-gray-900">Messages ({messages.length})</h3>
-              </div>
-              
-              {loading ? (
-                <div className="p-12 text-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+            <div className="flex gap-6 h-[calc(100vh-200px)]" data-testid="messages-admin-section">
+              {/* Messages List (left panel) */}
+              <div className="w-80 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-gray-900">Messages ({messages.length})</h3>
                 </div>
-              ) : messages.length === 0 ? (
-                <div className="p-12 text-center">
-                  <MessageCircle size={48} className="mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">Aucun message pour le moment</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`p-6 ${!msg.isRead ? 'bg-blue-50/30' : 'bg-white'} hover:bg-gray-50 transition-colors`}>
-                      {/* Header avec info utilisateur */}
-                      <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 overflow-y-auto">
+                  {loading ? (
+                    <div className="p-8 text-center">
+                      <div className="animate-spin w-6 h-6 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <MessageCircle size={40} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-gray-500 text-sm">Aucun message</p>
+                    </div>
+                  ) : (
+                    messages.map((msg) => (
+                      <button
+                        key={msg.id}
+                        onClick={() => {
+                          setSelectedMessage(msg);
+                          if (!msg.isRead) markAsRead(msg.id);
+                        }}
+                        data-testid={`msg-item-${msg.id}`}
+                        className={`w-full p-4 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                          selectedMessage?.id === msg.id ? 'bg-blue-50' : ''
+                        } ${!msg.isRead ? 'border-l-4 border-l-blue-500' : ''}`}
+                      >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                             {msg.senderName?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-gray-900">{msg.senderName}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium text-gray-900 truncate text-sm">{msg.senderName}</p>
                               {!msg.isRead && (
-                                <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium animate-pulse">Nouveau</span>
+                                <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500">{msg.senderEmail}</p>
+                            <p className="text-xs font-medium text-gray-700 truncate">{msg.subject}</p>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                              {msg.replies?.length > 0 
+                                ? msg.replies[msg.replies.length - 1].content
+                                : msg.content}
+                            </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-xs text-gray-400 block">
+                        <div className="text-right mt-1">
+                          <span className="text-[10px] text-gray-400">
                             {new Date(msg.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                           </span>
-                          <span className="text-xs text-gray-400">
-                            {new Date(msg.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          {msg.replies?.length > 0 && (
+                            <span className="ml-2 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                              {msg.replies.length} rép.
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Conversation Window (right panel) */}
+              <div className="flex-1 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+                {selectedMessage ? (
+                  <>
+                    {/* Conversation Header */}
+                    <div className="p-4 border-b flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                          {selectedMessage.senderName?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{selectedMessage.senderName}</p>
+                          <p className="text-xs text-gray-500">{selectedMessage.senderEmail}</p>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                          {new Date(selectedMessage.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                        <button
+                          onClick={() => setSelectedMessage(null)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
 
-                      {/* Sujet */}
-                      <h4 className="font-semibold text-gray-800 mb-3 text-lg border-l-4 border-blue-500 pl-3">{msg.subject}</h4>
-                      
-                      {/* Conversation style chat */}
-                      <div className="space-y-3 bg-gray-50 rounded-lg p-4 mb-4">
-                        {/* Message original utilisateur (gauche) */}
+                    {/* Subject */}
+                    <div className="px-4 py-2 bg-gray-50 border-b">
+                      <p className="text-sm font-medium text-gray-700">Sujet : {selectedMessage.subject}</p>
+                    </div>
+
+                    {/* Messages Thread */}
+                    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                      <div className="space-y-3">
+                        {/* Original message (user - left) */}
                         <div className="flex justify-start">
-                          <div className="bg-blue-50 rounded-lg p-3 max-w-[80%] border-l-4 border-blue-500 shadow-sm">
+                          <div className="max-w-[70%] rounded-2xl px-4 py-2 bg-white text-gray-800 shadow-sm rounded-bl-md">
                             <div className="flex items-center gap-2 mb-1">
-                              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                {msg.senderName?.charAt(0)?.toUpperCase() || 'U'}
+                              <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                                {selectedMessage.senderName?.charAt(0)?.toUpperCase() || 'U'}
                               </div>
-                              <span className="text-xs font-medium text-blue-700">{msg.senderName}</span>
+                              <span className="text-xs font-medium text-blue-600">{selectedMessage.senderName}</span>
                             </div>
-                            <p className="text-gray-700 text-sm leading-relaxed">{msg.content}</p>
+                            <p className="text-sm">{selectedMessage.content}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(selectedMessage.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
                           </div>
                         </div>
 
-                        {/* Réponses admin (droite) */}
-                        {msg.replies && msg.replies.length > 0 && msg.replies.map((reply, idx) => (
-                          <div key={idx} className="flex justify-end">
-                            <div className="bg-green-50 rounded-lg p-3 max-w-[80%] border-r-4 border-green-500 shadow-sm">
-                              <div className="flex items-center gap-2 mb-1 justify-end">
-                                <span className="text-xs font-medium text-green-700">{reply.adminName || 'Admin'}</span>
-                                <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] rounded-full font-medium">Admin</span>
-                                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                  A
-                                </div>
+                        {/* Replies */}
+                        {selectedMessage.replies?.map((reply, idx) => (
+                          <div key={idx} className={`flex ${reply.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                            <div
+                              className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                                reply.isAdmin
+                                  ? 'bg-[#1a56db] text-white rounded-br-md'
+                                  : 'bg-white text-gray-800 shadow-sm rounded-bl-md'
+                              }`}
+                            >
+                              <div className={`flex items-center gap-2 mb-1 ${reply.isAdmin ? 'justify-end' : ''}`}>
+                                {!reply.isAdmin && (
+                                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                                    {selectedMessage.senderName?.charAt(0)?.toUpperCase() || 'U'}
+                                  </div>
+                                )}
+                                <span className={`text-xs font-medium ${reply.isAdmin ? 'text-blue-100' : 'text-blue-600'}`}>
+                                  {reply.isAdmin ? (reply.adminName || 'Admin') : selectedMessage.senderName}
+                                </span>
+                                {reply.isAdmin && (
+                                  <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                                    A
+                                  </div>
+                                )}
                               </div>
-                              <p className="text-gray-700 text-sm leading-relaxed text-right">{reply.content}</p>
-                              <span className="text-[10px] text-gray-400 block text-right mt-1">
+                              <p className="text-sm">{reply.content}</p>
+                              <p className={`text-xs mt-1 ${reply.isAdmin ? 'text-blue-100' : 'text-gray-400'}`}>
                                 {new Date(reply.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                              </p>
                             </div>
                           </div>
                         ))}
                       </div>
-                      
-                      {/* Actions */}
-                      <div className="flex gap-3 pt-2">
-                        {!msg.isRead && (
-                          <button
-                            onClick={() => markAsRead(msg.id)}
-                            className="flex items-center gap-1 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Marquer comme lu
-                          </button>
-                        )}
+                    </div>
+
+                    {/* Reply Input */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (inlineReply.trim()) {
+                          replyToMessage(selectedMessage.id, inlineReply.trim());
+                        }
+                      }}
+                      className="p-4 border-t"
+                    >
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={inlineReply}
+                          onChange={(e) => setInlineReply(e.target.value)}
+                          placeholder="Écrivez votre réponse..."
+                          data-testid="message-reply-input"
+                          className="flex-1 px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-[#1a56db]"
+                        />
                         <button
-                          onClick={() => setShowReplyModal(msg)}
-                          className="flex items-center gap-1 px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors font-medium shadow-sm"
+                          type="submit"
+                          disabled={!inlineReply.trim()}
+                          data-testid="message-reply-send-btn"
+                          className="w-10 h-10 bg-[#1a56db] hover:bg-[#1648b8] text-white rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                          </svg>
-                          Répondre
+                          <Send size={18} />
                         </button>
                       </div>
+                    </form>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <MessageCircle size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Sélectionnez un message</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
