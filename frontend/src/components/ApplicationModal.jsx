@@ -68,34 +68,69 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     }
   };
 
+  // Upload file: try direct Cloudinary first (avoids Vercel 4.5MB limit), fallback to backend
+  const uploadFile = async (file) => {
+    try {
+      // Get signature from backend
+      const sigRes = await axios.get(`${API}/upload/signature`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+
+      // Upload directly to Cloudinary
+      const cloudFormData = new FormData();
+      cloudFormData.append('file', file);
+      cloudFormData.append('signature', signature);
+      cloudFormData.append('timestamp', timestamp);
+      cloudFormData.append('api_key', api_key);
+      cloudFormData.append('folder', folder);
+
+      const cloudRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+        cloudFormData,
+        { timeout: 120000 }
+      );
+      return { url: cloudRes.data.secure_url, filename: file.name };
+    } catch (sigErr) {
+      // Fallback: upload via backend
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      const response = await axios.post(`${API}/upload`, formDataUpload, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        timeout: 60000
+      });
+      return { url: response.data.url, filename: file.name };
+    }
+  };
+
   const handleDocUpload = async (e, docName) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (file.size > 10 * 1024 * 1024) {
+      setError(`Le fichier ${docName} est trop volumineux (max 10 Mo)`);
+      return;
+    }
+
     setUploadingDoc(docName);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
+    setError('');
 
     try {
-      const response = await axios.post(`${API}/upload`, formDataUpload, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const result = await uploadFile(file);
 
       setUploadedDocs(prev => ({
         ...prev,
-        [docName]: { name: file.name, url: response.data.url }
+        [docName]: { name: file.name, url: result.url }
       }));
 
-      // Update formData documents
       setFormData(prev => {
         const newDocs = prev.documents.filter(d => d.name !== docName);
-        newDocs.push({ name: docName, url: response.data.url, filename: file.name });
+        newDocs.push({ name: docName, url: result.url, filename: file.name });
         return { ...prev, documents: newDocs };
       });
     } catch (err) {
-      setError(`Erreur lors du téléchargement de ${docName}`);
+      const detail = err.response?.data?.detail || err.message || '';
+      setError(`Erreur lors du téléchargement de ${docName}. ${detail}`);
     }
     setUploadingDoc(null);
   };
@@ -104,21 +139,21 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Le fichier est trop volumineux (max 10 Mo)');
+      return;
+    }
+
     setUploadingProof(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
+    setError('');
 
     try {
-      const response = await axios.post(`${API}/upload`, formDataUpload, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      setPaymentProofFile({ name: file.name, url: response.data.url });
-      setFormData(prev => ({ ...prev, paymentProof: response.data.url }));
+      const result = await uploadFile(file);
+      setPaymentProofFile({ name: file.name, url: result.url });
+      setFormData(prev => ({ ...prev, paymentProof: result.url }));
     } catch (err) {
-      setError('Erreur lors du téléchargement de la preuve de paiement');
+      const detail = err.response?.data?.detail || err.message || '';
+      setError(`Erreur lors du téléchargement du justificatif. ${detail}`);
     }
     setUploadingProof(false);
   };
@@ -151,7 +186,8 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const canProceedStep1 = formData.firstName && formData.lastName && formData.nationality && 
     formData.sex && formData.passportNumber && formData.dateOfBirth && formData.phoneNumber && formData.address;
 
-  const canProceedStep2 = offer?.documents?.length === 0 || formData.documents.length >= 1;
+  const requiredDocs = offer?.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer?.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV'];
+  const canProceedStep2 = requiredDocs.length === 0 || formData.documents.length >= 1;
 
   const canProceedStep3 = formData.termsAccepted;
 
@@ -351,7 +387,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               </p>
               
               <div className="space-y-3">
-                {(offer.documents || ['Passeport', 'Diplômes', 'CV']).map((doc, index) => (
+                {(offer.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV']).map((doc, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-[#1a56db]/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">

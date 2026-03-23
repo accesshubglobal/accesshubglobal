@@ -1123,6 +1123,32 @@ cloudinary.config(
     api_secret=os.environ.get('CLOUDINARY_API_SECRET')
 )
 
+@api_router.get("/upload/signature")
+async def get_upload_signature(current_user: dict = Depends(get_current_user)):
+    """Generate a signed upload signature for direct browser-to-Cloudinary upload"""
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    api_key = os.environ.get('CLOUDINARY_API_KEY')
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise HTTPException(status_code=500, detail="Cloudinary non configuré")
+
+    import cloudinary.utils
+    import time
+    timestamp = int(time.time())
+    params = {
+        "timestamp": timestamp,
+        "folder": "winners_consulting",
+    }
+    signature = cloudinary.utils.api_sign_request(params, api_secret)
+    return {
+        "signature": signature,
+        "timestamp": timestamp,
+        "cloud_name": cloud_name,
+        "api_key": api_key,
+        "folder": "winners_consulting"
+    }
+
 @api_router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     """

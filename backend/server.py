@@ -604,28 +604,74 @@ async def user_reply_message(message_id: str, reply: MessageReplyUser, current_u
 
 # ============= FILE UPLOAD =============
 
+@api_router.get("/upload/signature")
+async def get_upload_signature(current_user: dict = Depends(get_current_user)):
+    """Generate a signed upload signature for direct browser-to-Cloudinary upload"""
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    api_key = os.environ.get('CLOUDINARY_API_KEY')
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise HTTPException(status_code=500, detail="Cloudinary non configuré")
+
+    import cloudinary.utils
+    import time
+    timestamp = int(time.time())
+    params = {
+        "timestamp": timestamp,
+        "folder": "winners_consulting",
+    }
+    signature = cloudinary.utils.api_sign_request(params, api_secret)
+    return {
+        "signature": signature,
+        "timestamp": timestamp,
+        "cloud_name": cloud_name,
+        "api_key": api_key,
+        "folder": "winners_consulting"
+    }
+
 @api_router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    import os
-    import shutil
-    
-    # Create uploads directory if not exists
-    upload_dir = "/app/uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    # Generate unique filename
-    file_ext = os.path.splitext(file.filename)[1]
-    unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(upload_dir, unique_filename)
-    
-    # Save file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Return URL (relative path that can be served)
-    file_url = f"/api/files/{unique_filename}"
-    
-    return {"url": file_url, "filename": file.filename}
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    api_key = os.environ.get('CLOUDINARY_API_KEY')
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+
+    if cloud_name and api_key and api_secret:
+        # Use Cloudinary
+        import cloudinary
+        import cloudinary.uploader
+        from io import BytesIO
+        cloudinary.config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret)
+        try:
+            contents = await file.read()
+            upload_result = cloudinary.uploader.upload(
+                BytesIO(contents),
+                folder="winners_consulting",
+                resource_type="auto",
+                use_filename=True,
+                unique_filename=True
+            )
+            return {
+                "url": upload_result['secure_url'],
+                "filename": file.filename,
+                "public_id": upload_result['public_id'],
+                "format": upload_result.get('format', ''),
+                "size": upload_result.get('bytes', 0)
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erreur Cloudinary: {str(e)}")
+    else:
+        # Fallback: local storage
+        import shutil
+        upload_dir = "/app/uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+        file_ext = os.path.splitext(file.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = os.path.join(upload_dir, unique_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        file_url = f"/api/files/{unique_filename}"
+        return {"url": file_url, "filename": file.filename}
 
 # Serve uploaded files
 from fastapi.responses import FileResponse
