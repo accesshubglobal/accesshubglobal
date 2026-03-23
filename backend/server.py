@@ -820,6 +820,7 @@ async def admin_reply_message(message_id: str, reply: MessageReply, admin: dict 
     
     reply_data = {
         "content": reply.content,
+        "isAdmin": True,
         "adminName": f"{admin['firstName']} {admin['lastName']}",
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
