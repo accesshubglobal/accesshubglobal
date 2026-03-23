@@ -272,6 +272,9 @@ class ApplicationCreate(BaseModel):
     paymentProof: str
     paymentAmount: float
 
+# Alias for full application creation
+FullApplicationCreate = ApplicationCreate
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
@@ -608,6 +611,67 @@ async def get_my_applications(current_user: dict = Depends(get_current_user)):
         {"_id": 0}
     ).sort("createdAt", -1).to_list(100)
     return applications
+
+@api_router.post("/applications/full")
+async def create_full_application(app_data: FullApplicationCreate, current_user: dict = Depends(get_current_user)):
+    database = get_db()
+    existing = await database.applications.find_one({
+        "userId": current_user["id"],
+        "offerId": app_data.offerId
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà postulé à cette offre")
+    
+    application = Application(
+        userId=current_user["id"],
+        userName=f"{current_user['firstName']} {current_user['lastName']}",
+        userEmail=current_user["email"],
+        offerId=app_data.offerId,
+        offerTitle=app_data.offerTitle,
+        firstName=app_data.firstName,
+        lastName=app_data.lastName,
+        nationality=app_data.nationality,
+        sex=app_data.sex,
+        passportNumber=app_data.passportNumber,
+        dateOfBirth=app_data.dateOfBirth,
+        phoneNumber=app_data.phoneNumber,
+        address=app_data.address,
+        additionalPrograms=app_data.additionalPrograms,
+        documents=app_data.documents,
+        termsAccepted=app_data.termsAccepted,
+        paymentMethod=app_data.paymentMethod,
+        paymentProof=app_data.paymentProof,
+        paymentAmount=app_data.paymentAmount,
+        paymentStatus="submitted",
+        status="pending"
+    )
+    
+    doc = application.model_dump()
+    doc.pop('_id', None)
+    await database.applications.insert_one(doc)
+    
+    return {"message": "Candidature soumise avec succès", "id": application.id}
+
+@api_router.get("/applications/{app_id}")
+async def get_application_details(app_id: str, current_user: dict = Depends(get_current_user)):
+    database = get_db()
+    application = await database.applications.find_one({"id": app_id}, {"_id": 0})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+    if application["userId"] != current_user["id"] and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    return application
+
+@api_router.put("/admin/applications/{app_id}/payment-status")
+async def admin_update_payment_status(app_id: str, payment_status: str, admin: dict = Depends(get_admin_user)):
+    database = get_db()
+    if payment_status not in ["pending", "submitted", "verified", "rejected"]:
+        raise HTTPException(status_code=400, detail="Statut de paiement invalide")
+    application = await database.applications.find_one({"id": app_id})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+    await database.applications.update_one({"id": app_id}, {"$set": {"paymentStatus": payment_status}})
+    return {"message": f"Statut de paiement mis à jour: {payment_status}"}
 
 # ============= UNIVERSITIES ROUTES =============
 
