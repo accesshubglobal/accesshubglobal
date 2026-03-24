@@ -1,111 +1,68 @@
-# Winner's Consulting - Product Requirements Document
+# Winner's Consulting - PRD
 
-## Apercu du projet
-Winner's Consulting est une plateforme de consultation pour etudes a l'etranger (Chine, France). React + FastAPI + MongoDB Atlas.
+## Projet
+Application full-stack (React + FastAPI + MongoDB) pour Winner's Consulting, une agence de conseil en études internationales (Chine & France).
 
-## Architecture
-- **Frontend** : React 19, Tailwind CSS
-- **Backend** : FastAPI, Motor (Async MongoDB)
-- **Base de donnees** : MongoDB Atlas (`winnersconsulting`)
-- **Deploiement** : Vercel (api/index.py)
-- **Stockage fichiers** : Cloudinary (upload direct navigateur)
+## Fonctionnalités Principales
+- Site vitrine multi-sections (Accueil, Programmes, Universités, Logement, Blog, Communauté)
+- Système d'authentification RBAC (user, agent, admin_secondaire, admin_principal)
+- CMS Admin complet pour gestion de contenu
+- Système de candidature avec suivi et messagerie
+- Système d'agents/partenaires avec codes d'activation
+- Vérification email et récupération de mot de passe (Resend)
+- Upload d'images (Cloudinary)
 
-## Architecture Backend
+## Architecture Technique
+- Frontend: React (CRA) + TailwindCSS + Shadcn/UI
+- Backend: FastAPI + MongoDB
+- Intégrations: Cloudinary (images), Resend (emails)
+
+## Structure Admin CMS (Refactorisée)
 ```
-api/
-  _models.py      # Source unique: modeles Pydantic
-  _helpers.py     # DB, Auth, Utility
-  _routes.py      # Source unique: TOUTES les routes API (~120+ routes)
-  index.py        # Adaptateur Vercel
-backend/
-  server.py       # Adaptateur local (+ WebSocket)
+AdminCMS.jsx (~138 lignes) - Routeur/conteneur
+├── admin/AdminSidebar.jsx   - Navigation sidebar
+├── admin/AdminHeader.jsx    - Header avec breadcrumbs
+├── admin/DashboardSection.jsx
+├── admin/OffersSection.jsx
+├── admin/UniversitiesSection.jsx
+├── admin/ScholarshipsSection.jsx
+├── admin/UsersSection.jsx
+├── admin/AgentsSection.jsx
+├── admin/ApplicationsSection.jsx
+├── admin/HousingSection.jsx
+├── admin/MessagesSection.jsx
+├── admin/ChatsSection.jsx
+├── admin/ContactsSection.jsx
+├── admin/NewsletterSection.jsx
+├── admin/BlogSection.jsx
+├── admin/BannersSection.jsx
+├── admin/TestimonialsSection.jsx
+├── admin/FaqSection.jsx
+├── admin/CommunitySection.jsx
+├── admin/PaymentSettingsSection.jsx
+├── admin/TermsSection.jsx
+└── admin/adminApi.js        - Config API partagée
 ```
 
-## Fonctionnalites COMPLETEES
-- [x] Authentification JWT (admin + users)
-- [x] Catalogue de programmes depuis MongoDB
-- [x] Candidatures (4 etapes) + re-soumission + statut "Modifier"
-- [x] Upload Cloudinary + messages avec pieces jointes
-- [x] Panel admin complet (CRUD offres, candidatures, messages, stats, newsletter)
-- [x] Chat admin/user + PDF/Impression
-- [x] Newsletter + Frais dynamiques + CGU editables + QR codes
-- [x] Consolidation backend (_routes.py source unique)
-- [x] Boutons CTA + Bannieres + Temoignages + Contact + FAQ + Services
-- [x] Admin sidebar groupee (6 categories expandables + mode retractable)
-- [x] Sidebar/header fixes (scroll contenu independant)
-- [x] Footer fonctionnel (liens Services/Programmes/Contact)
-- [x] **Blog** (24 Mars 2026):
-  - Page publique /blog avec recherche + filtres par categorie
-  - Page detail /blog/{id} avec compteur de vues
-  - Admin CRUD complet (creer, editer, supprimer, publier/brouillon)
-  - 7 categories: Etudes, Visa, Bourses, Vie etudiante, Conseils, Actualites
-- [x] **Communaute** (24 Mars 2026):
-  - Page publique /community avec discussions + filtres
-  - Page detail /community/{id} avec reponses
-  - Utilisateurs: creer discussion, repondre, liker posts et reponses
-  - Admin: epingler/supprimer discussions, supprimer reponses
-  - 7 categories: Etudes, Visa, Vie etudiante, Bourses, Conseils, Experiences
-- [x] **RBAC Admin - Controle d'acces par role** (24 Mars 2026):
-  - Deux niveaux admin: admin_principal (acces total) et admin_secondary (acces limite)
-  - Backend: gardes get_principal_admin et get_admin_user via Depends()
-  - Routes sensibles protegees: gestion utilisateurs, paiements, bannieres
-  - Frontend: sidebar conditionnel via isPrincipalAdmin (AuthContext)
-  - Section Utilisateurs avec 4 onglets: Tous, Admins Principaux, Admins Secondaires, Utilisateurs
-  - Admin secondaire: peut gerer offres, blog, communaute, messages, candidatures
-  - Admin secondaire: NE peut PAS gerer utilisateurs, paiements, bannieres, parametres
-  - Teste: 19/19 tests backend + verification frontend complete
-- [x] **Systeme Agent/Partenaire** (24 Mars 2026):
-  - Nouveau role "agent" avec flux d'inscription dedie (/agent/register)
-  - Code d'activation genere par admin principal (format AG-XXXXXXXX, expire 30j)
-  - Approbation par admin principal requise avant acces
-  - Dashboard agent (/agent) avec 6 onglets: Tableau de bord, Etudiants, Candidatures, Offres, Favoris, Messages
-  - Gestion etudiants: CRUD complet (prenom, nom, email, telephone, nationalite, passeport...)
-  - Candidatures: postuler pour un etudiant sur n'importe quelle offre
-  - Messagerie: envoyer des messages aux administrateurs
-  - Offres/Favoris: consulter et ajouter aux favoris comme un utilisateur
-  - Admin: section "Agents" avec gestion codes + approbation/rejet agents
-  - Footer "Devenir Partenaire" redirige vers /agent/register
-  - Auto-redirect vers /agent apres login agent
-  - Teste: 21/21 tests backend + verification frontend complete
-- [x] **Securite Email** (24 Mars 2026):
-  - Verification email obligatoire a l'inscription (user + agent) via code 6 chiffres
-  - Mot de passe oublie fonctionnel: envoi code par email, verification, nouveau mot de passe
-  - Unicite email: impossible de creer 2 comptes avec le meme email
-  - Integration Resend pour l'envoi d'emails transactionnels
-  - Templates HTML professionnels pour les emails (verification + reset)
-  - Frontend: modal verification email apres inscription, modal reset password 3 etapes
-  - Note: En mode test Resend, emails uniquement vers winerscon@gmail.com. Pour tous destinataires, verifier un domaine sur resend.com/domains
-- [x] **Universites fonctionnelles** (24 Mars 2026):
-  - Page detail universite (/universities/:id) avec: photo couverture, logo, nom, ville/province/pays, statut public/prive, video YouTube embed, description, presentation (annee creation, president, etudiants etrangers...), facultes, conditions admission, galerie photos, lightbox
-  - Compteur de vues reel (incremente a chaque visite)
-  - Systeme de likes reel (toggle like/unlike par utilisateur connecte)
-  - Rating calcule dynamiquement (base sur vues + likes)
-  - Section homepage: grille 4 colonnes, onglets Chine/France, badges, stats vues/likes/rating
-  - Bouton "Tout voir" → page /universities avec recherche et filtres
-  - Fleches navigation pour pagination (8 par page)
-  - Formulaire admin enrichi: tous les nouveaux champs editables (couverture, logo, statut, video YouTube, description, facultes, conditions, photos)
-  - Collections: university_likes
+## Tâches Complétées
+- [x] RBAC System (user, agent, admin_secondaire, admin_principal)
+- [x] Agent/Partner System avec codes d'activation
+- [x] Email verification + Forgot password (Resend)
+- [x] University Feature Overhaul (pages dynamiques, uploads)
+- [x] **Refactoring AdminCMS.jsx** (5081 lignes → ~138 lignes routeur + 20 composants)
 
-## Collections MongoDB
-users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies, agent_codes, agent_students, email_verifications
+## Tâches À Venir
+### P1 - Priorité haute
+- [ ] Intégration paiement en ligne (Stripe ou autre)
+- [ ] Confirmation utilisateur sur l'UI des universités
+
+### P2 - Priorité moyenne
+- [ ] Notifications email automatiques pour changements de statut candidatures
+
+### P3 - Priorité basse
+- [ ] Recherche globale dans la navbar du site principal
+- [ ] Mode sombre pour le CMS admin
+- [ ] Système de badges/réputation pour le forum communautaire
 
 ## Credentials
-- **Admin Principal** : admin@winners-consulting.com / Admin2025!
-- **Admin Secondaire (test)** : secondary@test.com / Test2025!
-- **Agent (test)** : agent@test.com / Agent2025!
-
-## Roles
-- `admin_principal` : Acces total (utilisateurs, paiements, bannieres, parametres, agents)
-- `admin_secondary` : Acces contenu uniquement (offres, blog, communaute, messages, candidatures)
-- `agent` : Partenaire (gestion etudiants, candidatures pour etudiants, messagerie, favoris)
-- `user` : Utilisateur standard
-
-## Backlog
-- [ ] Paiement en ligne (P1)
-- [ ] Emails automatiques pour changements de statut (P2)
-- [ ] Refactoring AdminCMS.jsx en sous-composants (P3)
-- [ ] Recherche globale dans la navbar (P3)
-- [ ] Mode sombre admin (P3)
-- [ ] Systeme de badges/reputation communaute (P3)
-- [ ] Configuration variables Cloudinary Vercel
-- [ ] Commit GitHub pour deploiement Vercel
+- Admin Principal: admin@winners-consulting.com / Admin2025!
