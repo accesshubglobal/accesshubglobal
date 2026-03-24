@@ -4,7 +4,8 @@ import {
   Settings, LogOut, Plus, Edit, Trash2, Eye, Search, Filter, X, Check, Clock,
   ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award, Mail, Image,
   Star, MessageSquare, HelpCircle, PhoneCall, Download, ExternalLink, ArrowLeft, User, MapPin, Phone, Calendar,
-  CreditCard, Paperclip, RefreshCw, AlertTriangle, CheckCircle, XCircle, ClipboardList
+  CreditCard, Paperclip, RefreshCw, AlertTriangle, CheckCircle, XCircle, ClipboardList, ChevronDown,
+  Layers, Megaphone, Wrench, FolderOpen
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +19,8 @@ const AdminCMS = ({ onClose }) => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [expandedGroup, setExpandedGroup] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -610,24 +613,75 @@ const AdminCMS = ({ onClose }) => {
     }
   };
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-    { id: 'offers', label: 'Offres', icon: GraduationCap, badge: stats?.offers },
-    { id: 'universities', label: 'Universités', icon: Building, badge: stats?.universities },
-    { id: 'scholarships', label: 'Bourses/Financement', icon: Award },
-    { id: 'users', label: 'Utilisateurs', icon: Users, badge: stats?.users },
-    { id: 'applications', label: 'Candidatures', icon: FileText, badge: stats?.pendingApplications },
-    { id: 'messages', label: 'Messages', icon: MessageCircle, badge: stats?.unreadMessages },
-    { id: 'chats', label: 'Chat en direct', icon: Headphones, badge: chats?.length },
-    { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
-    { id: 'payment-settings', label: 'Paiements', icon: Settings },
-    { id: 'terms-conditions', label: 'Conditions', icon: FileText },
-    { id: 'banners', label: 'Banni\u00E8res', icon: Image },
-    { id: 'testimonials', label: 'T\u00E9moignages', icon: Star },
-    { id: 'contacts', label: 'Contacts', icon: PhoneCall },
-    { id: 'faqs', label: 'FAQ', icon: HelpCircle },
-    { id: 'newsletter', label: 'Newsletter', icon: Mail, badge: newsletterSubs?.length },
+  const menuGroups = [
+    {
+      id: 'dashboard',
+      label: 'Tableau de bord',
+      icon: LayoutDashboard,
+      items: [{ id: 'dashboard', label: 'Vue d\'ensemble', icon: BarChart3 }],
+    },
+    {
+      id: 'programs',
+      label: 'Programmes',
+      icon: GraduationCap,
+      items: [
+        { id: 'offers', label: 'Offres', icon: GraduationCap, badge: stats?.offers },
+        { id: 'universities', label: 'Universités', icon: Building, badge: stats?.universities },
+        { id: 'scholarships', label: 'Bourses', icon: Award },
+      ],
+    },
+    {
+      id: 'management',
+      label: 'Gestion',
+      icon: FolderOpen,
+      items: [
+        { id: 'users', label: 'Utilisateurs', icon: Users, badge: stats?.users },
+        { id: 'applications', label: 'Candidatures', icon: FileText, badge: stats?.pendingApplications },
+        { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
+      ],
+    },
+    {
+      id: 'communication',
+      label: 'Communication',
+      icon: Megaphone,
+      items: [
+        { id: 'messages', label: 'Messages', icon: MessageCircle, badge: stats?.unreadMessages },
+        { id: 'chats', label: 'Chat en direct', icon: Headphones, badge: chats?.length },
+        { id: 'contacts', label: 'Contacts', icon: PhoneCall },
+        { id: 'newsletter', label: 'Newsletter', icon: Mail, badge: newsletterSubs?.length },
+      ],
+    },
+    {
+      id: 'content',
+      label: 'Contenu',
+      icon: Layers,
+      items: [
+        { id: 'banners', label: 'Bannières', icon: Image },
+        { id: 'testimonials', label: 'Témoignages', icon: Star },
+        { id: 'faqs', label: 'FAQ', icon: HelpCircle },
+      ],
+    },
+    {
+      id: 'settings',
+      label: 'Paramètres',
+      icon: Wrench,
+      items: [
+        { id: 'payment-settings', label: 'Paiements', icon: CreditCard },
+        { id: 'terms-conditions', label: 'Conditions', icon: FileText },
+      ],
+    },
   ];
+
+  const allMenuItems = menuGroups.flatMap(g => g.items);
+
+  const findGroupForSection = (sectionId) => {
+    return menuGroups.find(g => g.items.some(i => i.id === sectionId))?.id || 'dashboard';
+  };
+
+  const handleSectionClick = (sectionId) => {
+    setActiveSection(sectionId);
+    setExpandedGroup(findGroupForSection(sectionId));
+  };
 
   const getStatusBadge = (status) => {
     const config = {
@@ -642,48 +696,153 @@ const AdminCMS = ({ onClose }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-[#f0f2f5] flex">
       {/* Sidebar */}
-      <div className="w-64 bg-[#1e3a5f] text-white flex flex-col">
-        <div className="p-6 border-b border-white/10">
-          <h1 className="text-xl font-bold">Admin CMS</h1>
-          <p className="text-sm text-blue-200">Winner's Consulting</p>
+      <div className={`${sidebarCollapsed ? 'w-[72px]' : 'w-64'} bg-[#0f1d2f] text-white flex flex-col transition-all duration-300 flex-shrink-0`}>
+        {/* Logo */}
+        <div className={`flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-5'} py-5 border-b border-white/[0.06]`}>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-sm font-bold">W</div>
+              <div>
+                <p className="text-sm font-semibold leading-tight">Winner's CMS</p>
+                <p className="text-[10px] text-blue-300/60">Administration</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1.5 hover:bg-white/[0.06] rounded-lg transition-colors text-gray-400 hover:text-white"
+            data-testid="sidebar-toggle"
+          >
+            {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
         </div>
-        
-        <nav className="flex-1 py-4">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+
+        {/* Navigation */}
+        <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin">
+          {menuGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isExpanded = expandedGroup === group.id;
+            const isSingle = group.items.length === 1;
+            const hasActiveBadge = group.items.some(i => i.badge > 0);
+            const isGroupActive = group.items.some(i => i.id === activeSection);
+
+            if (sidebarCollapsed) {
+              return (
+                <div key={group.id} className="px-2 mb-1">
+                  <button
+                    onClick={() => {
+                      if (isSingle) {
+                        handleSectionClick(group.items[0].id);
+                      } else {
+                        setExpandedGroup(isExpanded ? null : group.id);
+                        if (!isGroupActive) handleSectionClick(group.items[0].id);
+                      }
+                    }}
+                    className={`w-full p-2.5 rounded-xl flex items-center justify-center relative transition-all ${
+                      isGroupActive
+                        ? 'bg-blue-500/20 text-blue-300'
+                        : 'text-gray-400 hover:bg-white/[0.06] hover:text-gray-200'
+                    }`}
+                    title={group.label}
+                  >
+                    <GroupIcon size={18} />
+                    {hasActiveBadge && (
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full"></span>
+                    )}
+                  </button>
+                </div>
+              );
+            }
+
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center justify-between px-6 py-3 text-left transition-colors ${
-                  activeSection === item.id
-                    ? 'bg-white/10 border-r-4 border-white'
-                    : 'hover:bg-white/5'
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon size={18} />
-                  {item.label}
-                </span>
-                {item.badge > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {item.badge}
+              <div key={group.id} className="mb-0.5">
+                {/* Group header */}
+                <button
+                  onClick={() => {
+                    if (isSingle) {
+                      handleSectionClick(group.items[0].id);
+                    } else {
+                      setExpandedGroup(isExpanded ? null : group.id);
+                    }
+                  }}
+                  data-testid={`sidebar-group-${group.id}`}
+                  className={`w-full flex items-center justify-between px-5 py-2.5 text-left transition-all ${
+                    isGroupActive
+                      ? 'text-white'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <GroupIcon size={17} className={isGroupActive ? 'text-blue-400' : ''} />
+                    <span className="text-[13px] font-medium">{group.label}</span>
                   </span>
+                  <span className="flex items-center gap-2">
+                    {hasActiveBadge && (
+                      <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                    )}
+                    {!isSingle && (
+                      <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    )}
+                  </span>
+                </button>
+
+                {/* Sub-items */}
+                {!isSingle && (
+                  <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleSectionClick(item.id)}
+                          data-testid={`sidebar-item-${item.id}`}
+                          className={`w-full flex items-center justify-between pl-12 pr-5 py-2 text-left transition-all ${
+                            activeSection === item.id
+                              ? 'text-white bg-blue-500/15 border-r-2 border-blue-400'
+                              : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <Icon size={15} />
+                            <span className="text-[13px]">{item.label}</span>
+                          </span>
+                          {item.badge > 0 && (
+                            <span className="min-w-[20px] px-1.5 py-0.5 bg-red-500/80 text-[10px] font-medium text-white rounded-full text-center">
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        {/* User + Logout */}
+        <div className={`border-t border-white/[0.06] ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-3 mb-3 px-1">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-[11px] font-bold">
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-gray-200 truncate">{user?.firstName} {user?.lastName}</p>
+                <p className="text-[10px] text-gray-500">Admin</p>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => { logout(); onClose(); }}
-            className="w-full flex items-center gap-3 px-4 py-2 text-red-300 hover:bg-red-500/20 rounded-lg transition-colors"
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-2.5 px-3'} py-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all text-[13px]`}
+            data-testid="sidebar-logout"
           >
-            <LogOut size={18} />
-            Déconnexion
+            <LogOut size={16} />
+            {!sidebarCollapsed && 'Déconnexion'}
           </button>
         </div>
       </div>
@@ -691,28 +850,32 @@ const AdminCMS = ({ onClose }) => {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {menuItems.find(m => m.id === activeSection)?.label}
+        <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span>{menuGroups.find(g => g.items.some(i => i.id === activeSection))?.label}</span>
+              <ChevronRight size={14} />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {allMenuItems.find(m => m.id === activeSection)?.label}
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-400 hover:text-gray-600">
-              <Bell size={20} />
+            <button className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <Bell size={18} />
               {stats?.unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-medium">
                   {stats.unreadMessages}
                 </span>
               )}
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </div>
-              <div>
-                <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
-                <p className="text-xs text-gray-500">Administrateur</p>
+              <div className="hidden md:block">
+                <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+                <p className="text-[11px] text-gray-400">Administrateur</p>
               </div>
             </div>
           </div>
@@ -759,28 +922,28 @@ const AdminCMS = ({ onClose }) => {
                   <h3 className="font-semibold text-gray-900 mb-4">Actions rapides</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <button 
-                      onClick={() => { setActiveSection('offers'); setShowOfferModal(true); }}
+                      onClick={() => { handleSectionClick('offers'); setShowOfferModal(true); }}
                       className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
                     >
                       <Plus size={18} />
                       Nouvelle offre
                     </button>
                     <button 
-                      onClick={() => { setActiveSection('universities'); setShowUniversityModal(true); }}
+                      onClick={() => { handleSectionClick('universities'); setShowUniversityModal(true); }}
                       className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
                     >
                       <Plus size={18} />
                       Nouvelle université
                     </button>
                     <button 
-                      onClick={() => setActiveSection('applications')}
+                      onClick={() => handleSectionClick('applications')}
                       className="flex items-center gap-2 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
                     >
                       <FileText size={18} />
                       Voir candidatures
                     </button>
                     <button 
-                      onClick={() => setActiveSection('messages')}
+                      onClick={() => handleSectionClick('messages')}
                       className="flex items-center gap-2 p-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
                     >
                       <MessageCircle size={18} />
