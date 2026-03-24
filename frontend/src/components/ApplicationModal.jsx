@@ -186,7 +186,8 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
       await axios.post(`${API}/applications/full`, {
         offerId: offer.id,
         offerTitle: offer.title,
-        ...formData
+        ...formData,
+        paymentAmount: offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || formData.paymentAmount
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -470,7 +471,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <p>En soumettant cette candidature, je certifie que toutes les informations fournies sont exactes et complètes. Je comprends que toute fausse déclaration peut entraîner le rejet de ma candidature ou l'annulation de mon inscription.</p>
                 
                 <p><strong>2. Frais de dossier</strong></p>
-                <p>Les frais de dossier de {paymentSettings?.applicationFee || 50} {paymentSettings?.currency || 'EUR'} ne sont pas remboursables, quelle que soit l'issue de la candidature.</p>
+                <p>Les frais de dossier de {offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 50} {offer?.currency || paymentSettings?.currency || 'EUR'} ne sont pas remboursables, quelle que soit l'issue de la candidature.</p>
                 
                 <p><strong>3. Traitement des données</strong></p>
                 <p>J'accepte que mes données personnelles soient traitées par Winner's Consulting dans le cadre de ma candidature et partagées avec l'université concernée.</p>
@@ -507,7 +508,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Frais de dossier à payer:</span>
                   <span className="text-2xl font-bold text-[#1a56db]">
-                    {paymentSettings.applicationFee} {paymentSettings.currency}
+                    {offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}
                   </span>
                 </div>
               </div>
