@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Users, GraduationCap, Building, Home, MessageCircle, FileText, 
   Settings, LogOut, Plus, Edit, Trash2, Eye, Search, Filter, X, Check, Clock,
-  ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award, Mail
+  ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award, Mail, Image
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -83,6 +83,9 @@ const AdminCMS = ({ onClose }) => {
         break;
       case 'scholarships':
         loadOffers();
+        break;
+      case 'banners':
+        loadBanners();
         break;
       default:
         break;
@@ -400,6 +403,30 @@ const AdminCMS = ({ onClose }) => {
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [showPaymentSettings, setShowPaymentSettings] = useState(false);
 
+  // Banner slides state
+  const [bannerSlides, setBannerSlides] = useState([]);
+  const [bannerLoading, setBannerLoading] = useState(false);
+
+  const loadBanners = async () => {
+    setBannerLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/site-settings/banners`);
+      setBannerSlides(response.data.slides || []);
+    } catch (err) {
+      console.error('Error loading banners:', err);
+    }
+    setBannerLoading(false);
+  };
+
+  const saveBanners = async (slides) => {
+    try {
+      await axios.post(`${API}/admin/site-settings/banners`, { slides });
+      setBannerSlides(slides);
+    } catch (err) {
+      console.error('Error saving banners:', err);
+    }
+  };
+
   const loadPaymentSettings = async () => {
     try {
       const response = await axios.get(`${API}/admin/payment-settings`);
@@ -431,6 +458,7 @@ const AdminCMS = ({ onClose }) => {
     { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
     { id: 'payment-settings', label: 'Paiements', icon: Settings },
     { id: 'terms-conditions', label: 'Conditions', icon: FileText },
+    { id: 'banners', label: 'Banni\u00E8res', icon: Image },
     { id: 'newsletter', label: 'Newsletter', icon: Mail, badge: newsletterSubs?.length },
   ];
 
@@ -1438,6 +1466,12 @@ const AdminCMS = ({ onClose }) => {
                 </div>
               )}
             </div>
+          )}
+
+
+          {/* Banners Management Section */}
+          {activeSection === 'banners' && (
+            <BannersManager slides={bannerSlides} loading={bannerLoading} onSave={saveBanners} token={token} />
           )}
 
           {/* Newsletter Section */}
@@ -3159,6 +3193,192 @@ const TermsConditionsEditor = ({ settings, onSave }) => {
           'Enregistrer les conditions'
         )}
       </button>
+    </div>
+  );
+};
+
+// ============= BANNERS MANAGER COMPONENT =============
+const BannersManager = ({ slides, loading, onSave, token }) => {
+  const [localSlides, setLocalSlides] = useState(slides);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingSlide, setEditingSlide] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [newSlide, setNewSlide] = useState({ image: '', title: '', subtitle: '' });
+
+  useEffect(() => { setLocalSlides(slides); }, [slides]);
+
+  const handleUploadImage = async (file) => {
+    setUploading(true);
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      const sigRes = await fetch(`${API_URL}/api/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!sigRes.ok) throw new Error('Signature failed');
+      const sigData = await sigRes.json();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', sigData.api_key);
+      formData.append('timestamp', sigData.timestamp);
+      formData.append('signature', sigData.signature);
+      formData.append('folder', sigData.folder);
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+      if (uploadData.secure_url) return uploadData.secure_url;
+      throw new Error('Upload failed');
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Erreur lors du t\u00E9l\u00E9versement');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAddSlide = async () => {
+    if (!newSlide.image) return;
+    const slide = { id: Date.now().toString(), ...newSlide };
+    const updated = [...localSlides, slide];
+    setLocalSlides(updated);
+    await onSave(updated);
+    setNewSlide({ image: '', title: '', subtitle: '' });
+    setShowAddForm(false);
+  };
+
+  const handleUpdateSlide = async () => {
+    if (!editingSlide) return;
+    const updated = localSlides.map(s => s.id === editingSlide.id ? editingSlide : s);
+    setLocalSlides(updated);
+    await onSave(updated);
+    setEditingSlide(null);
+  };
+
+  const handleDeleteSlide = async (slideId) => {
+    if (!window.confirm('Supprimer cette banni\u00E8re ?')) return;
+    const updated = localSlides.filter(s => s.id !== slideId);
+    setLocalSlides(updated);
+    await onSave(updated);
+  };
+
+  const handleFileInput = async (e, target) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = await handleUploadImage(file);
+    if (url) {
+      if (target === 'new') setNewSlide({ ...newSlide, image: url });
+      else if (editingSlide) setEditingSlide({ ...editingSlide, image: url });
+    }
+  };
+
+  if (loading) return <div className="bg-white rounded-xl p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div></div>;
+
+  return (
+    <div className="space-y-6" data-testid="banners-section">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900">Banni\u00E8res d\u00E9filantes</h3>
+          <p className="text-sm text-gray-500 mt-1">G\u00E9rez les images du carrousel dans la section des offres</p>
+        </div>
+        <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-[#1a56db] text-white px-4 py-2 rounded-lg hover:bg-[#1648b8] transition-colors text-sm" data-testid="add-banner-btn">
+          <Plus size={18} />Ajouter
+        </button>
+      </div>
+
+      {/* Add Form */}
+      {showAddForm && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-[#1a56db]/20">
+          <h4 className="font-medium text-gray-900 mb-4">Nouvelle banni\u00E8re</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Image</label>
+              <div className="flex gap-3">
+                <input type="text" placeholder="URL de l'image ou t\u00E9l\u00E9verser ci-dessous" value={newSlide.image} onChange={(e) => setNewSlide({...newSlide, image: e.target.value})} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" data-testid="banner-image-url" />
+                <label className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors text-sm font-medium ${uploading ? 'bg-gray-200 text-gray-500' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                  <Image size={16} />{uploading ? 'Envoi...' : 'T\u00E9l\u00E9verser'}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInput(e, 'new')} disabled={uploading} />
+                </label>
+              </div>
+              {newSlide.image && <img src={newSlide.image} alt="Aper\u00E7u" className="mt-3 h-32 rounded-lg object-cover" />}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Titre</label>
+                <input type="text" value={newSlide.title} onChange={(e) => setNewSlide({...newSlide, title: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" placeholder="Titre de la banni\u00E8re" data-testid="banner-title-input" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sous-titre</label>
+                <input type="text" value={newSlide.subtitle} onChange={(e) => setNewSlide({...newSlide, subtitle: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" placeholder="Description courte" data-testid="banner-subtitle-input" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setShowAddForm(false); setNewSlide({ image: '', title: '', subtitle: '' }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">Annuler</button>
+              <button onClick={handleAddSlide} disabled={!newSlide.image} className="bg-[#1a56db] text-white px-6 py-2 rounded-lg hover:bg-[#1648b8] transition-colors disabled:opacity-50" data-testid="save-banner-btn">Ajouter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Form */}
+      {editingSlide && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-orange-200">
+          <h4 className="font-medium text-gray-900 mb-4">Modifier la banni\u00E8re</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Image</label>
+              <div className="flex gap-3">
+                <input type="text" value={editingSlide.image} onChange={(e) => setEditingSlide({...editingSlide, image: e.target.value})} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" />
+                <label className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors text-sm font-medium ${uploading ? 'bg-gray-200 text-gray-500' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                  <Image size={16} />{uploading ? 'Envoi...' : 'Changer'}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInput(e, 'edit')} disabled={uploading} />
+                </label>
+              </div>
+              {editingSlide.image && <img src={editingSlide.image} alt="Aper\u00E7u" className="mt-3 h-32 rounded-lg object-cover" />}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Titre</label>
+                <input type="text" value={editingSlide.title} onChange={(e) => setEditingSlide({...editingSlide, title: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sous-titre</label>
+                <input type="text" value={editingSlide.subtitle} onChange={(e) => setEditingSlide({...editingSlide, subtitle: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setEditingSlide(null)} className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">Annuler</button>
+              <button onClick={handleUpdateSlide} className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors">Mettre \u00E0 jour</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Slides List */}
+      {localSlides.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <Image size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500">Aucune banni\u00E8re configur\u00E9e</p>
+          <p className="text-sm text-gray-400 mt-2">Les images par d\u00E9faut seront utilis\u00E9es</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {localSlides.map((slide, idx) => (
+            <div key={slide.id} className="bg-white rounded-xl shadow-sm overflow-hidden group" data-testid={`banner-item-${idx}`}>
+              <div className="relative h-40">
+                <img src={slide.image} alt={slide.title || `Banni\u00E8re ${idx + 1}`} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+                  <div className="absolute bottom-3 left-3">
+                    <p className="text-white font-semibold text-sm">{slide.title || 'Sans titre'}</p>
+                    <p className="text-white/70 text-xs">{slide.subtitle || ''}</p>
+                  </div>
+                </div>
+                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingSlide({...slide})} className="bg-white/90 p-1.5 rounded-lg hover:bg-white transition-colors" data-testid={`edit-banner-${idx}`}><Edit size={14} className="text-gray-700" /></button>
+                  <button onClick={() => handleDeleteSlide(slide.id)} className="bg-white/90 p-1.5 rounded-lg hover:bg-white transition-colors" data-testid={`delete-banner-${idx}`}><Trash2 size={14} className="text-red-500" /></button>
+                </div>
+                <span className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">#{idx + 1}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

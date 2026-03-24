@@ -13,6 +13,7 @@ from _models import (
     Application, ApplicationCreate, FullApplicationCreate,
     PaymentSettings, ChatMessage, NewsletterSubscribe,
     PasswordResetRequest, PasswordResetConfirm,
+    BannerSlidesUpdate,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
@@ -1156,3 +1157,34 @@ async def admin_delete_newsletter(email: str, admin: dict = Depends(get_admin_us
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Abonné non trouvé")
     return {"message": "Abonné supprimé"}
+
+
+# ============= BANNER SLIDES =============
+
+@api_router.get("/site-settings/banners")
+async def get_banners():
+    db = get_db()
+    doc = await db.site_settings.find_one({"id": "site_banners"}, {"_id": 0})
+    if not doc:
+        return {"slides": []}
+    return {"slides": doc.get("slides", [])}
+
+
+@api_router.get("/admin/site-settings/banners")
+async def admin_get_banners(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    doc = await db.site_settings.find_one({"id": "site_banners"}, {"_id": 0})
+    if not doc:
+        return {"slides": []}
+    return {"slides": doc.get("slides", [])}
+
+
+@api_router.post("/admin/site-settings/banners")
+async def admin_save_banners(data: BannerSlidesUpdate, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    await db.site_settings.update_one(
+        {"id": "site_banners"},
+        {"$set": {"id": "site_banners", "slides": [s.model_dump() for s in data.slides]}},
+        upsert=True
+    )
+    return {"message": "Bannières mises à jour"}

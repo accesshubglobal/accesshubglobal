@@ -3,10 +3,26 @@ import { stats } from '../data/siteContent';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 const HeroSection = ({ onOpenAuth }) => {
   const { isAuthenticated } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  
+  const handleCTA = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      onOpenAuth('register');
+    }
+  };
+
+  const handleConsultation = (e) => {
+    e.preventDefault();
+    const el = document.getElementById('contact');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
   
   return (
     <section className="relative bg-gradient-to-br from-[#1a56db] via-[#1e40af] to-[#1e3a8a] overflow-hidden">
@@ -36,19 +52,20 @@ const HeroSection = ({ onOpenAuth }) => {
 
             <div className="flex flex-col sm:flex-row gap-4 mb-10">
               <button 
-                onClick={() => !isAuthenticated && onOpenAuth ? onOpenAuth('register') : null}
+                onClick={handleCTA}
                 className="bg-white text-[#1a56db] px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 shadow-lg"
                 data-testid="hero-cta-button"
               >
                 {isAuthenticated ? t('hero.ctaLoggedIn') : t('hero.cta')}
                 <ArrowRight size={18} />
               </button>
-              <a 
-                href="#contact" 
+              <button 
+                onClick={handleConsultation}
                 className="border-2 border-white/30 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors text-center"
+                data-testid="hero-consultation-button"
               >
                 {t('hero.consultation')}
-              </a>
+              </button>
             </div>
 
             <div className="flex flex-wrap gap-6">

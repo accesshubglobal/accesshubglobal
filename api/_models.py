@@ -306,3 +306,16 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     newPassword: str
+
+
+# ============= BANNER SLIDES =============
+
+class BannerSlide(BaseModel):
+    id: str
+    image: str
+    title: str = ""
+    subtitle: str = ""
+
+
+class BannerSlidesUpdate(BaseModel):
+    slides: List[BannerSlide]
