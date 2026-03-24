@@ -18,6 +18,10 @@ import AuthModal from "./components/AuthModal";
 import UserDashboard from "./components/UserDashboard";
 import AdminCMS from "./components/AdminCMS";
 import LiveChat from "./components/LiveChat";
+import BlogPage from "./components/BlogPage";
+import BlogDetailPage from "./components/BlogDetailPage";
+import CommunityPage from "./components/CommunityPage";
+import CommunityPostPage from "./components/CommunityPostPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -98,6 +102,10 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/blog/:id" element={<BlogDetailPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/community/:id" element={<CommunityPostPage />} />
               <Route 
                 path="/dashboard" 
                 element={

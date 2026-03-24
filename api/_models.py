@@ -369,3 +369,37 @@ class FAQListUpdate(BaseModel):
 
 class DocumentUpdate(BaseModel):
     documents: list
+
+
+# ============= BLOG MODELS =============
+
+class BlogPostCreate(BaseModel):
+    title: str
+    content: str
+    excerpt: str = ""
+    coverImage: str = ""
+    category: str = "general"
+    tags: List[str] = []
+    published: bool = False
+
+
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    excerpt: Optional[str] = None
+    coverImage: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    published: Optional[bool] = None
+
+
+# ============= COMMUNITY MODELS =============
+
+class CommunityPostCreate(BaseModel):
+    title: str
+    content: str
+    category: str = "general"
+
+
+class CommunityReplyCreate(BaseModel):
+    content: str

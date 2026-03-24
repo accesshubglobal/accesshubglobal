@@ -18,6 +18,8 @@ from _models import (
     ContactFormCreate,
     FAQItem, FAQListUpdate,
     DocumentUpdate,
+    BlogPostCreate, BlogPostUpdate,
+    CommunityPostCreate, CommunityReplyCreate,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
@@ -1137,6 +1139,215 @@ async def update_documents(app_id: str, doc_data: DocumentUpdate, current_user: 
         {"$set": {"documents": doc_data.documents}}
     )
     return {"message": "Documents mis à jour"}
+
+
+# ============= BLOG - PUBLIC =============
+
+@api_router.get("/blog")
+async def get_blog_posts(category: str = None, limit: int = 20, skip: int = 0):
+    db = get_db()
+    query = {"published": True}
+    if category and category != "all":
+        query["category"] = category
+    posts = await db.blog_posts.find(query, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.blog_posts.count_documents(query)
+    return {"posts": posts, "total": total}
+
+
+@api_router.get("/blog/{post_id}")
+async def get_blog_post(post_id: str):
+    db = get_db()
+    post = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Article non trouvé")
+    await db.blog_posts.update_one({"id": post_id}, {"$inc": {"views": 1}})
+    post["views"] = post.get("views", 0) + 1
+    return post
+
+
+# ============= BLOG - ADMIN =============
+
+@api_router.get("/admin/blog")
+async def admin_get_blog_posts(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    posts = await db.blog_posts.find({}, {"_id": 0}).sort("createdAt", -1).to_list(100)
+    return posts
+
+
+@api_router.post("/admin/blog")
+async def admin_create_blog_post(post: BlogPostCreate, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    post_data = {
+        "id": str(uuid.uuid4()),
+        **post.dict(),
+        "authorId": admin["id"],
+        "authorName": f"{admin['firstName']} {admin['lastName']}",
+        "views": 0,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.blog_posts.insert_one(post_data)
+    del post_data["_id"]
+    return post_data
+
+
+@api_router.put("/admin/blog/{post_id}")
+async def admin_update_blog_post(post_id: str, update: BlogPostUpdate, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    result = await db.blog_posts.update_one({"id": post_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Article non trouvé")
+    return {"message": "Article mis à jour"}
+
+
+@api_router.delete("/admin/blog/{post_id}")
+async def admin_delete_blog_post(post_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.blog_posts.delete_one({"id": post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Article non trouvé")
+    return {"message": "Article supprimé"}
+
+
+# ============= COMMUNITY - PUBLIC =============
+
+@api_router.get("/community")
+async def get_community_posts(category: str = None, limit: int = 20, skip: int = 0):
+    db = get_db()
+    query = {"deleted": {"$ne": True}}
+    if category and category != "all":
+        query["category"] = category
+    posts = await db.community_posts.find(query, {"_id": 0}).sort([("pinned", -1), ("createdAt", -1)]).skip(skip).limit(limit).to_list(limit)
+    total = await db.community_posts.count_documents(query)
+    return {"posts": posts, "total": total}
+
+
+@api_router.get("/community/{post_id}")
+async def get_community_post(post_id: str):
+    db = get_db()
+    post = await db.community_posts.find_one({"id": post_id, "deleted": {"$ne": True}}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Discussion non trouvée")
+    replies = await db.community_replies.find({"postId": post_id, "deleted": {"$ne": True}}, {"_id": 0}).sort("createdAt", 1).to_list(200)
+    await db.community_posts.update_one({"id": post_id}, {"$inc": {"views": 1}})
+    post["views"] = post.get("views", 0) + 1
+    post["replies"] = replies
+    return post
+
+
+# ============= COMMUNITY - USER =============
+
+@api_router.post("/community")
+async def create_community_post(post: CommunityPostCreate, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    post_data = {
+        "id": str(uuid.uuid4()),
+        **post.dict(),
+        "userId": current_user["id"],
+        "userName": f"{current_user['firstName']} {current_user['lastName']}",
+        "likes": [],
+        "likeCount": 0,
+        "replyCount": 0,
+        "views": 0,
+        "pinned": False,
+        "deleted": False,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.community_posts.insert_one(post_data)
+    del post_data["_id"]
+    return post_data
+
+
+@api_router.post("/community/{post_id}/reply")
+async def create_community_reply(post_id: str, reply: CommunityReplyCreate, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    post = await db.community_posts.find_one({"id": post_id, "deleted": {"$ne": True}})
+    if not post:
+        raise HTTPException(status_code=404, detail="Discussion non trouvée")
+    reply_data = {
+        "id": str(uuid.uuid4()),
+        "postId": post_id,
+        "content": reply.content,
+        "userId": current_user["id"],
+        "userName": f"{current_user['firstName']} {current_user['lastName']}",
+        "likes": [],
+        "likeCount": 0,
+        "deleted": False,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.community_replies.insert_one(reply_data)
+    await db.community_posts.update_one({"id": post_id}, {"$inc": {"replyCount": 1}})
+    del reply_data["_id"]
+    return reply_data
+
+
+@api_router.post("/community/{post_id}/like")
+async def toggle_like_community_post(post_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    post = await db.community_posts.find_one({"id": post_id}, {"_id": 0, "likes": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Discussion non trouvée")
+    likes = post.get("likes", [])
+    if current_user["id"] in likes:
+        likes.remove(current_user["id"])
+    else:
+        likes.append(current_user["id"])
+    await db.community_posts.update_one({"id": post_id}, {"$set": {"likes": likes, "likeCount": len(likes)}})
+    return {"liked": current_user["id"] in likes, "likeCount": len(likes)}
+
+
+@api_router.post("/community/replies/{reply_id}/like")
+async def toggle_like_community_reply(reply_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    reply = await db.community_replies.find_one({"id": reply_id}, {"_id": 0, "likes": 1})
+    if not reply:
+        raise HTTPException(status_code=404, detail="Réponse non trouvée")
+    likes = reply.get("likes", [])
+    if current_user["id"] in likes:
+        likes.remove(current_user["id"])
+    else:
+        likes.append(current_user["id"])
+    await db.community_replies.update_one({"id": reply_id}, {"$set": {"likes": likes, "likeCount": len(likes)}})
+    return {"liked": current_user["id"] in likes, "likeCount": len(likes)}
+
+
+# ============= COMMUNITY - ADMIN =============
+
+@api_router.get("/admin/community")
+async def admin_get_community_posts(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    posts = await db.community_posts.find({}, {"_id": 0}).sort("createdAt", -1).to_list(200)
+    return posts
+
+
+@api_router.delete("/admin/community/{post_id}")
+async def admin_delete_community_post(post_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    await db.community_posts.update_one({"id": post_id}, {"$set": {"deleted": True}})
+    return {"message": "Discussion supprimée"}
+
+
+@api_router.put("/admin/community/{post_id}/pin")
+async def admin_toggle_pin_community_post(post_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    post = await db.community_posts.find_one({"id": post_id}, {"_id": 0, "pinned": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Discussion non trouvée")
+    new_pin = not post.get("pinned", False)
+    await db.community_posts.update_one({"id": post_id}, {"$set": {"pinned": new_pin}})
+    return {"pinned": new_pin}
+
+
+@api_router.delete("/admin/community/replies/{reply_id}")
+async def admin_delete_community_reply(reply_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    reply = await db.community_replies.find_one({"id": reply_id})
+    if reply:
+        await db.community_replies.update_one({"id": reply_id}, {"$set": {"deleted": True}})
+        await db.community_posts.update_one({"id": reply["postId"]}, {"$inc": {"replyCount": -1}})
+    return {"message": "Réponse supprimée"}
 
 
 # ============= ADMIN - STATS =============

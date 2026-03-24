@@ -52,6 +52,8 @@ const Header = ({ onOpenAuth }) => {
             <a href="#scholarships" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.scholarships')}</a>
             <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.housing')}</a>
             <a href="#contact" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.contact')}</a>
+            <a href="/blog" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Blog</a>
+            <a href="/community" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Communauté</a>
             
             {/* Separator */}
             <div className="w-px h-6 bg-gray-200"></div>
@@ -186,6 +188,8 @@ const Header = ({ onOpenAuth }) => {
               <a href="#scholarships" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.scholarships')}</a>
               <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.housing')}</a>
               <a href="#contact" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.contact')}</a>
+              <a href="/blog" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-[#1a56db] font-medium">Blog</a>
+              <a href="/community" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-[#1a56db] font-medium">Communauté</a>
               
               <div className="border-t border-gray-100 pt-3 mt-2">
                 <div className="flex items-center gap-4 mb-3">
