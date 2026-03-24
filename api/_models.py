@@ -363,3 +363,9 @@ class FAQItem(BaseModel):
 
 class FAQListUpdate(BaseModel):
     faqs: List[FAQItem]
+
+
+# ============= DOCUMENT UPDATE =============
+
+class DocumentUpdate(BaseModel):
+    documents: list

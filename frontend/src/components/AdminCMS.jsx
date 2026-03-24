@@ -55,6 +55,9 @@ const AdminCMS = ({ onClose }) => {
   const [appMessage, setAppMessage] = useState('');
   const [appMessages, setAppMessages] = useState([]);
   const [sendingAppMessage, setSendingAppMessage] = useState(false);
+  const [appMsgAttachments, setAppMsgAttachments] = useState([]);
+  const [uploadingAppMsgFile, setUploadingAppMsgFile] = useState(false);
+  const appMsgFileRef = useRef(null);
 
   // Load stats on mount
   useEffect(() => {
@@ -417,16 +420,52 @@ const AdminCMS = ({ onClose }) => {
   };
 
   const sendApplicationMessage = async (appId) => {
-    if (!appMessage.trim()) return;
+    if (!appMessage.trim() && appMsgAttachments.length === 0) return;
     setSendingAppMessage(true);
     try {
-      const res = await axios.post(`${API}/admin/applications/${appId}/message`, { content: appMessage });
+      const res = await axios.post(`${API}/admin/applications/${appId}/message`, {
+        content: appMessage,
+        attachments: appMsgAttachments
+      });
       setAppMessages(prev => [...prev, res.data.data]);
       setAppMessage('');
+      setAppMsgAttachments([]);
     } catch (err) {
       console.error('Error sending message:', err);
     }
     setSendingAppMessage(false);
+  };
+
+  const handleAppMsgFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingAppMsgFile(true);
+    try {
+      const sigRes = await axios.get(`${API}/upload/signature`);
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('signature', signature);
+      formData.append('timestamp', timestamp);
+      formData.append('api_key', api_key);
+      formData.append('folder', folder);
+      const uploadRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+        formData
+      );
+      setAppMsgAttachments(prev => [...prev, uploadRes.data.secure_url]);
+    } catch (err) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await axios.post(`${API}/upload`, formData);
+        setAppMsgAttachments(prev => [...prev, uploadRes.data.url]);
+      } catch (e2) {
+        console.error('Upload error:', e2);
+      }
+    }
+    setUploadingAppMsgFile(false);
+    e.target.value = '';
   };
 
   const loadAppMessages = async (appId) => {
@@ -1323,8 +1362,8 @@ const AdminCMS = ({ onClose }) => {
                             Messages au candidat
                           </h4>
                         </div>
-                        <div className="flex flex-col" style={{ maxHeight: '400px' }}>
-                          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: '120px', maxHeight: '280px' }}>
+                        <div className="flex flex-col" style={{ maxHeight: '450px' }}>
+                          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: '120px', maxHeight: '300px' }}>
                             {appMessages.length === 0 ? (
                               <div className="text-center py-6">
                                 <MessageCircle size={24} className="mx-auto text-gray-200 mb-2" />
@@ -1339,13 +1378,52 @@ const AdminCMS = ({ onClose }) => {
                                       {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                                     </p>
                                   </div>
-                                  <p className="text-sm text-gray-700">{msg.content}</p>
+                                  {msg.content && <p className="text-sm text-gray-700">{msg.content}</p>}
+                                  {msg.attachments && msg.attachments.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {msg.attachments.map((att, j) => (
+                                        <a key={j} href={att} target="_blank" rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-lg text-[10px] text-[#1e3a5f] border border-[#1e3a5f]/20 hover:bg-[#1e3a5f]/5 transition-colors">
+                                          <Paperclip size={10} />
+                                          Fichier {j + 1}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               ))
                             )}
                           </div>
-                          <div className="p-4 border-t border-gray-100">
+                          <div className="p-4 border-t border-gray-100 space-y-2">
+                            {/* Attachment preview */}
+                            {appMsgAttachments.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {appMsgAttachments.map((att, i) => (
+                                  <div key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg text-[10px] text-blue-700 border border-blue-200">
+                                    <Paperclip size={10} />
+                                    Fichier {i + 1}
+                                    <button onClick={() => setAppMsgAttachments(prev => prev.filter((_, j) => j !== i))} className="ml-1 hover:text-red-500">
+                                      <X size={10} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex gap-2">
+                              <button
+                                data-testid="app-msg-attach-btn"
+                                onClick={() => appMsgFileRef.current?.click()}
+                                disabled={uploadingAppMsgFile}
+                                className="p-2.5 text-gray-400 hover:text-[#1e3a5f] hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-40"
+                                title="Joindre un fichier"
+                              >
+                                {uploadingAppMsgFile ? (
+                                  <div className="animate-spin w-4 h-4 border-2 border-[#1e3a5f] border-t-transparent rounded-full"></div>
+                                ) : (
+                                  <Paperclip size={16} />
+                                )}
+                              </button>
+                              <input ref={appMsgFileRef} type="file" className="hidden" onChange={handleAppMsgFileUpload} />
                               <input
                                 data-testid="app-message-input"
                                 value={appMessage}
@@ -1357,7 +1435,7 @@ const AdminCMS = ({ onClose }) => {
                               <button
                                 data-testid="send-app-message-btn"
                                 onClick={() => sendApplicationMessage(selectedApp.id)}
-                                disabled={!appMessage.trim() || sendingAppMessage}
+                                disabled={(!appMessage.trim() && appMsgAttachments.length === 0) || sendingAppMessage}
                                 className="p-2.5 bg-[#1e3a5f] text-white rounded-xl hover:bg-[#2a5298] transition-colors disabled:opacity-40"
                               >
                                 <Send size={16} />

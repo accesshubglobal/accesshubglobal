@@ -32,6 +32,11 @@ const UserDashboard = ({ onClose }) => {
   const [applicationOfferDetails, setApplicationOfferDetails] = useState(null);
   const [loadingOfferDetails, setLoadingOfferDetails] = useState(false);
   
+  // Re-submission state
+  const [resubmitDocs, setResubmitDocs] = useState([]);
+  const [uploadingResubmitDoc, setUploadingResubmitDoc] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
+  
   // Application modal state for favorites
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedOfferForApplication, setSelectedOfferForApplication] = useState(null);
@@ -80,6 +85,7 @@ const UserDashboard = ({ onClose }) => {
     setSelectedApplication(app);
     setApplicationOfferDetails(null);
     setLoadingOfferDetails(true);
+    setResubmitDocs(app.documents || []);
     try {
       const res = await axios.get(`${API}/offers/${app.offerId}`);
       setApplicationOfferDetails(res.data);
@@ -87,6 +93,63 @@ const UserDashboard = ({ onClose }) => {
       console.error('Error fetching offer details:', err);
     }
     setLoadingOfferDetails(false);
+  };
+
+  // Upload doc for re-submission
+  const handleResubmitDocUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingResubmitDoc(true);
+    try {
+      const sigRes = await axios.get(`${API}/upload/signature`);
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('signature', signature);
+      formData.append('timestamp', timestamp);
+      formData.append('api_key', api_key);
+      formData.append('folder', folder);
+      const uploadRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+        formData
+      );
+      const newDoc = { name: file.name, url: uploadRes.data.secure_url, filename: file.name };
+      setResubmitDocs(prev => [...prev, newDoc]);
+    } catch (err) {
+      console.error('Upload error:', err);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await axios.post(`${API}/upload`, formData);
+        const newDoc = { name: file.name, url: uploadRes.data.url, filename: file.name };
+        setResubmitDocs(prev => [...prev, newDoc]);
+      } catch (e2) {
+        console.error('Fallback upload error:', e2);
+        alert('Erreur lors du téléversement du fichier');
+      }
+    }
+    setUploadingResubmitDoc(false);
+    e.target.value = '';
+  };
+
+  const removeResubmitDoc = (idx) => {
+    setResubmitDocs(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleResubmit = async () => {
+    if (!selectedApplication) return;
+    setResubmitting(true);
+    try {
+      await axios.put(`${API}/applications/${selectedApplication.id}/documents`, { documents: resubmitDocs });
+      await axios.put(`${API}/applications/${selectedApplication.id}/resubmit`);
+      setSelectedApplication(prev => ({ ...prev, status: 'pending', modifyReason: null, documents: resubmitDocs }));
+      loadApplications();
+      alert('Candidature re-soumise avec succès !');
+    } catch (err) {
+      console.error('Error resubmitting:', err);
+      alert(err.response?.data?.detail || 'Erreur lors de la re-soumission');
+    }
+    setResubmitting(false);
   };
 
   // Download PDF
@@ -620,7 +683,7 @@ const UserDashboard = ({ onClose }) => {
                               {applicationOfferDetails.admissionConditions.map((cond, idx) => (
                                 <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
                                   <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                                  {cond}
+                                  {typeof cond === 'string' ? cond : (cond?.title || cond?.description || cond?.text || JSON.stringify(cond))}
                                 </li>
                               ))}
                             </ul>
@@ -817,13 +880,15 @@ const UserDashboard = ({ onClose }) => {
                               <div className="flex gap-3">
                                 <div className={`w-3 h-3 rounded-full mt-1 ${
                                   selectedApplication.status === 'accepted' ? 'bg-green-500' :
-                                  selectedApplication.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                                  selectedApplication.status === 'rejected' ? 'bg-red-500' :
+                                  selectedApplication.status === 'modify' ? 'bg-orange-500' : 'bg-blue-500'
                                 }`}></div>
                                 <div>
                                   <p className="font-medium text-sm">
                                     {selectedApplication.status === 'reviewing' && 'En cours d\'examen'}
                                     {selectedApplication.status === 'accepted' && 'Candidature acceptée'}
                                     {selectedApplication.status === 'rejected' && 'Candidature refusée'}
+                                    {selectedApplication.status === 'modify' && 'Modification demandée'}
                                   </p>
                                   {selectedApplication.updatedAt && (
                                     <p className="text-xs text-gray-500">
@@ -843,6 +908,94 @@ const UserDashboard = ({ onClose }) => {
                             <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
                               <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedApplication.notes}</p>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Re-submission Section */}
+                        {selectedApplication.status === 'modify' && (
+                          <div data-testid="resubmit-section" className="border-2 border-orange-200 rounded-xl p-6 bg-orange-50/50">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                              <AlertTriangle size={20} className="text-orange-500" />
+                              Corriger et re-soumettre
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                              Corrigez les erreurs mentionnées ci-dessus, ajoutez ou remplacez vos documents, puis re-soumettez votre candidature.
+                            </p>
+
+                            {/* Current documents with remove option */}
+                            <div className="space-y-2 mb-4">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Documents actuels</p>
+                              {resubmitDocs.length === 0 ? (
+                                <p className="text-sm text-gray-400">Aucun document</p>
+                              ) : (
+                                resubmitDocs.map((doc, idx) => {
+                                  const docName = typeof doc === 'string' ? doc : (doc?.name || doc?.filename || `Document ${idx + 1}`);
+                                  const docUrl = typeof doc === 'string' ? doc : (doc?.url || '');
+                                  return (
+                                    <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                                      <FileText size={16} className="text-blue-500 flex-shrink-0" />
+                                      <span className="text-sm text-gray-700 flex-1 truncate">{docName}</span>
+                                      {docUrl && (
+                                        <a href={docUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex-shrink-0">
+                                          Voir
+                                        </a>
+                                      )}
+                                      <button
+                                        onClick={() => removeResubmitDoc(idx)}
+                                        className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                                        data-testid={`remove-resubmit-doc-${idx}`}
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+
+                            {/* Upload new document */}
+                            <div className="mb-4">
+                              <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-orange-300 rounded-lg cursor-pointer hover:bg-orange-100/50 transition-colors">
+                                <input
+                                  type="file"
+                                  onChange={handleResubmitDocUpload}
+                                  className="hidden"
+                                  data-testid="resubmit-file-input"
+                                  disabled={uploadingResubmitDoc}
+                                />
+                                {uploadingResubmitDoc ? (
+                                  <div className="flex items-center gap-2 text-sm text-orange-600">
+                                    <div className="animate-spin w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full"></div>
+                                    Téléversement en cours...
+                                  </div>
+                                ) : (
+                                  <span className="flex items-center gap-2 text-sm text-orange-600 font-medium">
+                                    <Plus size={16} />
+                                    Ajouter un document
+                                  </span>
+                                )}
+                              </label>
+                            </div>
+
+                            {/* Re-submit button */}
+                            <button
+                              data-testid="resubmit-btn"
+                              onClick={handleResubmit}
+                              disabled={resubmitting}
+                              className="w-full py-3 bg-[#1a56db] text-white rounded-xl font-semibold hover:bg-[#1648b8] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {resubmitting ? (
+                                <>
+                                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                  Re-soumission en cours...
+                                </>
+                              ) : (
+                                <>
+                                  <Send size={16} />
+                                  Re-soumettre ma candidature
+                                </>
+                              )}
+                            </button>
                           </div>
                         )}
 

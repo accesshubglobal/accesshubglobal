@@ -56,10 +56,14 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Erreur de connexion' 
-      };
+      const detail = error.response?.data?.detail;
+      let errorMsg = 'Erreur de connexion';
+      if (typeof detail === 'string') {
+        errorMsg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        errorMsg = detail.map(e => e.msg || JSON.stringify(e)).join(', ');
+      }
+      return { success: false, error: errorMsg };
     }
   };
 
@@ -74,10 +78,14 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Erreur d\'inscription' 
-      };
+      const detail = error.response?.data?.detail;
+      let errorMsg = 'Erreur d\'inscription';
+      if (typeof detail === 'string') {
+        errorMsg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        errorMsg = detail.map(e => e.msg || JSON.stringify(e)).join(', ');
+      }
+      return { success: false, error: errorMsg };
     }
   };
 

@@ -17,6 +17,7 @@ from _models import (
     TestimonialCreate, Testimonial,
     ContactFormCreate,
     FAQItem, FAQListUpdate,
+    DocumentUpdate,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
@@ -1054,6 +1055,7 @@ async def admin_send_application_message(app_id: str, reply: MessageReply, admin
         "id": str(uuid.uuid4()),
         "applicationId": app_id,
         "content": reply.content,
+        "attachments": reply.attachments or [],
         "isAdmin": True,
         "adminName": f"{admin['firstName']} {admin['lastName']}",
         "createdAt": datetime.now(timezone.utc).isoformat()
@@ -1082,6 +1084,59 @@ async def admin_get_application_messages(app_id: str, admin: dict = Depends(get_
     if not application:
         raise HTTPException(status_code=404, detail="Candidature non trouvée")
     return application.get("adminMessages", [])
+
+
+@api_router.put("/applications/{app_id}/resubmit")
+async def resubmit_application(app_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    application = await db.applications.find_one({"id": app_id})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+    if application["userId"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    if application.get("status") != "modify":
+        raise HTTPException(status_code=400, detail="Cette candidature ne nécessite pas de modification")
+
+    await db.applications.update_one(
+        {"id": app_id},
+        {"$set": {"status": "pending", "modifyReason": None, "modifyRequestedAt": None}}
+    )
+
+    await broadcast_to_admins({
+        "type": "application_resubmit",
+        "title": "Candidature re-soumise",
+        "message": f"{current_user['firstName']} {current_user['lastName']} a re-soumis sa candidature",
+        "data": {"applicationId": app_id}
+    })
+
+    return {"message": "Candidature re-soumise avec succès"}
+
+
+@api_router.put("/applications/{app_id}/update-documents")
+async def update_application_documents(app_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    application = await db.applications.find_one({"id": app_id})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+    if application["userId"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    return {"current_documents": application.get("documents", [])}
+
+
+@api_router.put("/applications/{app_id}/documents")
+async def update_documents(app_id: str, doc_data: DocumentUpdate, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    application = await db.applications.find_one({"id": app_id})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+    if application["userId"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    await db.applications.update_one(
+        {"id": app_id},
+        {"$set": {"documents": doc_data.documents}}
+    )
+    return {"message": "Documents mis à jour"}
 
 
 # ============= ADMIN - STATS =============
