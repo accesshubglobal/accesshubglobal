@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Users, GraduationCap, Building, Home, MessageCircle, FileText, 
   Settings, LogOut, Plus, Edit, Trash2, Eye, Search, Filter, X, Check, Clock,
   ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award, Mail, Image,
-  Star, MessageSquare, HelpCircle, PhoneCall
+  Star, MessageSquare, HelpCircle, PhoneCall, Download, ExternalLink, ArrowLeft, User, MapPin, Phone, Calendar,
+  CreditCard, Paperclip, RefreshCw, AlertTriangle, CheckCircle, XCircle, ClipboardList
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +44,17 @@ const AdminCMS = ({ onClose }) => {
   const [replyAttachments, setReplyAttachments] = useState([]);
   const [uploadingReplyFile, setUploadingReplyFile] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+
+  // Application detail states
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [appSearchQuery, setAppSearchQuery] = useState('');
+  const [appStatusFilter, setAppStatusFilter] = useState('all');
+  const [showModifyModal, setShowModifyModal] = useState(false);
+  const [modifyReason, setModifyReason] = useState('');
+  const [modifyAppId, setModifyAppId] = useState(null);
+  const [appMessage, setAppMessage] = useState('');
+  const [appMessages, setAppMessages] = useState([]);
+  const [sendingAppMessage, setSendingAppMessage] = useState(false);
 
   // Load stats on mount
   useEffect(() => {
@@ -375,14 +387,71 @@ const AdminCMS = ({ onClose }) => {
   };
 
   // Application actions
-  const updateApplicationStatus = async (appId, status) => {
+  const updateApplicationStatus = async (appId, status, reason = null) => {
     try {
-      await axios.put(`${API}/admin/applications/${appId}/status?status=${status}`);
+      let url = `${API}/admin/applications/${appId}/status?status=${status}`;
+      if (reason) url += `&reason=${encodeURIComponent(reason)}`;
+      await axios.put(url);
       loadApplications();
       loadStats();
+      if (selectedApp && selectedApp.id === appId) {
+        setSelectedApp(prev => ({ ...prev, status, ...(reason ? { modifyReason: reason } : {}) }));
+      }
     } catch (err) {
       console.error('Error updating status:', err);
     }
+  };
+
+  const handleModifyStatus = (appId) => {
+    setModifyAppId(appId);
+    setModifyReason('');
+    setShowModifyModal(true);
+  };
+
+  const submitModifyStatus = async () => {
+    if (!modifyReason.trim()) return;
+    await updateApplicationStatus(modifyAppId, 'modify', modifyReason);
+    setShowModifyModal(false);
+    setModifyReason('');
+    setModifyAppId(null);
+  };
+
+  const sendApplicationMessage = async (appId) => {
+    if (!appMessage.trim()) return;
+    setSendingAppMessage(true);
+    try {
+      const res = await axios.post(`${API}/admin/applications/${appId}/message`, { content: appMessage });
+      setAppMessages(prev => [...prev, res.data.data]);
+      setAppMessage('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
+    setSendingAppMessage(false);
+  };
+
+  const loadAppMessages = async (appId) => {
+    try {
+      const res = await axios.get(`${API}/admin/applications/${appId}/messages`);
+      setAppMessages(res.data);
+    } catch (err) {
+      setAppMessages([]);
+    }
+  };
+
+  const openApplicationDetail = (app) => {
+    setSelectedApp(app);
+    loadAppMessages(app.id);
+  };
+
+  const getFilteredApplications = () => {
+    return applications.filter(app => {
+      const matchesSearch = appSearchQuery === '' || 
+        (app.firstName + ' ' + app.lastName).toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+        app.userEmail?.toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+        app.offerTitle?.toLowerCase().includes(appSearchQuery.toLowerCase());
+      const matchesStatus = appStatusFilter === 'all' || app.status === appStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
   };
 
   // Offer actions
@@ -526,7 +595,8 @@ const AdminCMS = ({ onClose }) => {
       pending: { color: 'bg-yellow-100 text-yellow-700', label: 'En attente' },
       reviewing: { color: 'bg-blue-100 text-blue-700', label: 'En examen' },
       accepted: { color: 'bg-green-100 text-green-700', label: 'Acceptée' },
-      rejected: { color: 'bg-red-100 text-red-700', label: 'Refusée' }
+      rejected: { color: 'bg-red-100 text-red-700', label: 'Refusée' },
+      modify: { color: 'bg-orange-100 text-orange-700', label: 'À modifier' }
     };
     const c = config[status] || config.pending;
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.color}`}>{c.label}</span>;
@@ -950,111 +1020,481 @@ const AdminCMS = ({ onClose }) => {
 
           {/* Applications Section */}
           {activeSection === 'applications' && (
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b">
-                <h3 className="font-semibold text-gray-900">Candidatures ({applications.length})</h3>
-              </div>
-              
-              {loading ? (
-                <div className="p-12 text-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+            <div data-testid="applications-admin-section">
+              {/* Modify Reason Modal */}
+              {showModifyModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" data-testid="modify-modal">
+                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                    <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
+                      <h3 className="text-white font-semibold text-lg flex items-center gap-2">
+                        <AlertTriangle size={20} />
+                        Demander une modification
+                      </h3>
+                    </div>
+                    <div className="p-6">
+                      <p className="text-sm text-gray-600 mb-3">Indiquez la raison pour laquelle le candidat doit modifier sa candidature :</p>
+                      <textarea
+                        data-testid="modify-reason-input"
+                        value={modifyReason}
+                        onChange={(e) => setModifyReason(e.target.value)}
+                        placeholder="Ex: Le passeport soumis est illisible, veuillez soumettre une copie plus claire..."
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none h-32"
+                      />
+                      <div className="flex gap-3 mt-4">
+                        <button
+                          onClick={() => { setShowModifyModal(false); setModifyReason(''); }}
+                          className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          data-testid="modify-submit-btn"
+                          onClick={submitModifyStatus}
+                          disabled={!modifyReason.trim()}
+                          className="flex-1 px-4 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Envoyer la demande
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : applications.length === 0 ? (
-                <div className="p-12 text-center">
-                  <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">Aucune candidature pour le moment</p>
-                </div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Candidat</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programme</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paiement</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-gray-900">{app.firstName || app.userName?.split(' ')[0]} {app.lastName || app.userName?.split(' ')[1]}</p>
-                          <p className="text-xs text-gray-500">{app.userEmail}</p>
-                          {app.nationality && <p className="text-xs text-gray-400">{app.nationality}</p>}
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-gray-600">{app.offerTitle}</p>
-                          {app.documents?.length > 0 && (
-                            <p className="text-xs text-green-600">{app.documents.length} documents</p>
+              )}
+
+              {/* Application Detail View */}
+              {selectedApp ? (
+                <div className="space-y-6" data-testid="application-detail-view">
+                  {/* Header */}
+                  <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] px-6 py-5 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <button
+                          data-testid="back-to-list-btn"
+                          onClick={() => setSelectedApp(null)}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+                        >
+                          <ArrowLeft size={20} />
+                        </button>
+                        <div>
+                          <h3 className="text-white font-semibold text-lg">
+                            {selectedApp.firstName} {selectedApp.lastName}
+                          </h3>
+                          <p className="text-blue-200 text-sm">{selectedApp.offerTitle}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {getStatusBadge(selectedApp.status)}
+                        <span className="text-blue-200 text-xs">
+                          {new Date(selectedApp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left column: Personal Info + Documents */}
+                    <div className="lg:col-span-2 space-y-6">
+                      {/* Personal Information */}
+                      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100">
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <User size={18} className="text-[#1e3a5f]" />
+                            Informations personnelles
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            {[
+                              { icon: User, label: 'Nom complet', value: `${selectedApp.firstName} ${selectedApp.lastName}` },
+                              { icon: Mail, label: 'Email', value: selectedApp.userEmail },
+                              { icon: Phone, label: 'Téléphone', value: selectedApp.phoneNumber || '—' },
+                              { icon: MapPin, label: 'Adresse', value: selectedApp.address || '—' },
+                              { icon: ClipboardList, label: 'Nationalité', value: selectedApp.nationality || '—' },
+                              { icon: User, label: 'Sexe', value: selectedApp.sex === 'M' ? 'Masculin' : selectedApp.sex === 'F' ? 'Féminin' : (selectedApp.sex || '—') },
+                              { icon: FileText, label: 'N° Passeport', value: selectedApp.passportNumber || '—' },
+                              { icon: Calendar, label: 'Date de naissance', value: selectedApp.dateOfBirth || '—' },
+                            ].map((item, i) => (
+                              <div key={i} className="flex items-start gap-3">
+                                <div className="p-2 rounded-lg bg-gray-50">
+                                  <item.icon size={16} className="text-gray-500" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-400 uppercase tracking-wide">{item.label}</p>
+                                  <p className="text-sm text-gray-800 font-medium mt-0.5">{item.value}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {selectedApp.additionalPrograms?.length > 0 && (
+                            <div className="mt-5 pt-5 border-t border-gray-100">
+                              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Programmes additionnels</p>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedApp.additionalPrograms.map((p, i) => (
+                                  <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">{p}</span>
+                                ))}
+                              </div>
+                            </div>
                           )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {app.paymentStatus ? (
-                            <div>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                app.paymentStatus === 'verified' ? 'bg-green-100 text-green-700' :
-                                app.paymentStatus === 'submitted' ? 'bg-blue-100 text-blue-700' :
-                                app.paymentStatus === 'rejected' ? 'bg-red-100 text-red-700' :
-                                'bg-yellow-100 text-yellow-700'
-                              }`}>
-                                {app.paymentStatus === 'verified' ? 'Vérifié' :
-                                 app.paymentStatus === 'submitted' ? 'Soumis' :
-                                 app.paymentStatus === 'rejected' ? 'Rejeté' : 'En attente'}
-                              </span>
-                              {app.paymentProof && (
-                                <a href={`${BACKEND_URL}${app.paymentProof}`} target="_blank" rel="noopener noreferrer" 
-                                   className="block text-xs text-blue-500 hover:underline mt-1">
-                                  Voir preuve
-                                </a>
-                              )}
+                        </div>
+                      </div>
+
+                      {/* Documents */}
+                      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100">
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <Paperclip size={18} className="text-[#1e3a5f]" />
+                            Documents téléversés ({selectedApp.documents?.length || 0})
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          {selectedApp.documents?.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {selectedApp.documents.map((doc, i) => {
+                                const docName = typeof doc === 'string' ? doc : (doc.name || doc.label || `Document ${i + 1}`);
+                                const docUrl = typeof doc === 'string' ? doc : (doc.url || doc.file || doc);
+                                const isCloudinary = typeof docUrl === 'string' && docUrl.includes('cloudinary');
+                                const isImage = typeof docUrl === 'string' && /\.(jpg|jpeg|png|gif|webp)/i.test(docUrl);
+                                return (
+                                  <div key={i} className="border border-gray-100 rounded-xl p-4 hover:border-[#1e3a5f]/30 hover:shadow-sm transition-all group">
+                                    <div className="flex items-start gap-3">
+                                      <div className="p-2.5 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                                        <FileText size={18} className="text-[#1e3a5f]" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-800 truncate">{docName}</p>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                          {isCloudinary ? 'Cloudinary' : 'Fichier téléversé'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {typeof docUrl === 'string' && docUrl.startsWith('http') && (
+                                      <div className="flex gap-2 mt-3">
+                                        <a
+                                          href={docUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          data-testid={`view-doc-${i}`}
+                                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-medium text-gray-700 transition-colors"
+                                        >
+                                          <Eye size={14} /> Voir
+                                        </a>
+                                        <a
+                                          href={docUrl}
+                                          download
+                                          data-testid={`download-doc-${i}`}
+                                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg text-xs font-medium text-[#1e3a5f] transition-colors"
+                                        >
+                                          <Download size={14} /> Télécharger
+                                        </a>
+                                      </div>
+                                    )}
+                                    {isImage && typeof docUrl === 'string' && (
+                                      <div className="mt-3 rounded-lg overflow-hidden border border-gray-100">
+                                        <img src={docUrl} alt={docName} className="w-full h-32 object-cover" />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400">-</span>
+                            <div className="text-center py-8">
+                              <FileText size={32} className="mx-auto text-gray-200 mb-2" />
+                              <p className="text-sm text-gray-400">Aucun document téléversé</p>
+                            </div>
                           )}
-                        </td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">
-                          {new Date(app.createdAt).toLocaleDateString('fr-FR')}
-                        </td>
-                        <td className="px-6 py-4">{getStatusBadge(app.status)}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-2">
+
+                          {/* Payment proof */}
+                          {selectedApp.paymentProof && (
+                            <div className="mt-5 pt-5 border-t border-gray-100">
+                              <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Preuve de paiement</p>
+                              <div className="border border-gray-100 rounded-xl p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2.5 rounded-lg bg-green-50">
+                                    <CreditCard size={18} className="text-green-600" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-800">
+                                      {selectedApp.paymentMethod || 'Preuve de paiement'}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                      Montant: {selectedApp.paymentAmount} {selectedApp.paymentAmount ? 'CNY' : ''}
+                                    </p>
+                                  </div>
+                                  <a
+                                    href={selectedApp.paymentProof.startsWith('http') ? selectedApp.paymentProof : `${BACKEND_URL}${selectedApp.paymentProof}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    data-testid="view-payment-proof"
+                                    className="px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-xs font-medium text-green-700 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <ExternalLink size={14} /> Voir
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Modify reason display */}
+                      {selectedApp.status === 'modify' && selectedApp.modifyReason && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5" data-testid="modify-reason-display">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle size={20} className="text-orange-500 mt-0.5" />
+                            <div>
+                              <p className="font-semibold text-orange-800 text-sm">Modification demandée</p>
+                              <p className="text-sm text-orange-700 mt-1">{selectedApp.modifyReason}</p>
+                              {selectedApp.modifyRequestedAt && (
+                                <p className="text-xs text-orange-400 mt-2">
+                                  {new Date(selectedApp.modifyRequestedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right column: Actions + Messaging */}
+                    <div className="space-y-6">
+                      {/* Quick Actions */}
+                      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100">
+                          <h4 className="font-semibold text-gray-900 text-sm">Actions rapides</h4>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          {[
+                            { status: 'reviewing', label: 'En examen', icon: Eye, color: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
+                            { status: 'accepted', label: 'Accepter', icon: CheckCircle, color: 'bg-green-50 text-green-700 hover:bg-green-100' },
+                            { status: 'rejected', label: 'Refuser', icon: XCircle, color: 'bg-red-50 text-red-700 hover:bg-red-100' },
+                          ].map(action => (
+                            <button
+                              key={action.status}
+                              data-testid={`action-${action.status}`}
+                              onClick={() => updateApplicationStatus(selectedApp.id, action.status)}
+                              disabled={selectedApp.status === action.status}
+                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${action.color} disabled:opacity-40 disabled:cursor-not-allowed`}
+                            >
+                              <action.icon size={16} />
+                              {action.label}
+                            </button>
+                          ))}
+                          <button
+                            data-testid="action-modify"
+                            onClick={() => handleModifyStatus(selectedApp.id)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-orange-50 text-orange-700 hover:bg-orange-100 transition-all"
+                          >
+                            <RefreshCw size={16} />
+                            Demander modification
+                          </button>
+
+                          {/* Payment status */}
+                          <div className="pt-3 mt-3 border-t border-gray-100">
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-1">Statut paiement</p>
                             <select
-                              value={app.status}
-                              onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
-                              className="text-sm border border-gray-200 rounded-lg px-3 py-1 focus:outline-none focus:border-[#1a56db]"
+                              data-testid="payment-status-select"
+                              value={selectedApp.paymentStatus || 'pending'}
+                              onChange={async (e) => {
+                                try {
+                                  await axios.put(`${API}/admin/applications/${selectedApp.id}/payment-status?payment_status=${e.target.value}`);
+                                  setSelectedApp(prev => ({ ...prev, paymentStatus: e.target.value }));
+                                  loadApplications();
+                                } catch (err) {
+                                  console.error('Error updating payment status:', err);
+                                }
+                              }}
+                              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20"
                             >
                               <option value="pending">En attente</option>
-                              <option value="reviewing">En examen</option>
-                              <option value="accepted">Acceptée</option>
-                              <option value="rejected">Refusée</option>
+                              <option value="submitted">Soumis</option>
+                              <option value="verified">Vérifié</option>
+                              <option value="rejected">Rejeté</option>
                             </select>
-                            {app.paymentStatus && (
-                              <select
-                                value={app.paymentStatus}
-                                onChange={async (e) => {
-                                  try {
-                                    await axios.put(`${API}/admin/applications/${app.id}/payment-status?payment_status=${e.target.value}`);
-                                    loadApplications();
-                                  } catch (err) {
-                                    console.error('Error updating payment status:', err);
-                                  }
-                                }}
-                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-green-500"
-                              >
-                                <option value="pending">Paiement: En attente</option>
-                                <option value="submitted">Paiement: Soumis</option>
-                                <option value="verified">Paiement: Vérifié</option>
-                                <option value="rejected">Paiement: Rejeté</option>
-                              </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Messaging */}
+                      <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="application-messaging">
+                        <div className="px-6 py-4 border-b border-gray-100">
+                          <h4 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                            <MessageCircle size={16} className="text-[#1e3a5f]" />
+                            Messages au candidat
+                          </h4>
+                        </div>
+                        <div className="flex flex-col" style={{ maxHeight: '400px' }}>
+                          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: '120px', maxHeight: '280px' }}>
+                            {appMessages.length === 0 ? (
+                              <div className="text-center py-6">
+                                <MessageCircle size={24} className="mx-auto text-gray-200 mb-2" />
+                                <p className="text-xs text-gray-400">Aucun message envoyé</p>
+                              </div>
+                            ) : (
+                              appMessages.map((msg, i) => (
+                                <div key={msg.id || i} className="bg-[#1e3a5f]/5 rounded-xl px-4 py-3">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-xs font-medium text-[#1e3a5f]">{msg.adminName || 'Admin'}</p>
+                                    <p className="text-[10px] text-gray-400">
+                                      {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                                    </p>
+                                  </div>
+                                  <p className="text-sm text-gray-700">{msg.content}</p>
+                                </div>
+                              ))
                             )}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          <div className="p-4 border-t border-gray-100">
+                            <div className="flex gap-2">
+                              <input
+                                data-testid="app-message-input"
+                                value={appMessage}
+                                onChange={(e) => setAppMessage(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendApplicationMessage(selectedApp.id)}
+                                placeholder="Écrire un message..."
+                                className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20"
+                              />
+                              <button
+                                data-testid="send-app-message-btn"
+                                onClick={() => sendApplicationMessage(selectedApp.id)}
+                                disabled={!appMessage.trim() || sendingAppMessage}
+                                className="p-2.5 bg-[#1e3a5f] text-white rounded-xl hover:bg-[#2a5298] transition-colors disabled:opacity-40"
+                              >
+                                <Send size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Applications List View */
+                <div className="space-y-4" data-testid="applications-list-view">
+                  {/* Header with search + filters */}
+                  <div className="bg-white rounded-2xl shadow-sm p-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <h3 className="font-semibold text-gray-900 text-lg">
+                        Candidatures <span className="text-gray-400 font-normal text-base">({applications.length})</span>
+                      </h3>
+                      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:flex-none">
+                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            data-testid="app-search-input"
+                            value={appSearchQuery}
+                            onChange={(e) => setAppSearchQuery(e.target.value)}
+                            placeholder="Rechercher un candidat..."
+                            className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20"
+                          />
+                        </div>
+                        <select
+                          data-testid="app-status-filter"
+                          value={appStatusFilter}
+                          onChange={(e) => setAppStatusFilter(e.target.value)}
+                          className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20"
+                        >
+                          <option value="all">Tous les statuts</option>
+                          <option value="pending">En attente</option>
+                          <option value="reviewing">En examen</option>
+                          <option value="accepted">Acceptée</option>
+                          <option value="rejected">Refusée</option>
+                          <option value="modify">À modifier</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Stats pills */}
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {[
+                        { status: 'pending', label: 'En attente', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+                        { status: 'reviewing', label: 'En examen', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                        { status: 'accepted', label: 'Acceptées', color: 'bg-green-50 text-green-700 border-green-200' },
+                        { status: 'rejected', label: 'Refusées', color: 'bg-red-50 text-red-700 border-red-200' },
+                        { status: 'modify', label: 'À modifier', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+                      ].map(pill => {
+                        const count = applications.filter(a => a.status === pill.status).length;
+                        return (
+                          <button
+                            key={pill.status}
+                            onClick={() => setAppStatusFilter(prev => prev === pill.status ? 'all' : pill.status)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                              appStatusFilter === pill.status ? pill.color + ' ring-2 ring-offset-1 ring-current/20' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            {pill.label} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Loading / Empty / List */}
+                  {loading ? (
+                    <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-[#1e3a5f] border-t-transparent rounded-full mx-auto"></div>
+                    </div>
+                  ) : getFilteredApplications().length === 0 ? (
+                    <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+                      <FileText size={48} className="mx-auto text-gray-200 mb-3" />
+                      <p className="text-gray-500">
+                        {applications.length === 0 ? 'Aucune candidature pour le moment' : 'Aucun résultat pour cette recherche'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {getFilteredApplications().map((app) => (
+                        <div
+                          key={app.id}
+                          data-testid={`application-card-${app.id}`}
+                          onClick={() => openApplicationDetail(app)}
+                          className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-[#1e3a5f]/10 overflow-hidden"
+                        >
+                          <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            {/* Avatar */}
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#1e3a5f] to-[#2a5298] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                              {(app.firstName?.[0] || app.userName?.[0] || '?').toUpperCase()}{(app.lastName?.[0] || '').toUpperCase()}
+                            </div>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-semibold text-gray-900 text-sm">
+                                  {app.firstName || app.userName?.split(' ')[0]} {app.lastName || app.userName?.split(' ')[1] || ''}
+                                </h4>
+                                {getStatusBadge(app.status)}
+                                {app.status === 'modify' && (
+                                  <span className="text-orange-500" title="Modification demandée">
+                                    <AlertTriangle size={14} />
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-0.5 truncate">{app.offerTitle}</p>
+                              <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
+                                <span className="flex items-center gap-1"><Mail size={12} /> {app.userEmail}</span>
+                                {app.nationality && <span className="flex items-center gap-1"><MapPin size={12} /> {app.nationality}</span>}
+                              </div>
+                            </div>
+                            {/* Right info */}
+                            <div className="flex items-center gap-4 flex-shrink-0">
+                              <div className="text-right">
+                                <p className="text-xs text-gray-400">
+                                  {new Date(app.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                </p>
+                                {app.documents?.length > 0 && (
+                                  <p className="text-xs text-[#1e3a5f] font-medium mt-0.5">
+                                    {app.documents.length} doc{app.documents.length > 1 ? 's' : ''}
+                                  </p>
+                                )}
+                              </div>
+                              <ChevronRight size={18} className="text-gray-300" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

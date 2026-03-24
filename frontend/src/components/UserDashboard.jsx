@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, Heart, FileText, MessageCircle, LogOut, Clock, CheckCircle, XCircle, 
   AlertCircle, ChevronRight, Star, Eye, Send, Paperclip, X, Plus, 
-  MapPin, GraduationCap, Calendar, Award, Trash2, Image as ImageIcon
+  MapPin, GraduationCap, Calendar, Award, Trash2, Image as ImageIcon, AlertTriangle
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -194,7 +194,8 @@ const UserDashboard = ({ onClose }) => {
       pending: { icon: Clock, color: 'bg-yellow-100 text-yellow-700', label: 'En attente' },
       reviewing: { icon: AlertCircle, color: 'bg-blue-100 text-blue-700', label: 'En cours d\'examen' },
       accepted: { icon: CheckCircle, color: 'bg-green-100 text-green-700', label: 'Acceptée' },
-      rejected: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Refusée' }
+      rejected: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Refusée' },
+      modify: { icon: AlertTriangle, color: 'bg-orange-100 text-orange-700', label: 'À modifier' }
     };
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
@@ -462,6 +463,19 @@ const UserDashboard = ({ onClose }) => {
                             })}
                           </p>
                           <p className="text-sm text-gray-400 mt-1">Réf: #{selectedApplication.id?.substring(0, 8) || 'N/A'}</p>
+                          
+                          {/* Modify reason alert */}
+                          {selectedApplication.status === 'modify' && selectedApplication.modifyReason && (
+                            <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                              <div className="flex items-start gap-3">
+                                <AlertTriangle size={18} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="font-semibold text-orange-800 text-sm">Modification demandée</p>
+                                  <p className="text-sm text-orange-700 mt-1">{selectedApplication.modifyReason}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Offer Details Section */}

@@ -975,29 +975,40 @@ async def admin_get_applications(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.put("/admin/applications/{app_id}/status")
-async def admin_update_application_status(app_id: str, status: str, admin: dict = Depends(get_admin_user)):
+async def admin_update_application_status(app_id: str, status: str, reason: Optional[str] = None, admin: dict = Depends(get_admin_user)):
     db = get_db()
-    if status not in ["pending", "reviewing", "accepted", "rejected"]:
+    if status not in ["pending", "reviewing", "accepted", "rejected", "modify"]:
         raise HTTPException(status_code=400, detail="Statut invalide")
 
     application = await db.applications.find_one({"id": app_id})
     if not application:
         raise HTTPException(status_code=404, detail="Candidature non trouvée")
 
-    await db.applications.update_one({"id": app_id}, {"$set": {"status": status}})
+    update_data = {"status": status}
+    if status == "modify" and reason:
+        update_data["modifyReason"] = reason
+        update_data["modifyRequestedAt"] = datetime.now(timezone.utc).isoformat()
+
+    await db.applications.update_one({"id": app_id}, {"$set": update_data})
 
     status_labels = {
         "pending": "en attente",
         "reviewing": "en cours d'examen",
         "accepted": "acceptée",
-        "rejected": "refusée"
+        "rejected": "refusée",
+        "modify": "à modifier"
     }
+
+    notification_message = f"Votre candidature pour '{application.get('offerTitle', 'Programme')}' est maintenant {status_labels.get(status, status)}"
+    if status == "modify" and reason:
+        notification_message += f". Raison: {reason}"
+
     await send_notification(
         user_id=application["userId"],
         notification_type="application_update",
         title="Mise à jour de candidature",
-        message=f"Votre candidature pour '{application.get('offerTitle', 'Programme')}' est maintenant {status_labels.get(status, status)}",
-        data={"applicationId": app_id, "status": status}
+        message=notification_message,
+        data={"applicationId": app_id, "status": status, "reason": reason}
     )
 
     return {"message": f"Statut mis à jour: {status}"}
@@ -1030,6 +1041,47 @@ async def admin_update_payment_status(app_id: str, payment_status: str, admin: d
     )
 
     return {"message": f"Statut de paiement mis à jour: {payment_status}"}
+
+
+@api_router.post("/admin/applications/{app_id}/message")
+async def admin_send_application_message(app_id: str, reply: MessageReply, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    application = await db.applications.find_one({"id": app_id})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+
+    msg_data = {
+        "id": str(uuid.uuid4()),
+        "applicationId": app_id,
+        "content": reply.content,
+        "isAdmin": True,
+        "adminName": f"{admin['firstName']} {admin['lastName']}",
+        "createdAt": datetime.now(timezone.utc).isoformat()
+    }
+
+    await db.applications.update_one(
+        {"id": app_id},
+        {"$push": {"adminMessages": msg_data}}
+    )
+
+    await send_notification(
+        user_id=application["userId"],
+        notification_type="application_message",
+        title="Message concernant votre candidature",
+        message=f"Nouveau message de l'équipe concernant votre candidature pour '{application.get('offerTitle', 'Programme')}': {reply.content[:100]}",
+        data={"applicationId": app_id}
+    )
+
+    return {"message": "Message envoyé au candidat", "data": msg_data}
+
+
+@api_router.get("/admin/applications/{app_id}/messages")
+async def admin_get_application_messages(app_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    application = await db.applications.find_one({"id": app_id}, {"_id": 0, "adminMessages": 1})
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidature non trouvée")
+    return application.get("adminMessages", [])
 
 
 # ============= ADMIN - STATS =============
