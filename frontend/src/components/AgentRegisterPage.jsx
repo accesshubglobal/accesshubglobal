@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserCheck, Eye, EyeOff, ArrowLeft, Building2, Key, Loader2 } from 'lucide-react';
+import { UserCheck, Eye, EyeOff, ArrowLeft, Building2, Key, Loader2, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,7 +16,17 @@ const AgentRegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState('register'); // register, verify, success
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationError, setVerificationError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const t = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [resendCooldown]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -25,45 +35,91 @@ const AgentRegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
-      return;
-    }
-    if (form.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caracteres');
-      return;
-    }
-    if (!form.activationCode.trim()) {
-      setError('Le code d\'activation est requis');
-      return;
-    }
+    if (form.password !== form.confirmPassword) { setError('Les mots de passe ne correspondent pas'); return; }
+    if (form.password.length < 6) { setError('Le mot de passe doit contenir au moins 6 caracteres'); return; }
+    if (!form.activationCode.trim()) { setError('Le code d\'activation est requis'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post(`${API}/auth/register-agent`, {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        password: form.password,
-        company: form.company,
+      await axios.post(`${API}/auth/register-agent`, {
+        firstName: form.firstName, lastName: form.lastName,
+        email: form.email, phone: form.phone,
+        password: form.password, company: form.company,
         activationCode: form.activationCode,
       });
-      setSuccess(true);
-      // Auto-login
-      setTimeout(async () => {
-        const result = await login(form.email, form.password);
-        if (result.success) {
-          navigate('/agent');
-        }
-      }, 2000);
+      setStep('verify');
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de l\'inscription');
     }
     setLoading(false);
   };
 
-  if (success) {
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setVerificationError('');
+    try {
+      await axios.post(`${API}/auth/verify-email`, { email: form.email, code: verificationCode });
+      setStep('success');
+      setTimeout(async () => {
+        const result = await login(form.email, form.password);
+        if (result.success) navigate('/agent');
+      }, 2000);
+    } catch (err) {
+      setVerificationError(err.response?.data?.detail || 'Code invalide');
+    }
+    setLoading(false);
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      await axios.post(`${API}/auth/resend-verification`, { email: form.email });
+      setResendCooldown(60);
+    } catch (e) {}
+  };
+
+  if (step === 'verify') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
+          <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] p-6 text-white text-center">
+            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <ShieldCheck className="w-7 h-7" />
+            </div>
+            <h2 className="text-xl font-bold">Verification de votre email</h2>
+            <p className="text-white/70 text-sm mt-1">Un code a ete envoye a <strong>{form.email}</strong></p>
+          </div>
+          <form onSubmit={handleVerify} className="p-6 space-y-4" data-testid="agent-verify-form">
+            {verificationError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">{verificationError}</div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Code de verification (6 chiffres)</label>
+              <input type="text" value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg text-center text-2xl font-bold tracking-[12px] focus:outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/20"
+                maxLength={6} required data-testid="agent-verify-code" />
+            </div>
+            <button type="submit" disabled={loading || verificationCode.length !== 6}
+              className="w-full py-3 bg-[#1e3a5f] text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              data-testid="agent-verify-btn">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verifier'}
+            </button>
+            <div className="text-center">
+              <button type="button" onClick={handleResend} disabled={resendCooldown > 0}
+                className="text-sm text-[#1e3a5f] hover:underline disabled:text-gray-400">
+                {resendCooldown > 0 ? `Renvoyer dans ${resendCooldown}s` : 'Renvoyer le code'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center" data-testid="agent-register-success">
@@ -71,7 +127,7 @@ const AgentRegisterPage = () => {
             <UserCheck className="w-8 h-8 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Inscription reussie !</h2>
-          <p className="text-gray-600 mb-2">Votre compte agent a ete cree.</p>
+          <p className="text-gray-600 mb-2">Votre email a ete verifie et votre compte agent a ete cree.</p>
           <p className="text-sm text-amber-600 bg-amber-50 rounded-lg p-3">
             Votre compte est en attente d'approbation par un administrateur. Vous serez redirige automatiquement.
           </p>

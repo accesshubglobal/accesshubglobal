@@ -26,6 +26,7 @@ from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
     get_current_user, get_admin_user, get_principal_admin, get_agent_user, serialize_doc, security,
     send_notification, broadcast_to_admins,
+    generate_verification_code, send_verification_email, send_password_reset_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,12 +43,12 @@ async def root():
 
 # ============= AUTH ROUTES =============
 
-@api_router.post("/auth/register", response_model=TokenResponse)
+@api_router.post("/auth/register")
 async def register(user_data: UserCreate):
     db = get_db()
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
-        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+        raise HTTPException(status_code=400, detail="Cet email est deja utilise")
 
     user = User(
         email=user_data.email,
@@ -58,8 +59,20 @@ async def register(user_data: UserCreate):
 
     user_dict = serialize_doc(user.model_dump())
     user_dict["password"] = hash_password(user_data.password)
+    user_dict["emailVerified"] = False
 
     await db.users.insert_one(user_dict)
+
+    # Send verification email
+    code = generate_verification_code()
+    await db.email_verifications.insert_one({
+        "userId": user.id,
+        "email": user_data.email,
+        "code": code,
+        "expiresAt": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
+        "used": False,
+    })
+    await send_verification_email(user_data.email, code)
 
     access_token = create_access_token({"sub": user.id})
 
@@ -73,9 +86,67 @@ async def register(user_data: UserCreate):
             phone=user.phone,
             role=user.role,
             isActive=user.isActive,
-            favorites=user.favorites
+            favorites=user.favorites,
+            emailVerified=False,
         )
     )
+
+
+@api_router.post("/auth/verify-email")
+async def verify_email(data: dict):
+    db = get_db()
+    email = data.get("email", "")
+    code = data.get("code", "")
+    if not email or not code:
+        raise HTTPException(status_code=400, detail="Email et code requis")
+
+    verification = await db.email_verifications.find_one({
+        "email": email, "code": code, "used": False
+    })
+    if not verification:
+        raise HTTPException(status_code=400, detail="Code invalide")
+
+    expires = verification.get("expiresAt", "")
+    if expires:
+        exp_dt = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > exp_dt:
+            raise HTTPException(status_code=400, detail="Code expire, veuillez en demander un nouveau")
+
+    await db.email_verifications.update_one({"_id": verification["_id"]}, {"$set": {"used": True}})
+    await db.users.update_one({"email": email}, {"$set": {"emailVerified": True}})
+
+    return {"message": "Email verifie avec succes"}
+
+
+@api_router.post("/auth/resend-verification")
+async def resend_verification(data: dict):
+    db = get_db()
+    email = data.get("email", "")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email requis")
+
+    user = await db.users.find_one({"email": email})
+    if not user:
+        return {"message": "Si cet email existe, un nouveau code sera envoye"}
+
+    if user.get("emailVerified", False):
+        return {"message": "Email deja verifie"}
+
+    # Invalidate old codes
+    await db.email_verifications.update_many({"email": email, "used": False}, {"$set": {"used": True}})
+
+    code = generate_verification_code()
+    await db.email_verifications.insert_one({
+        "userId": user["id"],
+        "email": email,
+        "code": code,
+        "expiresAt": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
+        "used": False,
+    })
+    await send_verification_email(email, code)
+
+    return {"message": "Nouveau code envoye"}
+
 
 
 @api_router.post("/auth/login", response_model=TokenResponse)
@@ -106,6 +177,7 @@ async def login(credentials: UserLogin):
             favorites=user.get("favorites", []),
             isApproved=user.get("isApproved"),
             company=user.get("company"),
+            emailVerified=user.get("emailVerified", True),
         )
     )
 
@@ -123,6 +195,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         favorites=current_user.get("favorites", []),
         isApproved=current_user.get("isApproved"),
         company=current_user.get("company"),
+        emailVerified=current_user.get("emailVerified", True),
     )
 
 
@@ -133,25 +206,25 @@ async def request_password_reset(request: PasswordResetRequest):
     db = get_db()
     user = await db.users.find_one({"email": request.email})
     if not user:
-        return {"message": "Si cet email existe, un lien de réinitialisation sera envoyé"}
+        return {"message": "Si cet email existe, un code de reinitialisation sera envoye"}
 
-    reset_token = str(uuid.uuid4())
+    # Invalidate old codes
+    await db.password_resets.update_many({"email": request.email, "used": False}, {"$set": {"used": True}})
+
+    code = generate_verification_code()
     expires = datetime.now(timezone.utc) + timedelta(hours=1)
 
     await db.password_resets.insert_one({
-        "token": reset_token,
+        "token": code,
         "userId": user["id"],
         "email": request.email,
         "expiresAt": expires.isoformat(),
         "used": False
     })
 
-    logger.info(f"Password reset token for {request.email}: {reset_token}")
+    await send_password_reset_email(request.email, code)
 
-    return {
-        "message": "Si cet email existe, un lien de réinitialisation sera envoyé",
-        "dev_token": reset_token
-    }
+    return {"message": "Si cet email existe, un code de reinitialisation sera envoye"}
 
 
 @api_router.get("/auth/password-reset-verify/{token}")
@@ -159,11 +232,11 @@ async def verify_reset_token(token: str):
     db = get_db()
     reset = await db.password_resets.find_one({"token": token, "used": False})
     if not reset:
-        raise HTTPException(status_code=400, detail="Token invalide ou expiré")
+        raise HTTPException(status_code=400, detail="Code invalide ou expire")
 
     expires = datetime.fromisoformat(reset["expiresAt"].replace('Z', '+00:00'))
     if datetime.now(timezone.utc) > expires:
-        raise HTTPException(status_code=400, detail="Token expiré")
+        raise HTTPException(status_code=400, detail="Code expire")
 
     return {"valid": True, "email": reset["email"]}
 
@@ -173,18 +246,18 @@ async def reset_password(request: PasswordResetConfirm):
     db = get_db()
     reset = await db.password_resets.find_one({"token": request.token, "used": False})
     if not reset:
-        raise HTTPException(status_code=400, detail="Token invalide ou expiré")
+        raise HTTPException(status_code=400, detail="Code invalide ou expire")
 
     expires = datetime.fromisoformat(reset["expiresAt"].replace('Z', '+00:00'))
     if datetime.now(timezone.utc) > expires:
-        raise HTTPException(status_code=400, detail="Token expiré")
+        raise HTTPException(status_code=400, detail="Code expire")
 
     hashed = hash_password(request.newPassword)
     await db.users.update_one({"id": reset["userId"]}, {"$set": {"password": hashed}})
 
     await db.password_resets.update_one({"token": request.token}, {"$set": {"used": True}})
 
-    return {"message": "Mot de passe mis à jour avec succès"}
+    return {"message": "Mot de passe mis a jour avec succes"}
 
 
 # ============= USER ROUTES =============
@@ -1718,6 +1791,7 @@ async def register_agent(agent_data: AgentRegister):
         "role": "agent",
         "isActive": True,
         "isApproved": False,
+        "emailVerified": False,
         "agentCode": agent_data.activationCode,
         "favorites": [],
         "password": hash_password(agent_data.password),
@@ -1730,13 +1804,25 @@ async def register_agent(agent_data: AgentRegister):
         {"$set": {"isUsed": True, "usedBy": user_id, "usedAt": now}}
     )
 
+    # Send verification email
+    v_code = generate_verification_code()
+    await db.email_verifications.insert_one({
+        "userId": user_id,
+        "email": agent_data.email,
+        "code": v_code,
+        "expiresAt": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
+        "used": False,
+    })
+    await send_verification_email(agent_data.email, v_code)
+
     access_token = create_access_token({"sub": user_id})
     return TokenResponse(
         access_token=access_token,
         user=UserResponse(
             id=user_id, email=agent_data.email,
             firstName=agent_data.firstName, lastName=agent_data.lastName,
-            phone=agent_data.phone, role="agent", isActive=True, favorites=[]
+            phone=agent_data.phone, role="agent", isActive=True, favorites=[],
+            isApproved=False, company=agent_data.company or "", emailVerified=False,
         )
     )
 

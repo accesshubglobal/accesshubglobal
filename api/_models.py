@@ -43,6 +43,7 @@ class UserResponse(BaseModel):
     favorites: List[str] = []
     isApproved: Optional[bool] = None
     company: Optional[str] = None
+    emailVerified: Optional[bool] = None
 
 
 class TokenResponse(BaseModel):

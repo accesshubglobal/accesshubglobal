@@ -67,9 +67,17 @@ backend/
   - Footer "Devenir Partenaire" redirige vers /agent/register
   - Auto-redirect vers /agent apres login agent
   - Teste: 21/21 tests backend + verification frontend complete
+- [x] **Securite Email** (24 Mars 2026):
+  - Verification email obligatoire a l'inscription (user + agent) via code 6 chiffres
+  - Mot de passe oublie fonctionnel: envoi code par email, verification, nouveau mot de passe
+  - Unicite email: impossible de creer 2 comptes avec le meme email
+  - Integration Resend pour l'envoi d'emails transactionnels
+  - Templates HTML professionnels pour les emails (verification + reset)
+  - Frontend: modal verification email apres inscription, modal reset password 3 etapes
+  - Note: En mode test Resend, emails uniquement vers winerscon@gmail.com. Pour tous destinataires, verifier un domaine sur resend.com/domains
 
 ## Collections MongoDB
-users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies, agent_codes, agent_students
+users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies, agent_codes, agent_students, email_verifications
 
 ## Credentials
 - **Admin Principal** : admin@winners-consulting.com / Admin2025!

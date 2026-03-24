@@ -6,6 +6,81 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import uuid
 import os
+import asyncio
+import random
+import logging
+
+logger = logging.getLogger(__name__)
+
+# ============= EMAIL (RESEND) =============
+
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+
+
+def _init_resend():
+    if RESEND_API_KEY:
+        import resend
+        resend.api_key = RESEND_API_KEY
+        return resend
+    return None
+
+
+async def send_email(to_email: str, subject: str, html: str):
+    resend_mod = _init_resend()
+    if not resend_mod:
+        logger.warning(f"Resend not configured, email to {to_email} skipped")
+        return None
+    try:
+        params = {"from": SENDER_EMAIL, "to": [to_email], "subject": subject, "html": html}
+        result = await asyncio.to_thread(resend_mod.Emails.send, params)
+        logger.info(f"Email sent to {to_email}: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {e}")
+        return None
+
+
+def generate_verification_code():
+    return str(random.randint(100000, 999999))
+
+
+async def send_verification_email(email: str, code: str):
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2a5298);padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:20px;">Winners Consulting</h1>
+      </div>
+      <div style="background:#fff;padding:32px 24px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px;">
+        <h2 style="color:#1e3a5f;margin:0 0 8px;font-size:18px;">Verification de votre email</h2>
+        <p style="color:#6b7280;font-size:14px;margin:0 0 24px;">Utilisez le code ci-dessous pour verifier votre adresse email :</p>
+        <div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;margin:0 0 24px;">
+          <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#1e3a5f;">{code}</span>
+        </div>
+        <p style="color:#9ca3af;font-size:12px;margin:0;">Ce code expire dans 15 minutes.</p>
+      </div>
+    </div>
+    """
+    return await send_email(email, f"Code de verification: {code}", html)
+
+
+async def send_password_reset_email(email: str, code: str):
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2a5298);padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:20px;">Winners Consulting</h1>
+      </div>
+      <div style="background:#fff;padding:32px 24px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px;">
+        <h2 style="color:#1e3a5f;margin:0 0 8px;font-size:18px;">Reinitialisation du mot de passe</h2>
+        <p style="color:#6b7280;font-size:14px;margin:0 0 24px;">Vous avez demande la reinitialisation de votre mot de passe. Voici votre code :</p>
+        <div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;margin:0 0 24px;">
+          <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#1e3a5f;">{code}</span>
+        </div>
+        <p style="color:#9ca3af;font-size:12px;margin:0;">Ce code expire dans 1 heure. Si vous n'avez pas fait cette demande, ignorez cet email.</p>
+      </div>
+    </div>
+    """
+    return await send_email(email, f"Reinitialisation mot de passe: {code}", html)
 
 # ============= DATABASE =============
 
