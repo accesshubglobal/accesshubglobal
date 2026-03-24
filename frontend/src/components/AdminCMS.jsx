@@ -15,12 +15,13 @@ const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws:
 const API = `${BACKEND_URL}/api`;
 
 const AdminCMS = ({ onClose }) => {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, isPrincipalAdmin } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userRoleTab, setUserRoleTab] = useState('all');
 
   // Data states
   const [users, setUsers] = useState([]);
@@ -377,16 +378,22 @@ const AdminCMS = ({ onClose }) => {
       loadUsers();
     } catch (err) {
       console.error('Error toggling user status:', err);
+      alert(err.response?.data?.detail || 'Erreur');
+    }
+  };
+
+  const setUserRole = async (userId, role) => {
+    try {
+      await axios.put(`${API}/admin/users/${userId}/set-role?role=${role}`);
+      loadUsers();
+    } catch (err) {
+      console.error('Error setting role:', err);
+      alert(err.response?.data?.detail || 'Erreur');
     }
   };
 
   const makeAdmin = async (userId) => {
-    try {
-      await axios.put(`${API}/admin/users/${userId}/make-admin`);
-      loadUsers();
-    } catch (err) {
-      console.error('Error making admin:', err);
-    }
+    await setUserRole(userId, 'admin_principal');
   };
 
   const deleteUser = async (userId) => {
@@ -687,7 +694,7 @@ const AdminCMS = ({ onClose }) => {
     }
   };
 
-  const menuGroups = [
+  const allMenuGroups = [
     {
       id: 'dashboard',
       label: 'Tableau de bord',
@@ -709,7 +716,7 @@ const AdminCMS = ({ onClose }) => {
       label: 'Gestion',
       icon: FolderOpen,
       items: [
-        { id: 'users', label: 'Utilisateurs', icon: Users, badge: stats?.users },
+        ...(isPrincipalAdmin ? [{ id: 'users', label: 'Utilisateurs', icon: Users, badge: stats?.users }] : []),
         { id: 'applications', label: 'Candidatures', icon: FileText, badge: stats?.pendingApplications },
         { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
       ],
@@ -731,7 +738,7 @@ const AdminCMS = ({ onClose }) => {
       icon: Layers,
       items: [
         { id: 'blog', label: 'Blog', icon: BookOpen, badge: blogPosts?.length },
-        { id: 'banners', label: 'Bannières', icon: Image },
+        ...(isPrincipalAdmin ? [{ id: 'banners', label: 'Bannières', icon: Image }] : []),
         { id: 'testimonials', label: 'Témoignages', icon: Star },
         { id: 'faqs', label: 'FAQ', icon: HelpCircle },
       ],
@@ -744,7 +751,7 @@ const AdminCMS = ({ onClose }) => {
         { id: 'community', label: 'Discussions', icon: MessageSquare, badge: communityPosts?.filter(p => !p.deleted).length },
       ],
     },
-    {
+    ...(isPrincipalAdmin ? [{
       id: 'settings',
       label: 'Paramètres',
       icon: Wrench,
@@ -752,8 +759,10 @@ const AdminCMS = ({ onClose }) => {
         { id: 'payment-settings', label: 'Paiements', icon: CreditCard },
         { id: 'terms-conditions', label: 'Conditions', icon: FileText },
       ],
-    },
+    }] : []),
   ];
+
+  const menuGroups = allMenuGroups.filter(g => g.items.length > 0);
 
   const allMenuItems = menuGroups.flatMap(g => g.items);
 
@@ -1057,100 +1066,119 @@ const AdminCMS = ({ onClose }) => {
           )}
 
           {/* Users Section */}
-          {activeSection === 'users' && (
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Liste des utilisateurs ({users.length})</h3>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Rechercher..." 
-                      className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1a56db]"
-                    />
-                  </div>
+          {activeSection === 'users' && isPrincipalAdmin && (
+            <div className="space-y-6" data-testid="users-admin-section">
+              {/* Tabs */}
+              <div className="bg-white rounded-2xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900 text-lg">Utilisateurs ({users.length})</h3>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { id: 'all', label: 'Tous', count: users.length, color: 'bg-gray-50 text-gray-700 border-gray-200' },
+                    { id: 'admin_principal', label: 'Admins Principaux', count: users.filter(u => u.role === 'admin_principal' || u.role === 'admin').length, color: 'bg-purple-50 text-purple-700 border-purple-200' },
+                    { id: 'admin_secondary', label: 'Admins Secondaires', count: users.filter(u => u.role === 'admin_secondary').length, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                    { id: 'user', label: 'Utilisateurs', count: users.filter(u => u.role === 'user').length, color: 'bg-green-50 text-green-700 border-green-200' },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setUserRoleTab(tab.id)}
+                      data-testid={`user-tab-${tab.id}`}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                        userRoleTab === tab.id ? tab.color + ' ring-2 ring-offset-1 ring-current/20' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tab.label} ({tab.count})
+                    </button>
+                  ))}
                 </div>
               </div>
-              
+
+              {/* User Cards */}
               {loading ? (
-                <div className="p-12 text-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#1e3a5f] border-t-transparent rounded-full mx-auto"></div>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utilisateur</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white text-sm font-bold">
+                <div className="space-y-3">
+                  {users
+                    .filter(u => {
+                      if (userRoleTab === 'all') return true;
+                      if (userRoleTab === 'admin_principal') return u.role === 'admin_principal' || u.role === 'admin';
+                      return u.role === userRoleTab;
+                    })
+                    .map(u => {
+                      const roleConfig = {
+                        admin_principal: { label: 'Admin Principal', color: 'bg-purple-100 text-purple-700', gradient: 'from-purple-500 to-purple-700' },
+                        admin: { label: 'Admin Principal', color: 'bg-purple-100 text-purple-700', gradient: 'from-purple-500 to-purple-700' },
+                        admin_secondary: { label: 'Admin Secondaire', color: 'bg-blue-100 text-blue-700', gradient: 'from-blue-500 to-blue-700' },
+                        user: { label: 'Utilisateur', color: 'bg-gray-100 text-gray-700', gradient: 'from-[#1e3a5f] to-[#2a5298]' },
+                      };
+                      const rc = roleConfig[u.role] || roleConfig.user;
+                      const isSelf = u.id === user?.id;
+
+                      return (
+                        <div key={u.id} className="bg-white rounded-2xl shadow-sm p-5" data-testid={`user-card-${u.id}`}>
+                          <div className="flex items-center gap-4">
+                            <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${rc.gradient} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
                               {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-900">{u.firstName} {u.lastName}</p>
-                              <p className="text-xs text-gray-500">{u.phone || 'Pas de téléphone'}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-semibold text-gray-900 text-sm">{u.firstName} {u.lastName}</h4>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${rc.color}`}>{rc.label}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${u.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {u.isActive !== false ? 'Actif' : 'Inactif'}
+                                </span>
+                                {isSelf && <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-medium">Vous</span>}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5">{u.email}</p>
+                              <p className="text-[11px] text-gray-400 mt-0.5">{u.phone || '—'} | Inscrit le {new Date(u.createdAt).toLocaleDateString('fr-FR')}</p>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-600">{u.email}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {u.role === 'admin' ? 'Admin' : 'Utilisateur'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {u.isActive ? 'Actif' : 'Inactif'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleUserStatus(u.id)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                u.isActive ? 'hover:bg-red-50 text-red-500' : 'hover:bg-green-50 text-green-500'
-                              }`}
-                              title={u.isActive ? 'Désactiver' : 'Activer'}
-                            >
-                              {u.isActive ? <X size={16} /> : <Check size={16} />}
-                            </button>
-                            {u.role !== 'admin' && (
-                              <button
-                                onClick={() => makeAdmin(u.id)}
-                                className="p-2 hover:bg-purple-50 text-purple-500 rounded-lg transition-colors"
-                                title="Promouvoir admin"
-                              >
-                                <Users size={16} />
-                              </button>
+
+                            {/* Actions */}
+                            {!isSelf && (
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {/* Role Selector */}
+                                <select
+                                  value={u.role === 'admin' ? 'admin_principal' : u.role}
+                                  onChange={(e) => setUserRole(u.id, e.target.value)}
+                                  data-testid={`role-select-${u.id}`}
+                                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 bg-white"
+                                >
+                                  <option value="user">Utilisateur</option>
+                                  <option value="admin_secondary">Admin Secondaire</option>
+                                  <option value="admin_principal">Admin Principal</option>
+                                </select>
+
+                                {/* Toggle Status */}
+                                <button
+                                  onClick={() => toggleUserStatus(u.id)}
+                                  data-testid={`toggle-status-${u.id}`}
+                                  className={`p-2 rounded-lg transition-colors ${
+                                    u.isActive !== false ? 'text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:bg-green-50'
+                                  }`}
+                                  title={u.isActive !== false ? 'Désactiver' : 'Activer'}
+                                >
+                                  {u.isActive !== false ? <X size={16} /> : <Check size={16} />}
+                                </button>
+
+                                {/* Delete */}
+                                <button
+                                  onClick={() => deleteUser(u.id)}
+                                  data-testid={`delete-user-${u.id}`}
+                                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             )}
-                            <button
-                              onClick={() => deleteUser(u.id)}
-                              className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
-                              title="Supprimer l'utilisateur"
-                              data-testid={`delete-user-${u.id}`}
-                            >
-                              <Trash2 size={16} />
-                            </button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      );
+                    })}
+                </div>
               )}
             </div>
           )}

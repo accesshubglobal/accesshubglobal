@@ -23,7 +23,7 @@ from _models import (
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
-    get_current_user, get_admin_user, serialize_doc, security,
+    get_current_user, get_admin_user, get_principal_admin, serialize_doc, security,
     send_notification, broadcast_to_admins,
 )
 
@@ -793,7 +793,7 @@ async def admin_get_users(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.put("/admin/users/{user_id}/toggle-status")
-async def admin_toggle_user_status(user_id: str, admin: dict = Depends(get_admin_user)):
+async def admin_toggle_user_status(user_id: str, admin: dict = Depends(get_principal_admin)):
     db = get_db()
     user = await db.users.find_one({"id": user_id})
     if not user:
@@ -805,17 +805,37 @@ async def admin_toggle_user_status(user_id: str, admin: dict = Depends(get_admin
 
 
 @api_router.put("/admin/users/{user_id}/make-admin")
-async def admin_make_admin(user_id: str, admin: dict = Depends(get_admin_user)):
+async def admin_make_admin(user_id: str, admin: dict = Depends(get_principal_admin)):
     db = get_db()
-    await db.users.update_one({"id": user_id}, {"$set": {"role": "admin"}})
-    return {"message": "Utilisateur promu administrateur"}
+    await db.users.update_one({"id": user_id}, {"$set": {"role": "admin_principal"}})
+    return {"message": "Utilisateur promu administrateur principal"}
+
+
+@api_router.put("/admin/users/{user_id}/set-role")
+async def admin_set_role(user_id: str, role: str, admin: dict = Depends(get_principal_admin)):
+    if role not in ("user", "admin_principal", "admin_secondary"):
+        raise HTTPException(status_code=400, detail="Rôle invalide")
+    db = get_db()
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas modifier votre propre rôle")
+    await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
+    role_labels = {"user": "utilisateur", "admin_principal": "admin principal", "admin_secondary": "admin secondaire"}
+    return {"message": f"Rôle modifié en {role_labels.get(role, role)}"}
 
 
 @api_router.delete("/admin/users/{user_id}")
-async def admin_delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
+async def admin_delete_user(user_id: str, admin: dict = Depends(get_principal_admin)):
     db = get_db()
     if user_id == admin["id"]:
         raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte")
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if user.get("role") in ("admin", "admin_principal") and admin.get("role") != "admin_principal" and admin.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Seul un admin principal peut supprimer un autre admin principal")
     result = await db.users.delete_one({"id": user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
@@ -1418,7 +1438,7 @@ async def admin_get_all_chats(admin: dict = Depends(get_admin_user)):
 # ============= PAYMENT SETTINGS =============
 
 @api_router.get("/admin/payment-settings")
-async def get_payment_settings(admin: dict = Depends(get_admin_user)):
+async def get_payment_settings(admin: dict = Depends(get_principal_admin)):
     db = get_db()
     settings = await db.payment_settings.find_one({"id": "payment_settings"}, {"_id": 0})
     if not settings:
@@ -1428,7 +1448,7 @@ async def get_payment_settings(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.post("/admin/payment-settings")
-async def update_payment_settings(settings: PaymentSettings, admin: dict = Depends(get_admin_user)):
+async def update_payment_settings(settings: PaymentSettings, admin: dict = Depends(get_principal_admin)):
     db = get_db()
     settings_dict = settings.model_dump()
     await db.payment_settings.update_one(
@@ -1492,7 +1512,7 @@ async def get_banners():
 
 
 @api_router.get("/admin/site-settings/banners")
-async def admin_get_banners(admin: dict = Depends(get_admin_user)):
+async def admin_get_banners(admin: dict = Depends(get_principal_admin)):
     db = get_db()
     doc = await db.site_settings.find_one({"id": "site_banners"}, {"_id": 0})
     if not doc:
@@ -1501,7 +1521,7 @@ async def admin_get_banners(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.post("/admin/site-settings/banners")
-async def admin_save_banners(data: BannerSlidesUpdate, admin: dict = Depends(get_admin_user)):
+async def admin_save_banners(data: BannerSlidesUpdate, admin: dict = Depends(get_principal_admin)):
     db = get_db()
     await db.site_settings.update_one(
         {"id": "site_banners"},

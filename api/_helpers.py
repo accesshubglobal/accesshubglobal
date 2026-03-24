@@ -84,13 +84,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expiré")
-    except jwt.JWTError:
+    except (jwt.PyJWTError, jwt.InvalidTokenError, Exception):
         raise HTTPException(status_code=401, detail="Token invalide")
 
 
 async def get_admin_user(current_user: dict = Depends(get_current_user)):
-    if current_user.get("role") != "admin":
+    if current_user.get("role") not in ("admin", "admin_principal", "admin_secondary"):
         raise HTTPException(status_code=403, detail="Accès administrateur requis")
+    return current_user
+
+
+async def get_principal_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") not in ("admin", "admin_principal"):
+        raise HTTPException(status_code=403, detail="Accès admin principal requis")
     return current_user
 
 
