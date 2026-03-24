@@ -319,3 +319,47 @@ class BannerSlide(BaseModel):
 
 class BannerSlidesUpdate(BaseModel):
     slides: List[BannerSlide]
+
+
+# ============= TESTIMONIALS =============
+
+class TestimonialCreate(BaseModel):
+    text: str
+    program: str
+    rating: int = 5
+
+
+class Testimonial(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str = ""
+    userName: str = ""
+    userCountry: str = ""
+    userImage: str = ""
+    text: str
+    program: str
+    rating: int = 5
+    status: str = "pending"
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ============= CONTACT FORM =============
+
+class ContactFormCreate(BaseModel):
+    name: str
+    email: EmailStr
+    phone: Optional[str] = ""
+    service: Optional[str] = ""
+    message: str
+
+
+# ============= FAQ =============
+
+class FAQItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    question: str
+    answer: str
+
+
+class FAQListUpdate(BaseModel):
+    faqs: List[FAQItem]

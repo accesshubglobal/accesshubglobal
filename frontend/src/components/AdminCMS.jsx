@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Users, GraduationCap, Building, Home, MessageCircle, FileText, 
   Settings, LogOut, Plus, Edit, Trash2, Eye, Search, Filter, X, Check, Clock,
-  ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award, Mail, Image
+  ChevronLeft, ChevronRight, Bell, BarChart3, TrendingUp, AlertCircle, Send, Headphones, Award, Mail, Image,
+  Star, MessageSquare, HelpCircle, PhoneCall
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -86,6 +87,15 @@ const AdminCMS = ({ onClose }) => {
         break;
       case 'banners':
         loadBanners();
+        break;
+      case 'testimonials':
+        loadTestimonials();
+        break;
+      case 'contacts':
+        loadContacts();
+        break;
+      case 'faqs':
+        loadFaqs();
         break;
       default:
         break;
@@ -407,6 +417,18 @@ const AdminCMS = ({ onClose }) => {
   const [bannerSlides, setBannerSlides] = useState([]);
   const [bannerLoading, setBannerLoading] = useState(false);
 
+  // Testimonials state
+  const [testimonials, setTestimonials] = useState([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(false);
+
+  // Contact messages state
+  const [contactMessages, setContactMessages] = useState([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+
+  // FAQ state
+  const [faqItems, setFaqItems] = useState([]);
+  const [faqLoading, setFaqLoading] = useState(false);
+
   const loadBanners = async () => {
     setBannerLoading(true);
     try {
@@ -425,6 +447,40 @@ const AdminCMS = ({ onClose }) => {
     } catch (err) {
       console.error('Error saving banners:', err);
     }
+  };
+
+  const loadTestimonials = async () => {
+    setTestimonialsLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/testimonials`);
+      setTestimonials(res.data);
+    } catch (err) { console.error('Error loading testimonials:', err); }
+    setTestimonialsLoading(false);
+  };
+
+  const loadContacts = async () => {
+    setContactsLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/contacts`);
+      setContactMessages(res.data);
+    } catch (err) { console.error('Error loading contacts:', err); }
+    setContactsLoading(false);
+  };
+
+  const loadFaqs = async () => {
+    setFaqLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/faqs`);
+      setFaqItems(res.data.faqs || []);
+    } catch (err) { console.error('Error loading FAQs:', err); }
+    setFaqLoading(false);
+  };
+
+  const saveFaqs = async (faqs) => {
+    try {
+      await axios.post(`${API}/admin/faqs`, { faqs });
+      setFaqItems(faqs);
+    } catch (err) { console.error('Error saving FAQs:', err); }
   };
 
   const loadPaymentSettings = async () => {
@@ -459,6 +515,9 @@ const AdminCMS = ({ onClose }) => {
     { id: 'payment-settings', label: 'Paiements', icon: Settings },
     { id: 'terms-conditions', label: 'Conditions', icon: FileText },
     { id: 'banners', label: 'Banni\u00E8res', icon: Image },
+    { id: 'testimonials', label: 'T\u00E9moignages', icon: Star },
+    { id: 'contacts', label: 'Contacts', icon: PhoneCall },
+    { id: 'faqs', label: 'FAQ', icon: HelpCircle },
     { id: 'newsletter', label: 'Newsletter', icon: Mail, badge: newsletterSubs?.length },
   ];
 
@@ -1472,6 +1531,21 @@ const AdminCMS = ({ onClose }) => {
           {/* Banners Management Section */}
           {activeSection === 'banners' && (
             <BannersManager slides={bannerSlides} loading={bannerLoading} onSave={saveBanners} token={token} />
+          )}
+
+          {/* Testimonials Management Section */}
+          {activeSection === 'testimonials' && (
+            <TestimonialsManager testimonials={testimonials} loading={testimonialsLoading} onReload={loadTestimonials} />
+          )}
+
+          {/* Contact Messages Section */}
+          {activeSection === 'contacts' && (
+            <ContactsManager contacts={contactMessages} loading={contactsLoading} onReload={loadContacts} />
+          )}
+
+          {/* FAQ Management Section */}
+          {activeSection === 'faqs' && (
+            <FAQManager faqs={faqItems} loading={faqLoading} onSave={saveFaqs} />
           )}
 
           {/* Newsletter Section */}
@@ -3196,6 +3270,280 @@ const TermsConditionsEditor = ({ settings, onSave }) => {
     </div>
   );
 };
+
+// ============= TESTIMONIALS MANAGER =============
+const TestimonialsManager = ({ testimonials, loading, onReload }) => {
+  const API_URL = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
+
+  const handleApprove = async (id) => {
+    try {
+      await axios.put(`${API_URL}/admin/testimonials/${id}/approve`);
+      onReload();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await axios.put(`${API_URL}/admin/testimonials/${id}/reject`);
+      onReload();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Supprimer ce t\u00E9moignage ?')) return;
+    try {
+      await axios.delete(`${API_URL}/admin/testimonials/${id}`);
+      onReload();
+    } catch (err) { console.error(err); }
+  };
+
+  const statusBadge = (status) => {
+    const map = { pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700' };
+    const labels = { pending: 'En attente', approved: 'Approuv\u00E9', rejected: 'Rejet\u00E9' };
+    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${map[status] || map.pending}`}>{labels[status] || status}</span>;
+  };
+
+  if (loading) return <div className="bg-white rounded-xl p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div></div>;
+
+  return (
+    <div className="space-y-6" data-testid="testimonials-admin-section">
+      <div>
+        <h3 className="font-semibold text-gray-900">T\u00E9moignages ({testimonials.length})</h3>
+        <p className="text-sm text-gray-500 mt-1">Validez ou rejetez les t\u00E9moignages soumis par les utilisateurs</p>
+      </div>
+      {testimonials.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <Star size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500">Aucun t\u00E9moignage pour le moment</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {testimonials.map((t) => (
+            <div key={t.id} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100" data-testid={`testimonial-admin-${t.id}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#1a56db] rounded-full flex items-center justify-center text-white font-bold">{(t.userName || '?')[0]}</div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">{t.userName}</h4>
+                    <p className="text-xs text-gray-500">{t.program}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {statusBadge(t.status)}
+                  <div className="flex gap-1">{[...Array(t.rating || 5)].map((_, i) => <Star key={i} size={12} className="text-yellow-500 fill-yellow-500" />)}</div>
+                </div>
+              </div>
+              <p className="text-gray-600 text-sm italic mb-4">"{t.text}"</p>
+              <div className="flex items-center gap-2">
+                {t.status === 'pending' && (
+                  <>
+                    <button onClick={() => handleApprove(t.id)} className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm hover:bg-green-100 transition-colors" data-testid={`approve-${t.id}`}><Check size={14} />Approuver</button>
+                    <button onClick={() => handleReject(t.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-sm hover:bg-red-100 transition-colors" data-testid={`reject-${t.id}`}><X size={14} />Rejeter</button>
+                  </>
+                )}
+                <button onClick={() => handleDelete(t.id)} className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm hover:bg-gray-100 transition-colors ml-auto" data-testid={`delete-testimonial-${t.id}`}><Trash2 size={14} />Supprimer</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// ============= CONTACTS MANAGER =============
+const ContactsManager = ({ contacts, loading, onReload }) => {
+  const API_URL = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
+  const [selectedContact, setSelectedContact] = useState(null);
+
+  const handleMarkRead = async (id) => {
+    try {
+      await axios.put(`${API_URL}/admin/contacts/${id}/read`);
+      onReload();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Supprimer ce message ?')) return;
+    try {
+      await axios.delete(`${API_URL}/admin/contacts/${id}`);
+      setSelectedContact(null);
+      onReload();
+    } catch (err) { console.error(err); }
+  };
+
+  const serviceLabels = { china: '\u00C9tudes en Chine', france: '\u00C9tudes en France', housing: 'Logement', visa: 'Visa', other: 'Autre' };
+
+  if (loading) return <div className="bg-white rounded-xl p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div></div>;
+
+  const unread = contacts.filter(c => !c.isRead).length;
+
+  return (
+    <div className="space-y-6" data-testid="contacts-admin-section">
+      <div>
+        <h3 className="font-semibold text-gray-900">Messages de contact ({contacts.length}){unread > 0 && <span className="ml-2 text-sm text-orange-600">{unread} non lus</span>}</h3>
+        <p className="text-sm text-gray-500 mt-1">Messages re\u00E7us via le formulaire de contact du site</p>
+      </div>
+      {contacts.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <PhoneCall size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500">Aucun message de contact</p>
+        </div>
+      ) : (
+        <div className="flex gap-4">
+          <div className="w-1/2 space-y-2 max-h-[600px] overflow-y-auto">
+            {contacts.map((c) => (
+              <div key={c.id} onClick={() => { setSelectedContact(c); if (!c.isRead) handleMarkRead(c.id); }} className={`p-4 rounded-xl cursor-pointer transition-colors border ${selectedContact?.id === c.id ? 'bg-blue-50 border-[#1a56db]' : c.isRead ? 'bg-white border-gray-100 hover:bg-gray-50' : 'bg-blue-50/50 border-blue-200 hover:bg-blue-50'}`} data-testid={`contact-item-${c.id}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-medium text-gray-900 text-sm">{c.name}</h4>
+                  {!c.isRead && <span className="w-2 h-2 bg-[#1a56db] rounded-full"></span>}
+                </div>
+                <p className="text-xs text-gray-500">{c.email}</p>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-1">{c.message}</p>
+              </div>
+            ))}
+          </div>
+          <div className="w-1/2">
+            {selectedContact ? (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">{selectedContact.name}</h4>
+                    <p className="text-sm text-gray-500">{selectedContact.email}</p>
+                    {selectedContact.phone && <p className="text-sm text-gray-500">{selectedContact.phone}</p>}
+                  </div>
+                  <button onClick={() => handleDelete(selectedContact.id)} className="text-red-500 hover:text-red-700"><Trash2 size={18} /></button>
+                </div>
+                {selectedContact.service && <div className="mb-4"><span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">{serviceLabels[selectedContact.service] || selectedContact.service}</span></div>}
+                <p className="text-gray-700 whitespace-pre-wrap">{selectedContact.message}</p>
+                <p className="text-xs text-gray-400 mt-4">{selectedContact.createdAt ? new Date(selectedContact.createdAt).toLocaleString('fr-FR') : ''}</p>
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-xl p-12 text-center text-gray-400">S\u00E9lectionnez un message</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// ============= FAQ MANAGER =============
+const FAQManager = ({ faqs, loading, onSave }) => {
+  const [localFaqs, setLocalFaqs] = useState(faqs);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingFaq, setEditingFaq] = useState(null);
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
+
+  useEffect(() => { setLocalFaqs(faqs); }, [faqs]);
+
+  const handleAdd = async () => {
+    if (!newFaq.question || !newFaq.answer) return;
+    const faq = { id: Date.now().toString(), ...newFaq };
+    const updated = [...localFaqs, faq];
+    setLocalFaqs(updated);
+    await onSave(updated);
+    setNewFaq({ question: '', answer: '' });
+    setShowAddForm(false);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingFaq) return;
+    const updated = localFaqs.map(f => f.id === editingFaq.id ? editingFaq : f);
+    setLocalFaqs(updated);
+    await onSave(updated);
+    setEditingFaq(null);
+  };
+
+  const handleDelete = async (faqId) => {
+    if (!window.confirm('Supprimer cette question ?')) return;
+    const updated = localFaqs.filter(f => f.id !== faqId);
+    setLocalFaqs(updated);
+    await onSave(updated);
+  };
+
+  if (loading) return <div className="bg-white rounded-xl p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div></div>;
+
+  return (
+    <div className="space-y-6" data-testid="faq-admin-section">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900">Questions Fr\u00E9quentes ({localFaqs.length})</h3>
+          <p className="text-sm text-gray-500 mt-1">G\u00E9rez les FAQ affich\u00E9es sur le site</p>
+        </div>
+        <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-[#1a56db] text-white px-4 py-2 rounded-lg hover:bg-[#1648b8] transition-colors text-sm" data-testid="add-faq-btn"><Plus size={18} />Ajouter</button>
+      </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-[#1a56db]/20">
+          <h4 className="font-medium text-gray-900 mb-4">Nouvelle question</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
+              <input type="text" value={newFaq.question} onChange={(e) => setNewFaq({...newFaq, question: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" placeholder="Saisissez la question..." data-testid="faq-question-input" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">R\u00E9ponse</label>
+              <textarea value={newFaq.answer} onChange={(e) => setNewFaq({...newFaq, answer: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] resize-none" rows={3} placeholder="Saisissez la r\u00E9ponse..." data-testid="faq-answer-input" />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setShowAddForm(false); setNewFaq({ question: '', answer: '' }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800">Annuler</button>
+              <button onClick={handleAdd} disabled={!newFaq.question || !newFaq.answer} className="bg-[#1a56db] text-white px-6 py-2 rounded-lg hover:bg-[#1648b8] disabled:opacity-50" data-testid="save-faq-btn">Ajouter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingFaq && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-orange-200">
+          <h4 className="font-medium text-gray-900 mb-4">Modifier la question</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
+              <input type="text" value={editingFaq.question} onChange={(e) => setEditingFaq({...editingFaq, question: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">R\u00E9ponse</label>
+              <textarea value={editingFaq.answer} onChange={(e) => setEditingFaq({...editingFaq, answer: e.target.value})} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] resize-none" rows={3} />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setEditingFaq(null)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Annuler</button>
+              <button onClick={handleUpdate} className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600">Mettre \u00E0 jour</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {localFaqs.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <HelpCircle size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500">Aucune FAQ configur\u00E9e</p>
+          <p className="text-sm text-gray-400 mt-2">Les FAQ par d\u00E9faut seront utilis\u00E9es</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {localFaqs.map((faq, idx) => (
+            <div key={faq.id || idx} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 group" data-testid={`faq-admin-item-${idx}`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1 mr-4">
+                  <h4 className="font-medium text-gray-900 mb-1">{faq.question}</h4>
+                  <p className="text-sm text-gray-600">{faq.answer}</p>
+                </div>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  <button onClick={() => setEditingFaq({...faq})} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200" data-testid={`edit-faq-${idx}`}><Edit size={14} className="text-gray-700" /></button>
+                  <button onClick={() => handleDelete(faq.id)} className="p-2 bg-gray-100 rounded-lg hover:bg-red-100" data-testid={`delete-faq-${idx}`}><Trash2 size={14} className="text-red-500" /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 // ============= BANNERS MANAGER COMPONENT =============
 const BannersManager = ({ slides, loading, onSave, token }) => {

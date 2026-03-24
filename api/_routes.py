@@ -14,6 +14,9 @@ from _models import (
     PaymentSettings, ChatMessage, NewsletterSubscribe,
     PasswordResetRequest, PasswordResetConfirm,
     BannerSlidesUpdate,
+    TestimonialCreate, Testimonial,
+    ContactFormCreate,
+    FAQItem, FAQListUpdate,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
@@ -1188,3 +1191,153 @@ async def admin_save_banners(data: BannerSlidesUpdate, admin: dict = Depends(get
         upsert=True
     )
     return {"message": "Bannières mises à jour"}
+
+
+# ============= TESTIMONIALS =============
+
+@api_router.get("/testimonials")
+async def get_testimonials():
+    db = get_db()
+    testimonials = await db.testimonials.find(
+        {"status": "approved"}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(50)
+    return testimonials
+
+
+@api_router.post("/testimonials")
+async def create_testimonial(data: TestimonialCreate, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    existing = await db.testimonials.find_one({"userId": current_user["id"], "status": {"$in": ["pending", "approved"]}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez deja soumis un temoignage")
+
+    testimonial = Testimonial(
+        userId=current_user["id"],
+        userName=f"{current_user['firstName']} {current_user['lastName']}",
+        userCountry=current_user.get("country", ""),
+        text=data.text,
+        program=data.program,
+        rating=data.rating,
+        status="pending"
+    )
+    await db.testimonials.insert_one(serialize_doc(testimonial.model_dump()))
+    return {"message": "Temoignage soumis, en attente de validation", "id": testimonial.id}
+
+
+@api_router.get("/testimonials/mine")
+async def get_my_testimonial(current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    testimonial = await db.testimonials.find_one({"userId": current_user["id"]}, {"_id": 0})
+    return testimonial
+
+
+@api_router.get("/admin/testimonials")
+async def admin_get_testimonials(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    testimonials = await db.testimonials.find({}, {"_id": 0}).sort("createdAt", -1).to_list(200)
+    return testimonials
+
+
+@api_router.put("/admin/testimonials/{testimonial_id}/approve")
+async def admin_approve_testimonial(testimonial_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.testimonials.update_one({"id": testimonial_id}, {"$set": {"status": "approved"}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Temoignage non trouve")
+    return {"message": "Temoignage approuve"}
+
+
+@api_router.put("/admin/testimonials/{testimonial_id}/reject")
+async def admin_reject_testimonial(testimonial_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.testimonials.update_one({"id": testimonial_id}, {"$set": {"status": "rejected"}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Temoignage non trouve")
+    return {"message": "Temoignage rejete"}
+
+
+@api_router.delete("/admin/testimonials/{testimonial_id}")
+async def admin_delete_testimonial(testimonial_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.testimonials.delete_one({"id": testimonial_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Temoignage non trouve")
+    return {"message": "Temoignage supprime"}
+
+
+# ============= CONTACT FORM (PUBLIC) =============
+
+@api_router.post("/contact")
+async def submit_contact_form(data: ContactFormCreate):
+    db = get_db()
+    contact = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "email": data.email,
+        "phone": data.phone or "",
+        "service": data.service or "",
+        "message": data.message,
+        "isRead": False,
+        "createdAt": datetime.now(timezone.utc).isoformat()
+    }
+    await db.contact_messages.insert_one(contact)
+    await broadcast_to_admins({
+        "type": "new_contact",
+        "title": "Nouveau message de contact",
+        "message": f"{data.name} a envoye un message via le formulaire de contact"
+    })
+    return {"message": "Message envoye avec succes"}
+
+
+@api_router.get("/admin/contacts")
+async def admin_get_contacts(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    contacts = await db.contact_messages.find({}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return contacts
+
+
+@api_router.put("/admin/contacts/{contact_id}/read")
+async def admin_mark_contact_read(contact_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    await db.contact_messages.update_one({"id": contact_id}, {"$set": {"isRead": True}})
+    return {"message": "Marque comme lu"}
+
+
+@api_router.delete("/admin/contacts/{contact_id}")
+async def admin_delete_contact(contact_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.contact_messages.delete_one({"id": contact_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Message non trouve")
+    return {"message": "Message supprime"}
+
+
+# ============= FAQ MANAGEMENT =============
+
+@api_router.get("/faqs")
+async def get_faqs():
+    db = get_db()
+    doc = await db.site_settings.find_one({"id": "site_faqs"}, {"_id": 0})
+    if not doc:
+        return {"faqs": []}
+    return {"faqs": doc.get("faqs", [])}
+
+
+@api_router.get("/admin/faqs")
+async def admin_get_faqs(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    doc = await db.site_settings.find_one({"id": "site_faqs"}, {"_id": 0})
+    if not doc:
+        return {"faqs": []}
+    return {"faqs": doc.get("faqs", [])}
+
+
+@api_router.post("/admin/faqs")
+async def admin_save_faqs(data: FAQListUpdate, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    await db.site_settings.update_one(
+        {"id": "site_faqs"},
+        {"$set": {"id": "site_faqs", "faqs": [f.model_dump() for f in data.faqs]}},
+        upsert=True
+    )
+    return {"message": "FAQ mises a jour"}

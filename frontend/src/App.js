@@ -61,7 +61,7 @@ const Home = () => {
       <DestinationsSection />
       <ScholarshipsSection />
       <HousingSection />
-      <TestimonialsSection />
+      <TestimonialsSection onOpenAuth={openAuth} />
       <ContactSection />
       <Footer />
       
