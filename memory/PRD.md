@@ -15,19 +15,17 @@ Winner's Consulting est une plateforme de consultation pour etudes a l'etranger 
 api/
   _models.py      # Source unique: tous les modeles Pydantic
   _helpers.py     # Source unique: DB, auth, serialization, hooks notifications
-  _routes.py      # Source unique: TOUTES les routes API (~70 routes)
+  _routes.py      # Source unique: TOUTES les routes API (~75 routes)
   index.py        # Adaptateur Vercel (thin wrapper, ~40 lignes)
   requirements.txt
 backend/
   server.py       # Adaptateur local (thin wrapper + WebSocket, ~170 lignes)
   .env
 ```
-**Regle d'or**: Pour ajouter/modifier une route, editer UNIQUEMENT `api/_routes.py`. Les deux environnements (local + Vercel) heritent automatiquement.
+**Regle d'or**: Pour ajouter/modifier une route, editer UNIQUEMENT `api/_routes.py`.
 
-## Base de donnees
-- **URL** : MongoDB Atlas (winnersconsulting.zxnwfnl.mongodb.net)
-- **DB** : winnersconsulting
-- **Collections** : users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets
+## Collections MongoDB
+users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings
 
 ## Fonctionnalites COMPLETEES
 - [x] Authentification JWT (admin + users)
@@ -41,32 +39,27 @@ backend/
 - [x] Nettoyage mock data - tout sur MongoDB Atlas reel
 - [x] Frais de dossier dynamiques par offre
 - [x] Conditions Generales editables via admin CMS
-- [x] QR codes par upload d'image (pas de liens)
+- [x] QR codes par upload d'image
 - [x] Messages admin avec pieces jointes + split-screen
-- [x] **Consolidation server.py / api/index.py** (elimination duplication)
-- [x] **Refactoring general** (nettoyage fichiers debug, reorganisation code)
+- [x] Consolidation server.py / api/index.py (elimination duplication)
+- [x] Refactoring general (nettoyage fichiers, reorganisation code)
+- [x] Bouton "Commencer maintenant" → /dashboard si connecte, auth sinon
+- [x] Bouton "Consultation gratuite" → scroll vers section contact
+- [x] Bouton "En savoir plus" (carrousel) → affiche tous les programmes
+- [x] Bouton "Nous contacter" (sidebar) → ouvre modal contact (auth requise)
+- [x] Bouton "Publier vos besoins" → ouvre formulaire besoins (auth requise)
+- [x] Bannieres defilantes admin-manageables (URL ou upload image)
+- [x] Suppression champ frais de dossier global (PaymentSettings)
 
 ## Credentials
 - **Admin** : admin@winners-consulting.com / Admin2025!
-- **User test** : etudiant@test.com / Test1234!
 
 ## Backlog
 - [ ] Paiement en ligne (P1)
-- [ ] Emails automatiques (P2)
+- [ ] Emails automatiques pour changements de statut (P2)
 
 ## Notes techniques
-- Backend local: `/app/backend/server.py` (adaptateur + WebSocket)
-- Backend production: `/app/api/index.py` (adaptateur Vercel)
 - Routes API: `/app/api/_routes.py` (source unique)
 - Modeles: `/app/api/_models.py`
 - Helpers: `/app/api/_helpers.py`
-- Contenu UI statique: `/app/frontend/src/data/siteContent.js`
 - Variables Cloudinary requises sur Vercel: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-
-## Dernier changement (24 Mars 2026)
-- Consolidation backend: elimination de ~2900 lignes de code duplique
-- Creation de modules partages (_models.py, _helpers.py, _routes.py)
-- server.py reduit de 1612 a ~170 lignes
-- api/index.py reduit de 1312 a ~40 lignes
-- Nettoyage des fichiers debug/documentation obsoletes
-- 23 tests automatises passes (100% backend + frontend)
