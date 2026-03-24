@@ -4,51 +4,180 @@ export const services = [
   {
     id: 1,
     icon: 'GraduationCap',
-    title: 'Études à l’étranger',
-    description: 'Programmes de bourses et autofinancés dans les meilleures universités chinoises',
-    color: 'bg-blue-500'
+    title: "Études à l’étranger",
+    description: "Programmes de bourses et autofinancés dans les meilleures universités en Chine, France, Canada, Australie et bien d’autres pays.",
+    color: 'bg-blue-500',
+    details: {
+      intro: "Winner’s Consulting vous accompagne dans votre projet d’études à l’international. Nous travaillons avec des universités partenaires dans plusieurs pays pour vous offrir les meilleures opportunités académiques.",
+      countries: [
+        { name: 'Chine', flag: '🇨🇳', programs: 'Bourses CSC, MBBS, Ingénierie, Commerce, Langue chinoise' },
+        { name: 'France', flag: '🇫🇷', programs: 'Campus France, Bourse Eiffel, Grandes Écoles, Universités publiques' },
+        { name: 'Canada', flag: '🇨🇦', programs: 'Universités anglophones et francophones, Programmes co-op' },
+        { name: 'Australie', flag: '🇦🇺', programs: "Universités du Group of Eight, Programmes d’ingénierie et IT" },
+        { name: 'Autres pays', flag: '🌍', programs: 'Allemagne, Royaume-Uni, Japon, Corée du Sud, Turquie...' }
+      ],
+      features: [
+        "Orientation et choix de programme personnalisé",
+        "Constitution et vérification du dossier de candidature",
+        "Soumission des candidatures auprès des universités",
+        "Suivi jusqu’à l’obtention de la lettre d’admission",
+        "Accompagnement pour les bourses (CSC, Eiffel, etc.)"
+      ]
+    }
   },
   {
     id: 2,
-    icon: 'FileText',
-    title: 'Traduction de documents',
-    description: 'Accompagnement complet pour vos études dans les universités françaises',
-    color: 'bg-red-500'
+    icon: 'Stamp',
+    title: 'Accompagnement Visa',
+    description: "Visa études, tourisme, business, famille et travail en Chine. Assistance complète pour toutes vos démarches.",
+    color: 'bg-purple-500',
+    details: {
+      intro: "Nous vous assistons dans l’obtention de tous types de visas pour la Chine. Notre expertise couvre l’ensemble des catégories de visas avec un taux de réussite élevé.",
+      visaTypes: [
+        { type: 'Visa Études (X1/X2)', desc: 'Pour les programmes universitaires de courte et longue durée' },
+        { type: 'Visa Tourisme (L)', desc: 'Voyages touristiques individuels ou en groupe' },
+        { type: 'Visa Business (M/F)', desc: "Voyages d’affaires, salons, conférences, négociations commerciales" },
+        { type: 'Visa Famille (Q1/Q2/S1/S2)', desc: 'Regroupement familial, visite de proches résidant en Chine' },
+        { type: 'Visa Travail (Z)', desc: "Permis de travail et visa pour emploi en Chine, incluant l’assistance pour le Work Permit" }
+      ],
+      features: [
+        "Évaluation de votre éligibilité et choix du type de visa",
+        "Préparation complète du dossier de demande",
+        "Vérification et traduction des documents requis",
+        "Prise de rendez-vous au centre de visa / ambassade",
+        "Conseils pour l’entretien consulaire",
+        "Suivi de la demande jusqu’à l’obtention du visa"
+      ]
+    }
   },
   {
     id: 3,
-    icon: 'Home',
-    title: 'Recherche de Logement',
-    description: 'Trouvez le logement idéal près de votre université',
-    color: 'bg-green-500'
+    icon: 'FileText',
+    title: 'Traduction de documents',
+    description: "Service de traduction certifiée de documents pour les études en Chine (français-chinois, anglais-chinois).",
+    color: 'bg-red-500',
+    details: {
+      intro: "Notre service de traduction est spécialisé pour les dossiers d’admission en Chine. Nous fournissons des traductions certifiées conformes aux exigences des universités et autorités chinoises.",
+      documentTypes: [
+        "Diplômes et relevés de notes",
+        "Actes de naissance et documents d’état civil",
+        "Lettres de motivation et de recommandation",
+        "Certificats médicaux",
+        "Documents financiers (relevés bancaires, attestations)",
+        "Contrats et documents juridiques"
+      ],
+      languages: ['Français → Chinois', 'Anglais → Chinois', 'Chinois → Français'],
+      features: [
+        "Traduction certifiée et notariée",
+        "Conformité avec les exigences des universités chinoises",
+        "Traducteurs natifs spécialisés",
+        "Délai rapide (48h - 5 jours selon le volume)",
+        "Révision et correction incluses"
+      ]
+    }
   },
   {
     id: 4,
-    icon: 'Stamp',
-    title: 'Accompagnement Visa',
-    description: 'Assistance complète pour vos démarches de visa étudiant',
-    color: 'bg-purple-500'
+    icon: 'Home',
+    title: 'Recherche de Logement',
+    description: "Trouvez le logement idéal près de votre université en Chine ou en France.",
+    color: 'bg-green-500',
+    details: {
+      intro: "Nous vous aidons à trouver un logement sûr, confortable et abordable à proximité de votre campus. Notre réseau local facilite votre installation.",
+      options: [
+        { type: 'Résidence universitaire', desc: 'Chambres sur campus, option la plus économique' },
+        { type: 'Appartement partagé', desc: "Colocation avec d’autres étudiants internationaux" },
+        { type: 'Studio individuel', desc: "Pour ceux qui préfèrent plus d’intimité" },
+        { type: "Famille d’accueil", desc: 'Immersion culturelle et linguistique' }
+      ],
+      features: [
+        "Recherche personnalisée selon votre budget",
+        "Vérification de la fiabilité du logement",
+        "Aide à la signature du bail",
+        "Accompagnement pour l’emménagement",
+        "Assistance en cas de problème avec le propriétaire"
+      ]
+    }
   },
   {
     id: 5,
-    icon: 'FaCheckCircle',
-    title: 'CHSI',
-    description: 'Assistance complète pour vos démarches de visa étudiant',
-    color: 'bg-purple-500'
+    icon: 'ShoppingBag',
+    title: 'Guide Achat en Chine',
+    description: "Assistance pour vos achats en Chine : sourcing produits, négociation fournisseurs, contrôle qualité et expédition.",
+    color: 'bg-amber-500',
+    details: {
+      intro: "Profitez de notre présence en Chine pour vos projets d’achat et d’importation. Nous vous accompagnons de la recherche de produits jusqu’à l’expédition vers votre pays.",
+      servicesList: [
+        { title: 'Sourcing de produits', desc: 'Recherche de fournisseurs fiables sur les marchés et plateformes chinoises' },
+        { title: 'Négociation', desc: 'Négociation des prix et conditions en chinois avec les fournisseurs' },
+        { title: 'Contrôle qualité', desc: 'Inspection des produits avant expédition' },
+        { title: 'Logistique', desc: "Organisation de l’expédition par voie maritime, aérienne ou terrestre" },
+        { title: 'Accompagnement sur place', desc: 'Visite guidée des marchés de gros (Yiwu, Guangzhou, Shenzhen)' }
+      ],
+      features: [
+        "Accompagnement personnalisé en français",
+        "Réseau de fournisseurs vérifiés",
+        "Gestion des commandes et du suivi",
+        "Assistance pour les formalités douanières",
+        "Service disponible à distance ou sur place"
+      ]
+    }
   },
   {
     id: 6,
-    icon: 'Users',
-    title: 'Orientation Académique',
-    description: 'Conseils personnalisés pour choisir votre parcours',
-    color: 'bg-orange-500'
+    icon: 'FaCheckCircle',
+    title: 'CHSI',
+    description: "Vérification et certification CHSI de vos diplômes pour les études en Chine.",
+    color: 'bg-indigo-500',
+    details: {
+      intro: "Le CHSI (China Higher Education Student Information) est la plateforme officielle de vérification des diplômes en Chine. Nous gérons entièrement le processus de certification pour vous.",
+      features: [
+        "Vérification de l’authenticité de vos diplômes",
+        "Soumission du dossier sur la plateforme CHSI",
+        "Suivi de la procédure de certification",
+        "Traduction des documents si nécessaire",
+        "Obtention du rapport de vérification officiel"
+      ]
+    }
   },
   {
     id: 7,
+    icon: 'Users',
+    title: 'Orientation Académique',
+    description: "Conseils personnalisés pour choisir votre parcours et votre université.",
+    color: 'bg-orange-500',
+    details: {
+      intro: "Notre service d’orientation vous aide à définir votre projet d’études en fonction de vos objectifs professionnels, votre profil académique et votre budget.",
+      features: [
+        "Bilan de compétences et d’intérêts",
+        "Présentation des filières et débouchés",
+        "Sélection d’universités adaptées à votre profil",
+        "Comparaison des programmes et des coûts",
+        "Plan d’action personnalisé avec calendrier"
+      ]
+    }
+  },
+  {
+    id: 8,
     icon: 'Globe',
     title: 'Cours de Langues',
-    description: 'Préparation linguistique: Chinois, Français, Anglais',
-    color: 'bg-teal-500'
+    description: "Préparation linguistique : Chinois, Français, Anglais avant votre départ.",
+    color: 'bg-teal-500',
+    details: {
+      intro: "Préparez-vous linguistiquement avant votre départ grâce à nos cours adaptés à votre niveau et à votre destination.",
+      languages: [
+        { lang: 'Chinois (Mandarin)', levels: 'HSK 1 à HSK 6, conversation, chinois des affaires' },
+        { lang: 'Français', levels: 'DELF/DALF, TCF, français académique' },
+        { lang: 'Anglais', levels: 'IELTS, TOEFL, anglais académique et professionnel' }
+      ],
+      features: [
+        "Cours individuels ou en petit groupe",
+        "Professeurs natifs et certifiés",
+        "Préparation aux examens officiels (HSK, DELF, IELTS)",
+        "Cours en ligne ou en présentiel",
+        "Programme adapté à votre emploi du temps"
+      ]
+    }
   }
 ];
 
