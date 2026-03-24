@@ -15,7 +15,7 @@ Winner's Consulting est une plateforme de consultation pour etudes a l'etranger 
 api/
   _models.py      # Source unique: tous les modeles Pydantic
   _helpers.py     # Source unique: DB, auth, serialization, hooks notifications
-  _routes.py      # Source unique: TOUTES les routes API (~90 routes)
+  _routes.py      # Source unique: TOUTES les routes API (~90+ routes)
   index.py        # Adaptateur Vercel (thin wrapper)
   requirements.txt
 backend/
@@ -42,9 +42,17 @@ users, offers, universities, housing, applications, messages, newsletter, paymen
 - [x] Consolidation server.py / api/index.py
 - [x] Boutons fonctionnels (Commencer, Consultation, En savoir plus, Nous contacter, Publier besoins)
 - [x] Bannieres admin-manageables
-- [x] **Temoignages fonctionnels** - soumission utilisateur + validation admin
-- [x] **Formulaire contact fonctionnel** - envoi public + gestion admin
-- [x] **FAQ dynamiques** - gestion admin (ajouter/modifier/supprimer)
+- [x] Temoignages fonctionnels - soumission utilisateur + validation admin
+- [x] Formulaire contact fonctionnel - envoi public + gestion admin
+- [x] FAQ dynamiques - gestion admin (ajouter/modifier/supprimer)
+- [x] Section Services interactive avec modals detailles
+- [x] **Admin Candidatures redesign** (24 Mars 2026):
+  - Vue liste moderne avec recherche et filtres par statut
+  - Vue detail complete (infos personnelles, documents, paiement)
+  - Actions rapides de statut (en examen, acceptee, refusee)
+  - Statut "Modifier" avec raison obligatoire + modal
+  - Messagerie integree admin -> candidat
+  - Badge orange "A modifier" dans admin ET dashboard utilisateur
 
 ## Credentials
 - **Admin** : admin@winners-consulting.com / Admin2025!
@@ -52,7 +60,14 @@ users, offers, universities, housing, applications, messages, newsletter, paymen
 ## Backlog
 - [ ] Paiement en ligne (P1)
 - [ ] Emails automatiques pour changements de statut (P2)
+- [ ] Refactoring AdminCMS.jsx en sous-composants (P3)
+- [ ] Configuration variables Cloudinary Vercel (verification utilisateur)
+- [ ] Commit GitHub pour deploiement Vercel
 
 ## Notes techniques
 - Routes API: `/app/api/_routes.py` (source unique)
 - Variables Cloudinary sur Vercel: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+- New API endpoints (24 Mars):
+  - PUT /api/admin/applications/{id}/status?status=modify&reason=...
+  - POST /api/admin/applications/{id}/message
+  - GET /api/admin/applications/{id}/messages
