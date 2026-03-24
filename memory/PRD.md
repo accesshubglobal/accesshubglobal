@@ -54,17 +54,32 @@ backend/
   - Admin secondaire: peut gerer offres, blog, communaute, messages, candidatures
   - Admin secondaire: NE peut PAS gerer utilisateurs, paiements, bannieres, parametres
   - Teste: 19/19 tests backend + verification frontend complete
+- [x] **Systeme Agent/Partenaire** (24 Mars 2026):
+  - Nouveau role "agent" avec flux d'inscription dedie (/agent/register)
+  - Code d'activation genere par admin principal (format AG-XXXXXXXX, expire 30j)
+  - Approbation par admin principal requise avant acces
+  - Dashboard agent (/agent) avec 6 onglets: Tableau de bord, Etudiants, Candidatures, Offres, Favoris, Messages
+  - Gestion etudiants: CRUD complet (prenom, nom, email, telephone, nationalite, passeport...)
+  - Candidatures: postuler pour un etudiant sur n'importe quelle offre
+  - Messagerie: envoyer des messages aux administrateurs
+  - Offres/Favoris: consulter et ajouter aux favoris comme un utilisateur
+  - Admin: section "Agents" avec gestion codes + approbation/rejet agents
+  - Footer "Devenir Partenaire" redirige vers /agent/register
+  - Auto-redirect vers /agent apres login agent
+  - Teste: 21/21 tests backend + verification frontend complete
 
 ## Collections MongoDB
-users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies
+users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies, agent_codes, agent_students
 
 ## Credentials
 - **Admin Principal** : admin@winners-consulting.com / Admin2025!
 - **Admin Secondaire (test)** : secondary@test.com / Test2025!
+- **Agent (test)** : agent@test.com / Agent2025!
 
 ## Roles
-- `admin_principal` : Acces total (utilisateurs, paiements, bannieres, parametres)
+- `admin_principal` : Acces total (utilisateurs, paiements, bannieres, parametres, agents)
 - `admin_secondary` : Acces contenu uniquement (offres, blog, communaute, messages, candidatures)
+- `agent` : Partenaire (gestion etudiants, candidatures pour etudiants, messagerie, favoris)
 - `user` : Utilisateur standard
 
 ## Backlog

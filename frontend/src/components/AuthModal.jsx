@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, Phone, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import PasswordResetModal from './PasswordResetModal';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
@@ -10,6 +11,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
   const [error, setError] = useState('');
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { login, register } = useAuth();
+  const navigate = useNavigate();
 
   // Update mode when initialMode changes
   useEffect(() => {
@@ -46,6 +48,10 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     if (result.success) {
       onClose();
       setFormData({ email: '', password: '', firstName: '', lastName: '', phone: '' });
+      // Auto-redirect agents to their dashboard
+      if (result.user?.role === 'agent') {
+        navigate('/agent');
+      }
     } else {
       setError(result.error);
     }
