@@ -10,21 +10,18 @@ Winner's Consulting est une plateforme de consultation pour etudes a l'etranger 
 - **Deploiement** : Vercel (api/index.py)
 - **Stockage fichiers** : Cloudinary (upload direct navigateur)
 
-## Architecture Backend (Refactored - 24 Mars 2026)
+## Architecture Backend
 ```
 api/
   _models.py      # Source unique: tous les modeles Pydantic
-  _helpers.py     # Source unique: DB, auth, serialization, hooks notifications
-  _routes.py      # Source unique: TOUTES les routes API (~90+ routes)
-  index.py        # Adaptateur Vercel (thin wrapper)
+  _helpers.py     # DB, Auth, Utility functions
+  _routes.py      # Source unique: TOUTES les routes API (~95+ routes)
+  index.py        # Adaptateur Vercel
   requirements.txt
 backend/
-  server.py       # Adaptateur local (thin wrapper + WebSocket)
+  server.py       # Adaptateur local (+ WebSocket)
   .env
 ```
-
-## Collections MongoDB
-users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages
 
 ## Fonctionnalites COMPLETEES
 - [x] Authentification JWT (admin + users)
@@ -32,30 +29,42 @@ users, offers, universities, housing, applications, messages, newsletter, paymen
 - [x] Candidatures completes (4 etapes)
 - [x] Upload direct Cloudinary
 - [x] Panel admin complet (CRUD offres, candidatures, messages, stats, newsletter)
-- [x] Chat admin/user
-- [x] PDF/Impression candidatures
-- [x] Newsletter
-- [x] Frais de dossier dynamiques par offre
-- [x] Conditions Generales editables
-- [x] QR codes par upload d'image
+- [x] Chat admin/user + PDF/Impression
+- [x] Newsletter + Frais de dossier dynamiques par offre
+- [x] Conditions Generales editables + QR codes
 - [x] Messages admin avec pieces jointes + split-screen
-- [x] Consolidation server.py / api/index.py
-- [x] Boutons fonctionnels (Commencer, Consultation, En savoir plus, Nous contacter, Publier besoins)
+- [x] Consolidation backend (server.py + api/index.py -> _routes.py)
+- [x] Boutons CTA fonctionnels
 - [x] Bannieres admin-manageables
-- [x] Temoignages fonctionnels - soumission utilisateur + validation admin
-- [x] Formulaire contact fonctionnel - envoi public + gestion admin
-- [x] FAQ dynamiques - gestion admin (ajouter/modifier/supprimer)
+- [x] Temoignages fonctionnels + validation admin
+- [x] Formulaire contact fonctionnel
+- [x] FAQ dynamiques gestion admin
 - [x] Section Services interactive avec modals detailles
 - [x] **Admin Candidatures redesign** (24 Mars 2026):
-  - Vue liste moderne avec recherche et filtres par statut
+  - Vue liste avec recherche et filtres par statut
   - Vue detail complete (infos personnelles, documents, paiement)
-  - Actions rapides de statut (en examen, acceptee, refusee)
-  - Statut "Modifier" avec raison obligatoire + modal
-  - Messagerie integree admin -> candidat
-  - Badge orange "A modifier" dans admin ET dashboard utilisateur
+  - Actions rapides de statut + "Modifier" avec raison obligatoire
+  - Messagerie integree admin -> candidat avec pieces jointes
+- [x] **Re-soumission utilisateur** (24 Mars 2026):
+  - Section re-soumission visible quand statut="modify"
+  - Ajout/suppression de documents
+  - Bouton re-soumettre (remet status a "pending")
+- [x] **Pieces jointes dans messages** (24 Mars 2026):
+  - Upload Cloudinary dans la messagerie admin
+  - Affichage des pieces jointes dans les messages
+- [x] **Bug fix: page blanche** (24 Mars 2026):
+  - Fix rendering admissionConditions (objets vs strings)
+  - Fix AuthContext: erreurs Pydantic 422 converties en string
 
 ## Credentials
 - **Admin** : admin@winners-consulting.com / Admin2025!
+
+## Key API Endpoints (new)
+- PUT /api/admin/applications/{id}/status?status=modify&reason=...
+- POST /api/admin/applications/{id}/message (supports attachments)
+- GET /api/admin/applications/{id}/messages
+- PUT /api/applications/{id}/resubmit (user, status must be "modify")
+- PUT /api/applications/{id}/documents (user, updates documents array)
 
 ## Backlog
 - [ ] Paiement en ligne (P1)
@@ -66,8 +75,4 @@ users, offers, universities, housing, applications, messages, newsletter, paymen
 
 ## Notes techniques
 - Routes API: `/app/api/_routes.py` (source unique)
-- Variables Cloudinary sur Vercel: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-- New API endpoints (24 Mars):
-  - PUT /api/admin/applications/{id}/status?status=modify&reason=...
-  - POST /api/admin/applications/{id}/message
-  - GET /api/admin/applications/{id}/messages
+- Variables Cloudinary Vercel: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
