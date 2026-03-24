@@ -696,9 +696,9 @@ const AdminCMS = ({ onClose }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
-      {/* Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-[72px]' : 'w-64'} bg-[#0f1d2f] text-white flex flex-col transition-all duration-300 flex-shrink-0`}>
+    <div className="h-screen bg-[#f0f2f5] flex overflow-hidden">
+      {/* Sidebar - Fixed */}
+      <div className={`${sidebarCollapsed ? 'w-[72px]' : 'w-64'} bg-[#0f1d2f] text-white flex flex-col transition-all duration-300 flex-shrink-0 h-screen`}>
         {/* Logo */}
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-5'} py-5 border-b border-white/[0.06]`}>
           {!sidebarCollapsed && (
@@ -848,9 +848,9 @@ const AdminCMS = ({ onClose }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header - Fixed */}
+        <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/60 px-8 py-4 flex items-center justify-between flex-shrink-0 z-10">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <span>{menuGroups.find(g => g.items.some(i => i.id === activeSection))?.label}</span>
@@ -881,8 +881,8 @@ const AdminCMS = ({ onClose }) => {
           </div>
         </header>
 
-        {/* Content */}
-        <main className="p-8">
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto p-8">
           {/* Dashboard */}
           {activeSection === 'dashboard' && stats && (
             <div className="space-y-6">
