@@ -3840,7 +3840,9 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
 
 // University Form Modal
 const UniversityFormModal = ({ university, onClose, onSuccess }) => {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState(university || {
     name: '', city: '', province: '', country: 'Chine', countryCode: 'CN', status: 'public',
     image: '', coverImage: '', logo: '', ranking: '', badges: [],
@@ -3851,7 +3853,40 @@ const UniversityFormModal = ({ university, onClose, onSuccess }) => {
   const [newBadge, setNewBadge] = useState('');
   const [newFaculty, setNewFaculty] = useState('');
   const [newCondition, setNewCondition] = useState('');
-  const [newPhoto, setNewPhoto] = useState('');
+
+  const uploadImage = async (file) => {
+    setUploading(true);
+    try {
+      const sigRes = await fetch(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!sigRes.ok) throw new Error('Signature failed');
+      const sigData = await sigRes.json();
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('api_key', sigData.api_key);
+      fd.append('timestamp', sigData.timestamp);
+      fd.append('signature', sigData.signature);
+      fd.append('folder', sigData.folder);
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, { method: 'POST', body: fd });
+      const data = await uploadRes.json();
+      if (data.secure_url) return data.secure_url;
+      throw new Error('Upload failed');
+    } catch (err) { console.error(err); alert('Erreur upload'); return null; }
+    finally { setUploading(false); }
+  };
+
+  const handleFileChange = async (field, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    if (url) setFormData({...formData, [field]: url});
+  };
+
+  const handleAddPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    if (url) setFormData({...formData, photos: [...(formData.photos || []), url]});
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -3931,25 +3966,29 @@ const UniversityFormModal = ({ university, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Images */}
+          {/* Images - UPLOAD */}
           <div className="border-t pt-4 mt-4">
             <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wider">Images</p>
             <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Photo de couverture (URL ou image)</label>
-                <input type="text" value={formData.coverImage || ''} onChange={(e) => setFormData({...formData, coverImage: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Logo (URL ou image)</label>
-                <input type="text" value={formData.logo || ''} onChange={(e) => setFormData({...formData, logo: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Image principale (URL)</label>
-                <input type="text" value={formData.image || ''} onChange={(e) => setFormData({...formData, image: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
-              </div>
+              {[
+                { label: 'Photo de couverture', field: 'coverImage' },
+                { label: 'Logo', field: 'logo' },
+                { label: 'Image principale (liste)', field: 'image' },
+              ].map(({ label, field }) => (
+                <div key={field}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                  <div className="flex items-center gap-2">
+                    {formData[field] && <img src={formData[field]} alt="" className="w-12 h-12 rounded-lg object-cover border" />}
+                    <label className="flex-1 relative cursor-pointer">
+                      <div className="px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1e3a5f] hover:text-[#1e3a5f] transition-colors text-center">
+                        {uploading ? 'Upload...' : formData[field] ? 'Changer' : 'Choisir une image'}
+                      </div>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(field, e)} disabled={uploading} />
+                    </label>
+                    {formData[field] && <button type="button" onClick={() => setFormData({...formData, [field]: ''})} className="text-xs text-red-500 hover:underline">Suppr.</button>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -4049,19 +4088,20 @@ const UniversityFormModal = ({ university, onClose, onSuccess }) => {
             ))}</div>
           </div>
 
-          {/* Photos */}
+          {/* Photos Upload */}
           <div className="border-t pt-4 mt-4">
             <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Photos</p>
-            <div className="flex gap-2 mb-2">
-              <input type="text" value={newPhoto} onChange={e => setNewPhoto(e.target.value)} placeholder="URL de l'image"
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addToList('photos', newPhoto, setNewPhoto))} />
-              <button type="button" onClick={() => addToList('photos', newPhoto, setNewPhoto)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">+</button>
-            </div>
+            <label className="block cursor-pointer mb-3">
+              <div className="px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1e3a5f] hover:text-[#1e3a5f] transition-colors text-center">
+                {uploading ? 'Upload en cours...' : '+ Ajouter une photo'}
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleAddPhoto} disabled={uploading} />
+            </label>
             <div className="grid grid-cols-4 gap-2">{(formData.photos || []).map((p, i) => (
-              <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-100">
                 <img src={p} alt="" className="w-full h-full object-cover" />
                 <button type="button" onClick={() => removeFromList('photos', i)}
-                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">&times;</button>
               </div>
             ))}</div>
           </div>
@@ -4069,7 +4109,7 @@ const UniversityFormModal = ({ university, onClose, onSuccess }) => {
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-white py-4">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50">
+            <button type="submit" disabled={loading || uploading} className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50">
               {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>

@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://access-control-demo-7.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://uni-management-hub.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_PRINCIPAL_EMAIL = "admin@winners-consulting.com"
