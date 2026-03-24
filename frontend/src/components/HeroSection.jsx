@@ -3,18 +3,17 @@ import { stats } from '../data/siteContent';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 const HeroSection = ({ onOpenAuth }) => {
   const { isAuthenticated } = useAuth();
   const { t } = useTranslation();
-  const navigate = useNavigate();
   
   const handleCTA = () => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      const el = document.getElementById('programs');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     } else {
-      onOpenAuth('register');
+      onOpenAuth('login');
     }
   };
 
