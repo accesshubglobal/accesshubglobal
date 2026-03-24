@@ -78,6 +78,9 @@ const AdminCMS = ({ onClose }) => {
       case 'newsletter':
         loadNewsletter();
         break;
+      case 'terms-conditions':
+        loadPaymentSettings();
+        break;
       case 'scholarships':
         loadOffers();
         break;
@@ -427,6 +430,7 @@ const AdminCMS = ({ onClose }) => {
     { id: 'chats', label: 'Chat en direct', icon: Headphones, badge: chats?.length },
     { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
     { id: 'payment-settings', label: 'Paiements', icon: Settings },
+    { id: 'terms-conditions', label: 'Conditions', icon: FileText },
     { id: 'newsletter', label: 'Newsletter', icon: Mail, badge: newsletterSubs?.length },
   ];
 
@@ -1509,6 +1513,29 @@ const AdminCMS = ({ onClose }) => {
           )}
 
           {/* Scholarships Section - Shows scholarship offers */}
+          {/* Terms & Conditions Section */}
+          {activeSection === 'terms-conditions' && (
+            <div className="space-y-6" data-testid="terms-conditions-section">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Conditions Générales de Candidature</h3>
+              </div>
+              <p className="text-sm text-gray-500">
+                Ces conditions seront affichées aux candidats avant de soumettre leur candidature.
+              </p>
+
+              {paymentSettings ? (
+                <TermsConditionsEditor
+                  settings={paymentSettings}
+                  onSave={savePaymentSettings}
+                />
+              ) : (
+                <div className="bg-white rounded-xl p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full mx-auto"></div>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeSection === 'scholarships' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
@@ -2836,6 +2863,35 @@ const PaymentSettingsForm = ({ settings, onSave }) => {
   const [formData, setFormData] = useState(settings);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploadingQr, setUploadingQr] = useState(null);
+  const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
+
+  const handleQrUpload = async (e, field) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('Image trop volumineuse (max 5 Mo)'); return; }
+    setUploadingQr(field);
+    try {
+      const token = localStorage.getItem('token');
+      const sigRes = await axios.get(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('signature', signature);
+      fd.append('timestamp', String(timestamp));
+      fd.append('api_key', api_key);
+      fd.append('folder', folder);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setFormData(prev => ({ ...prev, [field]: data.secure_url }));
+    } catch (err) {
+      console.error('QR upload error:', err);
+      alert('Erreur lors du téléchargement');
+    }
+    setUploadingQr(null);
+    e.target.value = '';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2856,30 +2912,72 @@ const PaymentSettingsForm = ({ settings, onSave }) => {
         </h4>
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">WeChat Pay QR Code URL</label>
-            <input
-              type="url"
-              value={formData.wechatQrCode}
-              onChange={(e) => setFormData({...formData, wechatQrCode: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-              placeholder="https://..."
-            />
-            {formData.wechatQrCode && (
-              <img src={formData.wechatQrCode} alt="WeChat QR" className="mt-2 w-32 h-32 object-cover rounded-lg border" />
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-2">WeChat Pay QR Code</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#1a56db] transition-colors">
+              {formData.wechatQrCode ? (
+                <div className="relative inline-block">
+                  <img src={formData.wechatQrCode} alt="WeChat QR" className="w-40 h-40 object-cover rounded-lg mx-auto" />
+                  <button type="button" onClick={() => setFormData({...formData, wechatQrCode: ''})}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="py-4">
+                  {uploadingQr === 'wechatQrCode' ? (
+                    <div className="w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  ) : (
+                    <>
+                      <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-500">Cliquez pour téléverser</p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input type="file" accept="image/*" className="hidden" id="wechat-qr-upload"
+                onChange={(e) => handleQrUpload(e, 'wechatQrCode')} />
+              {!formData.wechatQrCode && (
+                <label htmlFor="wechat-qr-upload" className="mt-2 inline-block px-4 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg cursor-pointer hover:bg-gray-200 transition-colors">
+                  Choisir une image
+                </label>
+              )}
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Alipay QR Code URL</label>
-            <input
-              type="url"
-              value={formData.alipayQrCode}
-              onChange={(e) => setFormData({...formData, alipayQrCode: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-              placeholder="https://..."
-            />
-            {formData.alipayQrCode && (
-              <img src={formData.alipayQrCode} alt="Alipay QR" className="mt-2 w-32 h-32 object-cover rounded-lg border" />
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-2">Alipay QR Code</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#1a56db] transition-colors">
+              {formData.alipayQrCode ? (
+                <div className="relative inline-block">
+                  <img src={formData.alipayQrCode} alt="Alipay QR" className="w-40 h-40 object-cover rounded-lg mx-auto" />
+                  <button type="button" onClick={() => setFormData({...formData, alipayQrCode: ''})}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="py-4">
+                  {uploadingQr === 'alipayQrCode' ? (
+                    <div className="w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  ) : (
+                    <>
+                      <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-500">Cliquez pour téléverser</p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input type="file" accept="image/*" className="hidden" id="alipay-qr-upload"
+                onChange={(e) => handleQrUpload(e, 'alipayQrCode')} />
+              {!formData.alipayQrCode && (
+                <label htmlFor="alipay-qr-upload" className="mt-2 inline-block px-4 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg cursor-pointer hover:bg-gray-200 transition-colors">
+                  Choisir une image
+                </label>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -2988,72 +3086,6 @@ const PaymentSettingsForm = ({ settings, onSave }) => {
         </div>
       </div>
 
-      {/* Terms & Conditions Section */}
-      <div>
-        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-          Conditions Générales de Candidature
-        </h4>
-        <p className="text-sm text-gray-500 mb-4">
-          Ces conditions seront affichées aux candidats avant de soumettre leur candidature.
-        </p>
-        <div className="space-y-3">
-          {(formData.termsConditions || []).map((term, idx) => (
-            <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50" data-testid={`term-item-${idx}`}>
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-bold text-gray-400 mt-2">{idx + 1}.</span>
-                <div className="flex-1 space-y-2">
-                  <input
-                    type="text"
-                    value={term.title}
-                    onChange={(e) => {
-                      const updated = [...(formData.termsConditions || [])];
-                      updated[idx] = { ...updated[idx], title: e.target.value };
-                      setFormData({ ...formData, termsConditions: updated });
-                    }}
-                    placeholder="Titre de la condition"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] font-medium text-sm"
-                  />
-                  <textarea
-                    value={term.content}
-                    onChange={(e) => {
-                      const updated = [...(formData.termsConditions || [])];
-                      updated[idx] = { ...updated[idx], content: e.target.value };
-                      setFormData({ ...formData, termsConditions: updated });
-                    }}
-                    placeholder="Contenu de la condition"
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] text-sm resize-none"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updated = (formData.termsConditions || []).filter((_, i) => i !== idx);
-                    setFormData({ ...formData, termsConditions: updated });
-                  }}
-                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            const updated = [...(formData.termsConditions || []), { title: '', content: '' }];
-            setFormData({ ...formData, termsConditions: updated });
-          }}
-          data-testid="add-term-btn"
-          className="mt-3 w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1a56db] hover:text-[#1a56db] transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus size={16} />
-          Ajouter une condition
-        </button>
-      </div>
-
       {/* Submit Button */}
       <div className="pt-4 border-t flex justify-end gap-4">
         {saved && (
@@ -3076,6 +3108,89 @@ const PaymentSettingsForm = ({ settings, onSave }) => {
         </button>
       </div>
     </form>
+  );
+};
+
+const TermsConditionsEditor = ({ settings, onSave }) => {
+  const [terms, setTerms] = useState(settings.termsConditions || []);
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    await onSave({ ...settings, termsConditions: terms });
+    setLoading(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Aperçu pour le candidat</p>
+        <div className="text-sm text-gray-600 space-y-2 max-h-40 overflow-y-auto">
+          {terms.map((t, i) => (
+            <p key={i}><strong>{i + 1}. {t.title || '(sans titre)'}</strong> — {t.content || '(vide)'}</p>
+          ))}
+          {terms.length === 0 && <p className="text-gray-400 italic">Aucune condition définie</p>}
+        </div>
+      </div>
+
+      {/* Editor */}
+      <div className="space-y-3">
+        {terms.map((term, idx) => (
+          <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50" data-testid={`term-item-${idx}`}>
+            <div className="flex items-start gap-3">
+              <span className="text-sm font-bold text-gray-400 mt-2">{idx + 1}.</span>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="text"
+                  value={term.title}
+                  onChange={(e) => {
+                    const u = [...terms]; u[idx] = { ...u[idx], title: e.target.value }; setTerms(u);
+                  }}
+                  placeholder="Titre de la condition"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] font-medium text-sm"
+                />
+                <textarea
+                  value={term.content}
+                  onChange={(e) => {
+                    const u = [...terms]; u[idx] = { ...u[idx], content: e.target.value }; setTerms(u);
+                  }}
+                  placeholder="Contenu de la condition"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] text-sm resize-none"
+                />
+              </div>
+              <button type="button" onClick={() => setTerms(terms.filter((_, i) => i !== idx))}
+                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button type="button" onClick={() => setTerms([...terms, { title: '', content: '' }])}
+        data-testid="add-term-btn"
+        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1a56db] hover:text-[#1a56db] transition-colors flex items-center justify-center gap-2">
+        <Plus size={16} />
+        Ajouter une condition
+      </button>
+
+      <button onClick={handleSave} disabled={loading}
+        data-testid="save-terms-btn"
+        className="w-full py-3 bg-[#1a56db] hover:bg-[#1648b8] text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+        {loading ? (
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        ) : saved ? (
+          <><Check size={18} /> Enregistré</>
+        ) : (
+          'Enregistrer les conditions'
+        )}
+      </button>
+    </div>
   );
 };
 
