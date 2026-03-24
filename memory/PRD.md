@@ -44,21 +44,17 @@ backend/
 - [x] Re-soumission utilisateur (documents + re-submit quand status=modify)
 - [x] Pieces jointes dans messages admin candidature
 - [x] Bug fix: page blanche (admissionConditions + AuthContext erreurs Pydantic)
-- [x] **Footer fonctionnel** (24 Mars 2026):
-  - Liens Services: scroll vers section Services + ouverture du modal correspondant
-  - Liens Programmes: scroll vers section Programmes + filtre par categorie
-  - "Devenir Partenaire": scroll vers section Contact
-  - Communication via CustomEvent (openServiceModal, filterProgram)
+- [x] Footer fonctionnel (liens Services + Programmes + Devenir Partenaire)
+- [x] **Admin Sidebar redesign** (24 Mars 2026):
+  - 6 groupes: Tableau de bord, Programmes, Gestion, Communication, Contenu, Parametres
+  - Expansion/collapse des sous-items
+  - Mode retractable (icones seulement)
+  - Breadcrumb dynamique dans le header
+  - Badges de notification sur les groupes
+  - Profil utilisateur + deconnexion dans le footer sidebar
 
 ## Credentials
 - **Admin** : admin@winners-consulting.com / Admin2025!
-
-## Key API Endpoints (recent)
-- PUT /api/admin/applications/{id}/status?status=modify&reason=...
-- POST /api/admin/applications/{id}/message (supports attachments)
-- GET /api/admin/applications/{id}/messages
-- PUT /api/applications/{id}/resubmit (user, status must be "modify")
-- PUT /api/applications/{id}/documents (user, updates documents array)
 
 ## Backlog
 - [ ] Paiement en ligne (P1)
@@ -69,5 +65,6 @@ backend/
 
 ## Notes techniques
 - Routes API: `/app/api/_routes.py` (source unique)
-- Footer utilise CustomEvent pour communiquer avec ServicesSection et ProgramsSection
+- Footer: CustomEvent pour communiquer avec ServicesSection et ProgramsSection
+- Sidebar: 6 groupes expandable avec animation CSS (max-h transition)
 - Variables Cloudinary Vercel: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
