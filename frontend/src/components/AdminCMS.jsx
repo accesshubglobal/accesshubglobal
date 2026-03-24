@@ -3842,14 +3842,16 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
 const UniversityFormModal = ({ university, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(university || {
-    name: '',
-    city: '',
-    country: 'Chine',
-    countryCode: 'CN',
-    image: '',
-    ranking: '',
-    badges: []
+    name: '', city: '', province: '', country: 'Chine', countryCode: 'CN', status: 'public',
+    image: '', coverImage: '', logo: '', ranking: '', badges: [],
+    youtubeUrl: '', description: '', foundedYear: '', president: '',
+    totalStudents: '', internationalStudents: '', website: '',
+    faculties: [], conditions: [], photos: []
   });
+  const [newBadge, setNewBadge] = useState('');
+  const [newFaculty, setNewFaculty] = useState('');
+  const [newCondition, setNewCondition] = useState('');
+  const [newPhoto, setNewPhoto] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -3861,92 +3863,213 @@ const UniversityFormModal = ({ university, onClose, onSuccess }) => {
         await axios.post(`${API}/admin/universities`, formData);
       }
       onSuccess();
-    } catch (err) {
-      console.error('Error saving university:', err);
-    }
+    } catch (err) { console.error('Error saving university:', err); }
     setLoading(false);
+  };
+
+  const addToList = (field, value, setter) => {
+    if (!value.trim()) return;
+    setFormData({...formData, [field]: [...(formData[field] || []), value.trim()]});
+    setter('');
+  };
+
+  const removeFromList = (field, index) => {
+    const updated = [...(formData[field] || [])];
+    updated.splice(index, 1);
+    setFormData({...formData, [field]: updated});
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-white rounded-xl w-full max-w-lg overflow-hidden">
-        <div className="p-6 border-b">
+      <div className="relative bg-white rounded-xl w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="p-5 border-b sticky top-0 bg-white z-10">
           <h3 className="font-semibold text-gray-900">
-            {university ? 'Modifier l\'université' : 'Nouvelle université'}
+            {university ? 'Modifier l\'universite' : 'Nouvelle universite'}
           </h3>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Basic Info */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-              required
-            />
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nom *</label>
+            <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({...formData, city: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                required
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Ville *</label>
+              <input type="text" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
-              <select
-                value={formData.countryCode}
-                onChange={(e) => setFormData({
-                  ...formData, 
-                  countryCode: e.target.value,
-                  country: e.target.value === 'CN' ? 'Chine' : 'France'
-                })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-              >
+              <label className="block text-xs font-medium text-gray-600 mb-1">Province</label>
+              <input type="text" value={formData.province || ''} onChange={(e) => setFormData({...formData, province: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pays *</label>
+              <select value={formData.countryCode} onChange={(e) => setFormData({...formData, countryCode: e.target.value, country: e.target.value === 'CN' ? 'Chine' : 'France'})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
                 <option value="CN">Chine</option>
                 <option value="FR">France</option>
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-            <input
-              type="url"
-              value={formData.image}
-              onChange={(e) => setFormData({...formData, image: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-              placeholder="https://..."
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Statut</label>
+              <select value={formData.status || 'public'} onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                <option value="public">Publique</option>
+                <option value="private">Privee</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Classement</label>
+              <input type="text" value={formData.ranking || ''} onChange={(e) => setFormData({...formData, ranking: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Ex: Top 100 QS" />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Classement</label>
-            <input
-              type="text"
-              value={formData.ranking}
-              onChange={(e) => setFormData({...formData, ranking: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-              placeholder="Ex: Top 100 QS"
-            />
+
+          {/* Images */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wider">Images</p>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Photo de couverture (URL ou image)</label>
+                <input type="text" value={formData.coverImage || ''} onChange={(e) => setFormData({...formData, coverImage: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Logo (URL ou image)</label>
+                <input type="text" value={formData.logo || ''} onChange={(e) => setFormData({...formData, logo: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Image principale (URL)</label>
+                <input type="text" value={formData.image || ''} onChange={(e) => setFormData({...formData, image: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
+              </div>
+            </div>
           </div>
-          <div className="flex gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50"
-            >
+
+          {/* Video + Website */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wider">Medias & Liens</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Lien video YouTube</label>
+                <input type="text" value={formData.youtubeUrl || ''} onChange={(e) => setFormData({...formData, youtubeUrl: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://youtube.com/watch?v=..." />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Site web</label>
+                <input type="text" value={formData.website || ''} onChange={(e) => setFormData({...formData, website: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="https://..." />
+              </div>
+            </div>
+          </div>
+
+          {/* Presentation */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wider">Presentation</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+              <textarea value={formData.description || ''} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={4}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Annee de creation</label>
+                <input type="text" value={formData.foundedYear || ''} onChange={(e) => setFormData({...formData, foundedYear: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="1956" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">President / Recteur</label>
+                <input type="text" value={formData.president || ''} onChange={(e) => setFormData({...formData, president: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nombre d'etudiants total</label>
+                <input type="text" value={formData.totalStudents || ''} onChange={(e) => setFormData({...formData, totalStudents: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="35 000" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Etudiants etrangers</label>
+                <input type="text" value={formData.internationalStudents || ''} onChange={(e) => setFormData({...formData, internationalStudents: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="5 000" />
+              </div>
+            </div>
+          </div>
+
+          {/* Badges */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Badges</p>
+            <div className="flex gap-2 mb-2">
+              <input type="text" value={newBadge} onChange={e => setNewBadge(e.target.value)} placeholder="Ex: Top 100"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addToList('badges', newBadge, setNewBadge))} />
+              <button type="button" onClick={() => addToList('badges', newBadge, setNewBadge)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">+</button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">{(formData.badges || []).map((b, i) => (
+              <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-lg flex items-center gap-1">{b}
+                <button type="button" onClick={() => removeFromList('badges', i)} className="text-blue-400 hover:text-red-500 ml-0.5">&times;</button>
+              </span>
+            ))}</div>
+          </div>
+
+          {/* Faculties */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Facultes</p>
+            <div className="flex gap-2 mb-2">
+              <input type="text" value={newFaculty} onChange={e => setNewFaculty(e.target.value)} placeholder="Ex: Faculte des Sciences"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addToList('faculties', newFaculty, setNewFaculty))} />
+              <button type="button" onClick={() => addToList('faculties', newFaculty, setNewFaculty)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">+</button>
+            </div>
+            <div className="space-y-1">{(formData.faculties || []).map((f, i) => (
+              <div key={i} className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-lg text-sm">
+                <span>{f}</span>
+                <button type="button" onClick={() => removeFromList('faculties', i)} className="text-gray-400 hover:text-red-500">&times;</button>
+              </div>
+            ))}</div>
+          </div>
+
+          {/* Conditions */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Conditions d'admission</p>
+            <div className="flex gap-2 mb-2">
+              <input type="text" value={newCondition} onChange={e => setNewCondition(e.target.value)} placeholder="Ex: Bac + 2 minimum"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addToList('conditions', newCondition, setNewCondition))} />
+              <button type="button" onClick={() => addToList('conditions', newCondition, setNewCondition)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">+</button>
+            </div>
+            <div className="space-y-1">{(formData.conditions || []).map((c, i) => (
+              <div key={i} className="flex items-center justify-between bg-green-50 px-3 py-1.5 rounded-lg text-sm">
+                <span>{c}</span>
+                <button type="button" onClick={() => removeFromList('conditions', i)} className="text-gray-400 hover:text-red-500">&times;</button>
+              </div>
+            ))}</div>
+          </div>
+
+          {/* Photos */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Photos</p>
+            <div className="flex gap-2 mb-2">
+              <input type="text" value={newPhoto} onChange={e => setNewPhoto(e.target.value)} placeholder="URL de l'image"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addToList('photos', newPhoto, setNewPhoto))} />
+              <button type="button" onClick={() => addToList('photos', newPhoto, setNewPhoto)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">+</button>
+            </div>
+            <div className="grid grid-cols-4 gap-2">{(formData.photos || []).map((p, i) => (
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+                <img src={p} alt="" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => removeFromList('photos', i)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+              </div>
+            ))}</div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-white py-4">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50">Annuler</button>
+            <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50">
               {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>

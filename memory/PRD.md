@@ -75,6 +75,16 @@ backend/
   - Templates HTML professionnels pour les emails (verification + reset)
   - Frontend: modal verification email apres inscription, modal reset password 3 etapes
   - Note: En mode test Resend, emails uniquement vers winerscon@gmail.com. Pour tous destinataires, verifier un domaine sur resend.com/domains
+- [x] **Universites fonctionnelles** (24 Mars 2026):
+  - Page detail universite (/universities/:id) avec: photo couverture, logo, nom, ville/province/pays, statut public/prive, video YouTube embed, description, presentation (annee creation, president, etudiants etrangers...), facultes, conditions admission, galerie photos, lightbox
+  - Compteur de vues reel (incremente a chaque visite)
+  - Systeme de likes reel (toggle like/unlike par utilisateur connecte)
+  - Rating calcule dynamiquement (base sur vues + likes)
+  - Section homepage: grille 4 colonnes, onglets Chine/France, badges, stats vues/likes/rating
+  - Bouton "Tout voir" → page /universities avec recherche et filtres
+  - Fleches navigation pour pagination (8 par page)
+  - Formulaire admin enrichi: tous les nouveaux champs editables (couverture, logo, statut, video YouTube, description, facultes, conditions, photos)
+  - Collections: university_likes
 
 ## Collections MongoDB
 users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies, agent_codes, agent_students, email_verifications

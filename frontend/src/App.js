@@ -24,6 +24,8 @@ import CommunityPage from "./components/CommunityPage";
 import CommunityPostPage from "./components/CommunityPostPage";
 import AgentRegisterPage from "./components/AgentRegisterPage";
 import AgentDashboard from "./components/AgentDashboard";
+import UniversityDetailPage from "./components/UniversityDetailPage";
+import UniversitiesListPage from "./components/UniversitiesListPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false }) => {
@@ -117,6 +119,8 @@ function App() {
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/community/:id" element={<CommunityPostPage />} />
               <Route path="/agent/register" element={<AgentRegisterPage />} />
+              <Route path="/universities" element={<UniversitiesListPage />} />
+              <Route path="/universities/:id" element={<UniversityDetailPage />} />
               <Route 
                 path="/dashboard" 
                 element={

@@ -137,11 +137,25 @@ class Offer(BaseModel):
 class UniversityCreate(BaseModel):
     name: str
     city: str
+    province: Optional[str] = None
     country: str
     countryCode: str
+    status: Optional[str] = "public"
     image: Optional[str] = None
+    coverImage: Optional[str] = None
+    logo: Optional[str] = None
     ranking: Optional[str] = None
     badges: List[str] = []
+    youtubeUrl: Optional[str] = None
+    description: Optional[str] = None
+    foundedYear: Optional[str] = None
+    president: Optional[str] = None
+    totalStudents: Optional[str] = None
+    internationalStudents: Optional[str] = None
+    website: Optional[str] = None
+    faculties: List[str] = []
+    conditions: List[str] = []
+    photos: List[str] = []
 
 
 class University(BaseModel):
@@ -149,13 +163,28 @@ class University(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     city: str
+    province: Optional[str] = None
     country: str
     countryCode: str
+    status: Optional[str] = "public"
     image: Optional[str] = None
+    coverImage: Optional[str] = None
+    logo: Optional[str] = None
     ranking: Optional[str] = None
     badges: List[str] = []
+    youtubeUrl: Optional[str] = None
+    description: Optional[str] = None
+    foundedYear: Optional[str] = None
+    president: Optional[str] = None
+    totalStudents: Optional[str] = None
+    internationalStudents: Optional[str] = None
+    website: Optional[str] = None
+    faculties: List[str] = []
+    conditions: List[str] = []
+    photos: List[str] = []
     views: int = 0
-    rating: float = 4.5
+    likes: int = 0
+    rating: float = 0
     isActive: bool = True
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

@@ -454,10 +454,39 @@ async def get_university(uni_id: str):
     db = get_db()
     uni = await db.universities.find_one({"id": uni_id}, {"_id": 0})
     if not uni:
-        raise HTTPException(status_code=404, detail="Université non trouvée")
+        raise HTTPException(status_code=404, detail="Universite non trouvee")
 
     await db.universities.update_one({"id": uni_id}, {"$inc": {"views": 1}})
+    uni["views"] = uni.get("views", 0) + 1
     return uni
+
+
+@api_router.post("/universities/{uni_id}/like")
+async def like_university(uni_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    uni = await db.universities.find_one({"id": uni_id})
+    if not uni:
+        raise HTTPException(status_code=404, detail="Universite non trouvee")
+
+    existing = await db.university_likes.find_one({"universityId": uni_id, "userId": current_user["id"]})
+    if existing:
+        await db.university_likes.delete_one({"_id": existing["_id"]})
+        await db.universities.update_one({"id": uni_id}, {"$inc": {"likes": -1}})
+        return {"liked": False, "likes": max(uni.get("likes", 1) - 1, 0)}
+    else:
+        await db.university_likes.insert_one({
+            "universityId": uni_id, "userId": current_user["id"],
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        })
+        await db.universities.update_one({"id": uni_id}, {"$inc": {"likes": 1}})
+        return {"liked": True, "likes": uni.get("likes", 0) + 1}
+
+
+@api_router.get("/universities/{uni_id}/like-status")
+async def get_like_status(uni_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    existing = await db.university_likes.find_one({"universityId": uni_id, "userId": current_user["id"]})
+    return {"liked": existing is not None}
 
 
 @api_router.get("/universities/{uni_id}/rating")
@@ -465,12 +494,13 @@ async def get_university_rating(uni_id: str):
     db = get_db()
     uni = await db.universities.find_one({"id": uni_id}, {"_id": 0})
     if not uni:
-        raise HTTPException(status_code=404, detail="Université non trouvée")
+        raise HTTPException(status_code=404, detail="Universite non trouvee")
     views = uni.get("views", 0)
-    view_bonus = min(views / 10000, 1.0)
-    computed_rating = round(min(4.0 + view_bonus, 5.0), 1)
+    likes = uni.get("likes", 0)
+    score = min((views / 5000) + (likes / 50), 5.0)
+    computed_rating = round(max(score, 0.0), 1)
     await db.universities.update_one({"id": uni_id}, {"$set": {"rating": computed_rating}})
-    return {"universityId": uni_id, "rating": computed_rating, "views": views}
+    return {"universityId": uni_id, "rating": computed_rating, "views": views, "likes": likes}
 
 
 # ============= HOUSING ROUTES =============
