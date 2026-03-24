@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { services } from '../data/siteContent';
 import { GraduationCap, FileText, Home, Stamp, Users, Globe, CheckCircle, ChevronRight, X, ShoppingBag, ShieldCheck } from 'lucide-react';
 
@@ -180,6 +180,16 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
 
 const ServicesSection = () => {
   const [selectedService, setSelectedService] = useState(null);
+
+  useEffect(() => {
+    const handleOpenServiceModal = (e) => {
+      const { serviceId } = e.detail;
+      const svc = services.find(s => s.id === serviceId);
+      if (svc) setSelectedService(svc);
+    };
+    window.addEventListener('openServiceModal', handleOpenServiceModal);
+    return () => window.removeEventListener('openServiceModal', handleOpenServiceModal);
+  }, []);
 
   return (
     <section className="py-20 bg-white" id="services">

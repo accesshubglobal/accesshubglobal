@@ -26,7 +26,7 @@ backend/
 ## Fonctionnalites COMPLETEES
 - [x] Authentification JWT (admin + users)
 - [x] Catalogue de programmes depuis MongoDB
-- [x] Candidatures completes (4 etapes)
+- [x] Candidatures completes (4 etapes) + re-soumission apres modification
 - [x] Upload direct Cloudinary
 - [x] Panel admin complet (CRUD offres, candidatures, messages, stats, newsletter)
 - [x] Chat admin/user + PDF/Impression
@@ -40,26 +40,20 @@ backend/
 - [x] Formulaire contact fonctionnel
 - [x] FAQ dynamiques gestion admin
 - [x] Section Services interactive avec modals detailles
-- [x] **Admin Candidatures redesign** (24 Mars 2026):
-  - Vue liste avec recherche et filtres par statut
-  - Vue detail complete (infos personnelles, documents, paiement)
-  - Actions rapides de statut + "Modifier" avec raison obligatoire
-  - Messagerie integree admin -> candidat avec pieces jointes
-- [x] **Re-soumission utilisateur** (24 Mars 2026):
-  - Section re-soumission visible quand statut="modify"
-  - Ajout/suppression de documents
-  - Bouton re-soumettre (remet status a "pending")
-- [x] **Pieces jointes dans messages** (24 Mars 2026):
-  - Upload Cloudinary dans la messagerie admin
-  - Affichage des pieces jointes dans les messages
-- [x] **Bug fix: page blanche** (24 Mars 2026):
-  - Fix rendering admissionConditions (objets vs strings)
-  - Fix AuthContext: erreurs Pydantic 422 converties en string
+- [x] Admin Candidatures redesign (vue detail, messagerie, statut "Modifier")
+- [x] Re-soumission utilisateur (documents + re-submit quand status=modify)
+- [x] Pieces jointes dans messages admin candidature
+- [x] Bug fix: page blanche (admissionConditions + AuthContext erreurs Pydantic)
+- [x] **Footer fonctionnel** (24 Mars 2026):
+  - Liens Services: scroll vers section Services + ouverture du modal correspondant
+  - Liens Programmes: scroll vers section Programmes + filtre par categorie
+  - "Devenir Partenaire": scroll vers section Contact
+  - Communication via CustomEvent (openServiceModal, filterProgram)
 
 ## Credentials
 - **Admin** : admin@winners-consulting.com / Admin2025!
 
-## Key API Endpoints (new)
+## Key API Endpoints (recent)
 - PUT /api/admin/applications/{id}/status?status=modify&reason=...
 - POST /api/admin/applications/{id}/message (supports attachments)
 - GET /api/admin/applications/{id}/messages
@@ -75,4 +69,5 @@ backend/
 
 ## Notes techniques
 - Routes API: `/app/api/_routes.py` (source unique)
+- Footer utilise CustomEvent pour communiquer avec ServicesSection et ProgramsSection
 - Variables Cloudinary Vercel: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET

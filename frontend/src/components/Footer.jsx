@@ -7,7 +7,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
   const [showWeChatQR, setShowWeChatQR] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterStatus, setNewsletterStatus] = useState(null); // 'success' | 'error' | 'loading'
+  const [newsletterStatus, setNewsletterStatus] = useState(null);
   const [newsletterMsg, setNewsletterMsg] = useState('');
 
   const handleNewsletterSubmit = async (e) => {
@@ -34,6 +34,44 @@ const Footer = () => {
       setTimeout(() => setNewsletterStatus(null), 4000);
     }
   };
+
+  const scrollToService = (serviceId) => {
+    const el = document.getElementById('services');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('openServiceModal', { detail: { serviceId } }));
+      }, 600);
+    }
+  };
+
+  const scrollToProgram = (filter) => {
+    const el = document.getElementById('programs');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('filterProgram', { detail: { filter } }));
+      }, 600);
+    }
+  };
+
+  const serviceLinks = [
+    { label: "Études à l'étranger", serviceId: 1 },
+    { label: "Traduction de documents", serviceId: 3 },
+    { label: "CHSI", serviceId: 6 },
+    { label: "Orientation Académique", serviceId: 7 },
+    { label: "Recherche de Logement", serviceId: 4 },
+    { label: "Accompagnement Visa", serviceId: 2 },
+    { label: "Cours de Langues", serviceId: 8 },
+  ];
+
+  const programLinks = [
+    { label: "Bourses CSC", filter: 'fullScholarship' },
+    { label: "Bourses Campus France", filter: 'fullScholarship' },
+    { label: "Bourse Partielle", filter: 'partialScholarship' },
+    { label: "Auto-financement", filter: 'selfFinanced' },
+    { label: "Stages", filter: 'all' },
+  ];
 
   return (
     <footer className="bg-gray-900 text-white">
@@ -116,13 +154,17 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-lg mb-4">Services</h4>
             <ul className="space-y-3 text-gray-400">
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Études à l’étranger</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Traduction de documents</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">CHSI</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Orientation Académique</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Recherche de Logement</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Accompagnement Visa</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Cours de Langues</a></li>
+              {serviceLinks.map((svc) => (
+                <li key={svc.serviceId}>
+                  <button
+                    onClick={() => scrollToService(svc.serviceId)}
+                    data-testid={`footer-service-${svc.serviceId}`}
+                    className="hover:text-white transition-colors text-left"
+                  >
+                    {svc.label}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -130,17 +172,29 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-lg mb-4">Programmes</h4>
             <ul className="space-y-3 text-gray-400">
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Bourses CSC</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Bourses Campus France</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Bourse Partielle</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Auto-financement</a></li>
-              <li><a href="#" target="_blank" className="hover:text-white transition-colors">Stages</a></li>
-              {/* Devenir Partenaire Link - Only here */}
+              {programLinks.map((prog, i) => (
+                <li key={i}>
+                  <button
+                    onClick={() => scrollToProgram(prog.filter)}
+                    data-testid={`footer-program-${i}`}
+                    className="hover:text-white transition-colors text-left"
+                  >
+                    {prog.label}
+                  </button>
+                </li>
+              ))}
               <li className="pt-2 border-t border-gray-800">
-                <a href="#" target="_blank" className="hover:text-white transition-colors flex items-center gap-2 text-[#1a56db]">
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('contact');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  data-testid="footer-become-partner"
+                  className="hover:text-white transition-colors flex items-center gap-2 text-[#1a56db]"
+                >
                   <Users size={16} />
                   Devenir Partenaire
-                </a>
+                </button>
               </li>
             </ul>
           </div>

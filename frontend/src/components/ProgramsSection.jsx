@@ -171,6 +171,16 @@ const ProgramsSection = ({ onOpenAuth }) => {
     loadBanners();
   }, []);
 
+  useEffect(() => {
+    const handleFilterProgram = (e) => {
+      const { filter } = e.detail;
+      setActiveFilter(filter);
+      setShowAllResults(true);
+    };
+    window.addEventListener('filterProgram', handleFilterProgram);
+    return () => window.removeEventListener('filterProgram', handleFilterProgram);
+  }, []);
+
   const loadOffers = async () => {
     setLoading(true);
     try {
