@@ -45,16 +45,34 @@ backend/
   - Utilisateurs: creer discussion, repondre, liker posts et reponses
   - Admin: epingler/supprimer discussions, supprimer reponses
   - 7 categories: Etudes, Visa, Vie etudiante, Bourses, Conseils, Experiences
+- [x] **RBAC Admin - Controle d'acces par role** (24 Mars 2026):
+  - Deux niveaux admin: admin_principal (acces total) et admin_secondary (acces limite)
+  - Backend: gardes get_principal_admin et get_admin_user via Depends()
+  - Routes sensibles protegees: gestion utilisateurs, paiements, bannieres
+  - Frontend: sidebar conditionnel via isPrincipalAdmin (AuthContext)
+  - Section Utilisateurs avec 4 onglets: Tous, Admins Principaux, Admins Secondaires, Utilisateurs
+  - Admin secondaire: peut gerer offres, blog, communaute, messages, candidatures
+  - Admin secondaire: NE peut PAS gerer utilisateurs, paiements, bannieres, parametres
+  - Teste: 19/19 tests backend + verification frontend complete
 
 ## Collections MongoDB
 users, offers, universities, housing, applications, messages, newsletter, payment_settings, chats, notifications, password_resets, site_settings, testimonials, contact_messages, blog_posts, community_posts, community_replies
 
 ## Credentials
-- **Admin** : admin@winners-consulting.com / Admin2025!
+- **Admin Principal** : admin@winners-consulting.com / Admin2025!
+- **Admin Secondaire (test)** : secondary@test.com / Test2025!
+
+## Roles
+- `admin_principal` : Acces total (utilisateurs, paiements, bannieres, parametres)
+- `admin_secondary` : Acces contenu uniquement (offres, blog, communaute, messages, candidatures)
+- `user` : Utilisateur standard
 
 ## Backlog
 - [ ] Paiement en ligne (P1)
 - [ ] Emails automatiques pour changements de statut (P2)
 - [ ] Refactoring AdminCMS.jsx en sous-composants (P3)
+- [ ] Recherche globale dans la navbar (P3)
+- [ ] Mode sombre admin (P3)
+- [ ] Systeme de badges/reputation communaute (P3)
 - [ ] Configuration variables Cloudinary Vercel
 - [ ] Commit GitHub pour deploiement Vercel
