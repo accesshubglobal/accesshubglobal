@@ -2988,6 +2988,72 @@ const PaymentSettingsForm = ({ settings, onSave }) => {
         </div>
       </div>
 
+      {/* Terms & Conditions Section */}
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+          Conditions Générales de Candidature
+        </h4>
+        <p className="text-sm text-gray-500 mb-4">
+          Ces conditions seront affichées aux candidats avant de soumettre leur candidature.
+        </p>
+        <div className="space-y-3">
+          {(formData.termsConditions || []).map((term, idx) => (
+            <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50" data-testid={`term-item-${idx}`}>
+              <div className="flex items-start gap-3">
+                <span className="text-sm font-bold text-gray-400 mt-2">{idx + 1}.</span>
+                <div className="flex-1 space-y-2">
+                  <input
+                    type="text"
+                    value={term.title}
+                    onChange={(e) => {
+                      const updated = [...(formData.termsConditions || [])];
+                      updated[idx] = { ...updated[idx], title: e.target.value };
+                      setFormData({ ...formData, termsConditions: updated });
+                    }}
+                    placeholder="Titre de la condition"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] font-medium text-sm"
+                  />
+                  <textarea
+                    value={term.content}
+                    onChange={(e) => {
+                      const updated = [...(formData.termsConditions || [])];
+                      updated[idx] = { ...updated[idx], content: e.target.value };
+                      setFormData({ ...formData, termsConditions: updated });
+                    }}
+                    placeholder="Contenu de la condition"
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] text-sm resize-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = (formData.termsConditions || []).filter((_, i) => i !== idx);
+                    setFormData({ ...formData, termsConditions: updated });
+                  }}
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const updated = [...(formData.termsConditions || []), { title: '', content: '' }];
+            setFormData({ ...formData, termsConditions: updated });
+          }}
+          data-testid="add-term-btn"
+          className="mt-3 w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1a56db] hover:text-[#1a56db] transition-colors flex items-center justify-center gap-2"
+        >
+          <Plus size={16} />
+          Ajouter une condition
+        </button>
+      </div>
+
       {/* Submit Button */}
       <div className="pt-4 border-t flex justify-end gap-4">
         {saved && (

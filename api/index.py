@@ -1078,8 +1078,8 @@ class PasswordResetConfirm(BaseModel):
 
 class PaymentSettings(BaseModel):
     id: str = "payment_settings"
-    wechatQrCode: str = "https://customer-assets.emergentagent.com/job_chinese-education/artifacts/rnrsxqg6_445.PNG"
-    alipayQrCode: str = "https://customer-assets.emergentagent.com/job_chinese-education/artifacts/liko6316_2355.jpg"
+    wechatQrCode: str = ""
+    alipayQrCode: str = ""
     paypalEmail: str = "payments@winners-consulting.com"
     bankName: str = "Bank of China"
     bankAccountName: str = "Winner's Consulting Ltd"
@@ -1088,6 +1088,13 @@ class PaymentSettings(BaseModel):
     bankIban: str = ""
     applicationFee: float = 50
     currency: str = "EUR"
+    termsConditions: List[dict] = [
+        {"title": "Engagement du candidat", "content": "En soumettant cette candidature, je certifie que toutes les informations fournies sont exactes et complètes."},
+        {"title": "Frais de dossier", "content": "Les frais de dossier ne sont pas remboursables, quelle que soit l'issue de la candidature."},
+        {"title": "Traitement des données", "content": "J'accepte que mes données personnelles soient traitées par Winner's Consulting dans le cadre de ma candidature."},
+        {"title": "Délais de traitement", "content": "Le traitement de ma candidature peut prendre plusieurs semaines."},
+        {"title": "Responsabilité", "content": "Winner's Consulting agit en tant qu'intermédiaire et ne garantit pas l'acceptation de ma candidature par l'université."}
+    ]
 
 
 @api_router.post("/auth/password-reset-request")

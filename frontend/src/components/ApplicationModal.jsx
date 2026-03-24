@@ -467,20 +467,21 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               <h3 className="font-semibold text-gray-900 mb-4">Conditions générales</h3>
               
               <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto text-sm text-gray-600 space-y-4">
-                <p><strong>1. Engagement du candidat</strong></p>
-                <p>En soumettant cette candidature, je certifie que toutes les informations fournies sont exactes et complètes. Je comprends que toute fausse déclaration peut entraîner le rejet de ma candidature ou l'annulation de mon inscription.</p>
-                
-                <p><strong>2. Frais de dossier</strong></p>
-                <p>Les frais de dossier de {offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 50} {offer?.currency || paymentSettings?.currency || 'EUR'} ne sont pas remboursables, quelle que soit l'issue de la candidature.</p>
-                
-                <p><strong>3. Traitement des données</strong></p>
-                <p>J'accepte que mes données personnelles soient traitées par Winner's Consulting dans le cadre de ma candidature et partagées avec l'université concernée.</p>
-                
-                <p><strong>4. Délais de traitement</strong></p>
-                <p>Je comprends que le traitement de ma candidature peut prendre plusieurs semaines et que Winner's Consulting me tiendra informé de l'avancement par email.</p>
-                
-                <p><strong>5. Responsabilité</strong></p>
-                <p>Winner's Consulting agit en tant qu'intermédiaire et ne garantit pas l'acceptation de ma candidature par l'université.</p>
+                {paymentSettings?.termsConditions?.length > 0 ? (
+                  paymentSettings.termsConditions.map((term, idx) => (
+                    <div key={idx}>
+                      <p><strong>{idx + 1}. {term.title}</strong></p>
+                      <p>{term.content}</p>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <p><strong>1. Engagement du candidat</strong></p>
+                    <p>En soumettant cette candidature, je certifie que toutes les informations fournies sont exactes et complètes.</p>
+                    <p><strong>2. Frais de dossier</strong></p>
+                    <p>Les frais de dossier ne sont pas remboursables, quelle que soit l'issue de la candidature.</p>
+                  </>
+                )}
               </div>
               
               <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-[#1a56db] transition-colors">
