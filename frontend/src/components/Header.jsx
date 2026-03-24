@@ -10,7 +10,7 @@ const Header = ({ onOpenAuth }) => {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isAgent, logout } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
@@ -114,12 +114,12 @@ const Header = ({ onOpenAuth }) => {
                       </div>
                       
                       <button 
-                        onClick={() => { navigate('/dashboard'); setShowUserDropdown(false); }}
+                        onClick={() => { navigate(isAgent ? '/agent' : '/dashboard'); setShowUserDropdown(false); }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
                         data-testid="dashboard-link"
                       >
                         <User size={16} />
-                        {t('header.dashboard')}
+                        {isAgent ? 'Espace Agent' : t('header.dashboard')}
                       </button>
                       
                       {isAdmin && (
@@ -216,10 +216,10 @@ const Header = ({ onOpenAuth }) => {
                       {user?.firstName} {user?.lastName}
                     </div>
                     <button 
-                      onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false); }}
+                      onClick={() => { navigate(isAgent ? '/agent' : '/dashboard'); setMobileMenuOpen(false); }}
                       className="w-full text-left text-gray-700 font-medium"
                     >
-                      {t('header.dashboard')}
+                      {isAgent ? 'Espace Agent' : t('header.dashboard')}
                     </button>
                     {isAdmin && (
                       <button 

@@ -2,9 +2,11 @@ import React from 'react';
 import { Mail, Phone, MessageCircle, MapPin, Music2, Facebook, Instagram, Youtube, ArrowRight, Users } from 'lucide-react';
 import { FaWhatsapp } from "react-icons/fa";
 import { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const navigate = useNavigate();
   const [showWeChatQR, setShowWeChatQR] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState(null);
@@ -185,10 +187,7 @@ const Footer = () => {
               ))}
               <li className="pt-2 border-t border-gray-800">
                 <button
-                  onClick={() => {
-                    const el = document.getElementById('contact');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => navigate('/agent/register')}
                   data-testid="footer-become-partner"
                   className="hover:text-white transition-colors flex items-center gap-2 text-[#1a56db]"
                 >

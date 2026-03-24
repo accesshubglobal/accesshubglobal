@@ -41,6 +41,8 @@ class UserResponse(BaseModel):
     role: str
     isActive: bool
     favorites: List[str] = []
+    isApproved: Optional[bool] = None
+    company: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -403,3 +405,51 @@ class CommunityPostCreate(BaseModel):
 
 class CommunityReplyCreate(BaseModel):
     content: str
+
+
+# ============= AGENT MODELS =============
+
+class AgentRegister(BaseModel):
+    email: EmailStr
+    password: str
+    firstName: str
+    lastName: str
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    activationCode: str
+
+
+class AgentStudentCreate(BaseModel):
+    firstName: str
+    lastName: str
+    email: EmailStr
+    phone: Optional[str] = None
+    dateOfBirth: Optional[str] = None
+    nationality: Optional[str] = None
+    sex: Optional[str] = None
+    passportNumber: Optional[str] = None
+    address: Optional[str] = None
+
+
+class AgentStudentUpdate(BaseModel):
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    dateOfBirth: Optional[str] = None
+    nationality: Optional[str] = None
+    sex: Optional[str] = None
+    passportNumber: Optional[str] = None
+    address: Optional[str] = None
+
+
+class AgentApplicationCreate(BaseModel):
+    studentId: str
+    offerId: str
+    offerTitle: str
+    documents: List[dict] = []
+    additionalPrograms: List[str] = []
+    paymentMethod: str = ""
+    paymentProof: str = ""
+    paymentAmount: float = 0
+    termsAccepted: bool = False

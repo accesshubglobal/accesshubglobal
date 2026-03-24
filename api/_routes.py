@@ -20,10 +20,11 @@ from _models import (
     DocumentUpdate,
     BlogPostCreate, BlogPostUpdate,
     CommunityPostCreate, CommunityReplyCreate,
+    AgentRegister, AgentStudentCreate, AgentStudentUpdate, AgentApplicationCreate,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
-    get_current_user, get_admin_user, get_principal_admin, serialize_doc, security,
+    get_current_user, get_admin_user, get_principal_admin, get_agent_user, serialize_doc, security,
     send_notification, broadcast_to_admins,
 )
 
@@ -102,7 +103,9 @@ async def login(credentials: UserLogin):
             phone=user.get("phone"),
             role=user.get("role", "user"),
             isActive=user.get("isActive", True),
-            favorites=user.get("favorites", [])
+            favorites=user.get("favorites", []),
+            isApproved=user.get("isApproved"),
+            company=user.get("company"),
         )
     )
 
@@ -117,7 +120,9 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         phone=current_user.get("phone"),
         role=current_user.get("role", "user"),
         isActive=current_user.get("isActive", True),
-        favorites=current_user.get("favorites", [])
+        favorites=current_user.get("favorites", []),
+        isApproved=current_user.get("isApproved"),
+        company=current_user.get("company"),
     )
 
 
@@ -1679,3 +1684,308 @@ async def admin_save_faqs(data: FAQListUpdate, admin: dict = Depends(get_admin_u
         upsert=True
     )
     return {"message": "FAQ mises a jour"}
+
+
+# ============= AGENT AUTH =============
+
+@api_router.post("/auth/register-agent", response_model=TokenResponse)
+async def register_agent(agent_data: AgentRegister):
+    db = get_db()
+    existing = await db.users.find_one({"email": agent_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Cet email est deja utilise")
+
+    code_doc = await db.agent_codes.find_one({"code": agent_data.activationCode, "isUsed": False})
+    if not code_doc:
+        raise HTTPException(status_code=400, detail="Code d'activation invalide ou deja utilise")
+
+    if code_doc.get("expiresAt"):
+        exp = code_doc["expiresAt"]
+        if isinstance(exp, str):
+            exp = datetime.fromisoformat(exp.replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > exp:
+            raise HTTPException(status_code=400, detail="Code d'activation expire")
+
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    user_dict = {
+        "id": user_id,
+        "email": agent_data.email,
+        "firstName": agent_data.firstName,
+        "lastName": agent_data.lastName,
+        "phone": agent_data.phone,
+        "company": agent_data.company or "",
+        "role": "agent",
+        "isActive": True,
+        "isApproved": False,
+        "agentCode": agent_data.activationCode,
+        "favorites": [],
+        "password": hash_password(agent_data.password),
+        "createdAt": now,
+    }
+    await db.users.insert_one(user_dict)
+
+    await db.agent_codes.update_one(
+        {"code": agent_data.activationCode},
+        {"$set": {"isUsed": True, "usedBy": user_id, "usedAt": now}}
+    )
+
+    access_token = create_access_token({"sub": user_id})
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user_id, email=agent_data.email,
+            firstName=agent_data.firstName, lastName=agent_data.lastName,
+            phone=agent_data.phone, role="agent", isActive=True, favorites=[]
+        )
+    )
+
+
+# ============= AGENT DASHBOARD =============
+
+@api_router.get("/agent/dashboard-stats")
+async def agent_dashboard_stats(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    students = await db.agent_students.count_documents({"agentId": agent["id"]})
+    applications = await db.applications.count_documents({"agentId": agent["id"]})
+    pending = await db.applications.count_documents({"agentId": agent["id"], "status": "pending"})
+    approved = await db.applications.count_documents({"agentId": agent["id"], "status": "approved"})
+    rejected = await db.applications.count_documents({"agentId": agent["id"], "status": "rejected"})
+    messages = await db.messages.count_documents({"senderId": agent["id"]})
+    return {
+        "students": students,
+        "totalApplications": applications,
+        "pendingApplications": pending,
+        "approvedApplications": approved,
+        "rejectedApplications": rejected,
+        "messages": messages,
+    }
+
+
+# ============= AGENT STUDENTS =============
+
+@api_router.get("/agent/students")
+async def agent_get_students(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    students = await db.agent_students.find({"agentId": agent["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return students
+
+
+@api_router.post("/agent/students")
+async def agent_create_student(data: AgentStudentCreate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    student = {
+        "id": str(uuid.uuid4()),
+        "agentId": agent["id"],
+        "firstName": data.firstName,
+        "lastName": data.lastName,
+        "email": data.email,
+        "phone": data.phone or "",
+        "dateOfBirth": data.dateOfBirth or "",
+        "nationality": data.nationality or "",
+        "sex": data.sex or "",
+        "passportNumber": data.passportNumber or "",
+        "address": data.address or "",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.agent_students.insert_one(student)
+    del student["_id"]
+    return student
+
+
+@api_router.put("/agent/students/{student_id}")
+async def agent_update_student(student_id: str, data: AgentStudentUpdate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    student = await db.agent_students.find_one({"id": student_id, "agentId": agent["id"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Etudiant non trouve")
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    if update:
+        await db.agent_students.update_one({"id": student_id}, {"$set": update})
+    updated = await db.agent_students.find_one({"id": student_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/agent/students/{student_id}")
+async def agent_delete_student(student_id: str, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    result = await db.agent_students.delete_one({"id": student_id, "agentId": agent["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Etudiant non trouve")
+    return {"message": "Etudiant supprime"}
+
+
+# ============= AGENT APPLICATIONS =============
+
+@api_router.post("/agent/applications")
+async def agent_create_application(data: AgentApplicationCreate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    student = await db.agent_students.find_one({"id": data.studentId, "agentId": agent["id"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Etudiant non trouve")
+
+    existing = await db.applications.find_one({
+        "agentId": agent["id"], "agentStudentId": data.studentId, "offerId": data.offerId
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Cet etudiant a deja postule a cette offre")
+
+    app_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    application = {
+        "id": app_id,
+        "userId": agent["id"],
+        "agentId": agent["id"],
+        "agentStudentId": data.studentId,
+        "userName": f"{student['firstName']} {student['lastName']}",
+        "userEmail": student.get("email", ""),
+        "offerId": data.offerId,
+        "offerTitle": data.offerTitle,
+        "firstName": student.get("firstName", ""),
+        "lastName": student.get("lastName", ""),
+        "nationality": student.get("nationality", ""),
+        "sex": student.get("sex", ""),
+        "passportNumber": student.get("passportNumber", ""),
+        "dateOfBirth": student.get("dateOfBirth", ""),
+        "phoneNumber": student.get("phone", ""),
+        "address": student.get("address", ""),
+        "additionalPrograms": data.additionalPrograms,
+        "documents": data.documents,
+        "termsAccepted": data.termsAccepted,
+        "paymentMethod": data.paymentMethod,
+        "paymentProof": data.paymentProof,
+        "paymentAmount": data.paymentAmount,
+        "paymentStatus": "submitted" if data.paymentProof else "pending",
+        "status": "pending",
+        "createdAt": now,
+    }
+    await db.applications.insert_one(application)
+
+    await broadcast_to_admins({
+        "type": "new_application",
+        "title": "Nouvelle candidature (Agent)",
+        "message": f"Agent {agent['firstName']} {agent['lastName']} a postule pour {student['firstName']} {student['lastName']} a {data.offerTitle}",
+        "data": {"applicationId": app_id}
+    })
+
+    del application["_id"]
+    return application
+
+
+@api_router.get("/agent/applications")
+async def agent_get_applications(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    applications = await db.applications.find({"agentId": agent["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return applications
+
+
+@api_router.get("/agent/applications/{app_id}")
+async def agent_get_application_detail(app_id: str, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    app = await db.applications.find_one({"id": app_id, "agentId": agent["id"]}, {"_id": 0})
+    if not app:
+        raise HTTPException(status_code=404, detail="Candidature non trouvee")
+    return app
+
+
+# ============= AGENT MESSAGES =============
+
+@api_router.get("/agent/messages")
+async def agent_get_messages(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    msgs = await db.messages.find({"senderId": agent["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(200)
+    return msgs
+
+
+@api_router.post("/agent/messages")
+async def agent_send_message(msg: MessageCreate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    message = {
+        "id": str(uuid.uuid4()),
+        "senderId": agent["id"],
+        "senderName": f"{agent['firstName']} {agent['lastName']}",
+        "senderEmail": agent["email"],
+        "senderRole": "agent",
+        "subject": msg.subject,
+        "content": msg.content,
+        "offerId": msg.offerId,
+        "attachments": msg.attachments or [],
+        "isRead": False,
+        "replies": [],
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.messages.insert_one(message)
+    del message["_id"]
+    return message
+
+
+# ============= ADMIN - AGENT CODES =============
+
+@api_router.post("/admin/agent-codes")
+async def admin_create_agent_code(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    import random, string
+    code = "AG-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "code": code,
+        "createdBy": admin["id"],
+        "createdByName": f"{admin['firstName']} {admin['lastName']}",
+        "createdAt": now.isoformat(),
+        "expiresAt": (now + timedelta(days=30)).isoformat(),
+        "isUsed": False,
+        "usedBy": None,
+        "usedAt": None,
+    }
+    await db.agent_codes.insert_one(doc)
+    del doc["_id"]
+    return doc
+
+
+@api_router.get("/admin/agent-codes")
+async def admin_get_agent_codes(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    codes = await db.agent_codes.find({}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return codes
+
+
+@api_router.delete("/admin/agent-codes/{code_id}")
+async def admin_delete_agent_code(code_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    result = await db.agent_codes.delete_one({"id": code_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Code non trouve")
+    return {"message": "Code supprime"}
+
+
+# ============= ADMIN - AGENTS MANAGEMENT =============
+
+@api_router.get("/admin/agents")
+async def admin_get_agents(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    agents = await db.users.find({"role": "agent"}, {"_id": 0, "password": 0}).sort("createdAt", -1).to_list(500)
+    for a in agents:
+        a["studentsCount"] = await db.agent_students.count_documents({"agentId": a["id"]})
+        a["applicationsCount"] = await db.applications.count_documents({"agentId": a["id"]})
+    return agents
+
+
+@api_router.put("/admin/agents/{agent_id}/approve")
+async def admin_approve_agent(agent_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    user = await db.users.find_one({"id": agent_id, "role": "agent"})
+    if not user:
+        raise HTTPException(status_code=404, detail="Agent non trouve")
+    await db.users.update_one({"id": agent_id}, {"$set": {"isApproved": True}})
+    return {"message": "Agent approuve"}
+
+
+@api_router.put("/admin/agents/{agent_id}/reject")
+async def admin_reject_agent(agent_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    user = await db.users.find_one({"id": agent_id, "role": "agent"})
+    if not user:
+        raise HTTPException(status_code=404, detail="Agent non trouve")
+    await db.users.update_one({"id": agent_id}, {"$set": {"isApproved": False, "isActive": False}})
+    return {"message": "Agent rejete"}

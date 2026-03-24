@@ -22,10 +22,12 @@ import BlogPage from "./components/BlogPage";
 import BlogDetailPage from "./components/BlogDetailPage";
 import CommunityPage from "./components/CommunityPage";
 import CommunityPostPage from "./components/CommunityPostPage";
+import AgentRegisterPage from "./components/AgentRegisterPage";
+import AgentDashboard from "./components/AgentDashboard";
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false }) => {
+  const { isAuthenticated, isAdmin, isAgent, loading } = useAuth();
   
   if (loading) {
     return (
@@ -40,6 +42,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
   
   if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireAgent && !isAgent) {
     return <Navigate to="/" replace />;
   }
   
@@ -94,6 +100,10 @@ const AdminPage = () => {
   );
 };
 
+const AgentPage = () => {
+  return <AgentDashboard />;
+};
+
 function App() {
   return (
     <div className="App">
@@ -106,11 +116,20 @@ function App() {
               <Route path="/blog/:id" element={<BlogDetailPage />} />
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/community/:id" element={<CommunityPostPage />} />
+              <Route path="/agent/register" element={<AgentRegisterPage />} />
               <Route 
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/agent" 
+                element={
+                  <ProtectedRoute requireAgent>
+                    <AgentPage />
                   </ProtectedRoute>
                 } 
               />
