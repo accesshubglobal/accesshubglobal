@@ -3055,37 +3055,6 @@ const PaymentSettingsForm = ({ settings, onSave }) => {
         </div>
       </div>
 
-      {/* Application Fee Section */}
-      <div>
-        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-          Frais de dossier
-        </h4>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Montant des frais</label>
-            <input
-              type="number"
-              value={formData.applicationFee}
-              onChange={(e) => setFormData({...formData, applicationFee: Number(e.target.value)})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Devise</label>
-            <select
-              value={formData.currency}
-              onChange={(e) => setFormData({...formData, currency: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-            >
-              <option value="EUR">Euro (EUR)</option>
-              <option value="CNY">Yuan (CNY)</option>
-              <option value="USD">Dollar (USD)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       {/* Submit Button */}
       <div className="pt-4 border-t flex justify-end gap-4">
         {saved && (

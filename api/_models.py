@@ -276,8 +276,6 @@ class PaymentSettings(BaseModel):
     bankAccountNumber: str = "6222 0000 1234 5678 9012"
     bankSwiftCode: str = "BKCHCNBJ"
     bankIban: str = ""
-    applicationFee: float = 50
-    currency: str = "EUR"
     termsConditions: List[dict] = [
         {"title": "Engagement du candidat", "content": "En soumettant cette candidature, je certifie que toutes les informations fournies sont exactes et complètes. Je comprends que toute fausse déclaration peut entraîner le rejet de ma candidature ou l'annulation de mon inscription."},
         {"title": "Frais de dossier", "content": "Les frais de dossier ne sont pas remboursables, quelle que soit l'issue de la candidature."},
