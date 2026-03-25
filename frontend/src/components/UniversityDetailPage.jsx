@@ -108,12 +108,12 @@ const UniversityDetailPage = () => {
 
       {/* Profile Card - overlapping cover */}
       <div className="max-w-5xl mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-md -mt-20 relative z-10 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-md -mt-12 relative z-10">
           <div className="p-6 sm:p-8">
             {/* Top row: logo + name + stats */}
             <div className="flex flex-col sm:flex-row gap-5">
               {/* Logo */}
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-white flex-shrink-0 -mt-16 sm:-mt-20">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-white flex-shrink-0">
                 {uni.logo ? (
                   <img src={uni.logo} alt="Logo" className="w-full h-full object-contain p-1.5 bg-white" />
                 ) : (
