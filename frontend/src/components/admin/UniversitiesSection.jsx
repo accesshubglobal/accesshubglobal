@@ -21,21 +21,40 @@ const UniversityFormModal = ({ university, onClose, onSuccess }) => {
   const uploadImage = async (file) => {
     setUploading(true);
     try {
-      const sigRes = await fetch(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (!sigRes.ok) throw new Error('Signature failed');
+      // Try client-side Cloudinary upload first
+      const authToken = token || localStorage.getItem('token');
+      const sigRes = await fetch(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+      if (!sigRes.ok) throw new Error('Signature failed: ' + sigRes.status);
       const sigData = await sigRes.json();
       const fd = new FormData();
       fd.append('file', file);
       fd.append('api_key', sigData.api_key);
-      fd.append('timestamp', sigData.timestamp);
+      fd.append('timestamp', String(sigData.timestamp));
       fd.append('signature', sigData.signature);
       fd.append('folder', sigData.folder);
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, { method: 'POST', body: fd });
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/auto/upload`, { method: 'POST', body: fd });
       const data = await uploadRes.json();
       if (data.secure_url) return data.secure_url;
-      throw new Error('Upload failed');
-    } catch (err) { console.error(err); alert('Erreur upload'); return null; }
-    finally { setUploading(false); }
+      throw new Error(data.error?.message || 'Cloudinary upload failed');
+    } catch (err) {
+      console.error('Client upload failed, trying server fallback:', err);
+      // Fallback: server-side upload
+      try {
+        const authToken = token || localStorage.getItem('token');
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await axios.post(`${API}/upload`, fd, {
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'multipart/form-data' },
+          timeout: 60000
+        });
+        if (res.data?.url) return res.data.url;
+        throw new Error('Server upload failed');
+      } catch (fallbackErr) {
+        console.error('Server fallback also failed:', fallbackErr);
+        alert('Erreur upload: vérifiez votre connexion et réessayez');
+        return null;
+      }
+    } finally { setUploading(false); }
   };
 
   const handleFileChange = async (field, e) => {
