@@ -1514,7 +1514,7 @@ async def setup_admin():
         raise HTTPException(status_code=400, detail="Admin déjà configuré")
 
     admin_user = User(
-        email="admin@winners-consulting.com",
+        email="admin@accesshubglobal.com",
         firstName="Admin",
         lastName="AccessHub",
         role="admin"
@@ -1524,7 +1524,7 @@ async def setup_admin():
     admin_dict["password"] = hash_password("Admin2025!")
 
     await db.users.insert_one(admin_dict)
-    return {"message": "Admin créé", "email": "admin@winners-consulting.com", "password": "Admin2025!"}
+    return {"message": "Admin créé", "email": "admin@accesshubglobal.com", "password": "Admin2025!"}
 
 
 # ============= ADMIN - CHATS =============

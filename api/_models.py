@@ -302,7 +302,7 @@ class PaymentSettings(BaseModel):
     id: str = "payment_settings"
     wechatQrCode: str = ""
     alipayQrCode: str = ""
-    paypalEmail: str = "payments@winners-consulting.com"
+    paypalEmail: str = "payments@accesshubglobal.com"
     bankName: str = "Bank of China"
     bankAccountName: str = "AccessHub Global Ltd"
     bankAccountNumber: str = "6222 0000 1234 5678 9012"
