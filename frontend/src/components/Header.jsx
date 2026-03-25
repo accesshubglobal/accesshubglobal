@@ -35,12 +35,12 @@ const Header = ({ onOpenAuth }) => {
           {/* Logo */}
           <a href="/" className="flex items-center gap-3">
             <img 
-              src="https://customer-assets.emergentagent.com/job_chinese-education/artifacts/gc6ncp0j_0C3E8C4F-6FA9-4406-98A9-D40F8A0065C9-removebg-preview.png" 
-              alt="Winner's Consulting" 
+              src="https://customer-assets.emergentagent.com/job_d923ae2e-8158-4a92-a0e5-0f06423a47f2/artifacts/w2g70eik_40325035-1C06-41C7-B7A1-07655A801D38.jpg" 
+              alt="AccessHub Global" 
               className="h-14 w-auto"
             />
             <div className="hidden sm:block">
-              <h1 className="text-[#1a56db] text-xl font-bold">Winner's Consulting</h1>
+              <h1 className="text-[#1a56db] text-xl font-bold">AccessHub Global</h1>
               <span className="text-gray-500 text-xs">{t('header.tagline')}</span>
             </div>
           </a>

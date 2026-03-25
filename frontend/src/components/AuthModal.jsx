@@ -174,7 +174,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
           </h2>
           <p className="text-blue-100 mt-1">
             {mode === 'login' 
-              ? 'Connectez-vous a votre compte Winner\'s Consulting'
+              ? 'Connectez-vous a votre compte AccessHub Global'
               : 'Creez votre compte pour acceder a nos services'
             }
           </p>

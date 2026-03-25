@@ -8,7 +8,7 @@ export const services = [
     description: "Programmes de bourses et autofinancés dans les meilleures universités en Chine, France, Canada, Australie et bien d’autres pays.",
     color: 'bg-blue-500',
     details: {
-      intro: "Winner’s Consulting vous accompagne dans votre projet d’études à l’international. Nous travaillons avec des universités partenaires dans plusieurs pays pour vous offrir les meilleures opportunités académiques.",
+      intro: "AccessHub Global vous accompagne dans votre projet d’études à l’international. Nous travaillons avec des universités partenaires dans plusieurs pays pour vous offrir les meilleures opportunités académiques.",
       countries: [
         { name: 'Chine', flag: '🇨🇳', programs: 'Bourses CSC, MBBS, Ingénierie, Commerce, Langue chinoise' },
         { name: 'France', flag: '🇫🇷', programs: 'Campus France, Bourse Eiffel, Grandes Écoles, Universités publiques' },
@@ -398,7 +398,7 @@ export const testimonials = [
     country: 'France',
     program: 'Master en Commerce - Université de Pékin',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-    text: 'Winner\'s Consulting m\'a accompagnée du début à la fin. J\'ai obtenu ma bourse CSC et trouvé un logement parfait à Beijing!',
+    text: 'AccessHub Global m\'a accompagnée du début à la fin. J\'ai obtenu ma bourse CSC et trouvé un logement parfait à Beijing!',
     rating: 5
   },
   {
@@ -416,7 +416,7 @@ export const testimonials = [
     country: 'Belgique',
     program: 'Médecine (MBBS) - Université de Shanghai',
     image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-    text: 'Grâce à Winner\'s Consulting, j\'ai réalisé mon rêve d\'étudier la médecine en Chine. Merci pour tout!',
+    text: 'Grâce à AccessHub Global, j\'ai réalisé mon rêve d\'étudier la médecine en Chine. Merci pour tout!',
     rating: 5
   }
 ];
@@ -472,7 +472,7 @@ export const faqItems = [
     answer: 'Le processus complet prend généralement 2-4 mois, de la soumission du dossier à l\'obtention du visa.'
   },
   {
-    question: 'Est-ce que Winner\'s Consulting aide pour le visa?',
+    question: 'Est-ce que AccessHub Global aide pour le visa?',
     answer: 'Oui, nous offrons un accompagnement complet pour les démarches de visa, incluant la préparation des documents et les conseils pour l\'entretien.'
   },
   {

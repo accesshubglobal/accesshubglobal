@@ -99,7 +99,7 @@ const AdminSidebar = ({
           <div className="flex items-center gap-3 flex-1">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-sm font-bold">W</div>
             <div>
-              <p className="text-sm font-semibold leading-tight">Winner's CMS</p>
+              <p className="text-sm font-semibold leading-tight">AccessHub CMS</p>
               <p className="text-[10px] text-blue-300/60">Administration</p>
             </div>
           </div>

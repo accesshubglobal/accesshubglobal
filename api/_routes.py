@@ -38,7 +38,7 @@ api_router = APIRouter()
 
 @api_router.get("/")
 async def root():
-    return {"message": "Winners Consulting API", "status": "ok"}
+    return {"message": "AccessHub Global API", "status": "ok"}
 
 
 # ============= AUTH ROUTES =============
@@ -1516,7 +1516,7 @@ async def setup_admin():
     admin_user = User(
         email="admin@winners-consulting.com",
         firstName="Admin",
-        lastName="Winner",
+        lastName="AccessHub",
         role="admin"
     )
 

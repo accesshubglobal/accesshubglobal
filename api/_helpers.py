@@ -49,7 +49,7 @@ async def send_verification_email(email: str, code: str):
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
       <div style="background:linear-gradient(135deg,#1e3a5f,#2a5298);padding:24px;border-radius:12px 12px 0 0;text-align:center;">
-        <h1 style="color:#fff;margin:0;font-size:20px;">Winners Consulting</h1>
+        <h1 style="color:#fff;margin:0;font-size:20px;">AccessHub Global</h1>
       </div>
       <div style="background:#fff;padding:32px 24px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px;">
         <h2 style="color:#1e3a5f;margin:0 0 8px;font-size:18px;">Verification de votre email</h2>
@@ -68,7 +68,7 @@ async def send_password_reset_email(email: str, code: str):
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
       <div style="background:linear-gradient(135deg,#1e3a5f,#2a5298);padding:24px;border-radius:12px 12px 0 0;text-align:center;">
-        <h1 style="color:#fff;margin:0;font-size:20px;">Winners Consulting</h1>
+        <h1 style="color:#fff;margin:0;font-size:20px;">AccessHub Global</h1>
       </div>
       <div style="background:#fff;padding:32px 24px;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px;">
         <h2 style="color:#1e3a5f;margin:0 0 8px;font-size:18px;">Reinitialisation du mot de passe</h2>

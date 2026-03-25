@@ -664,7 +664,7 @@ const UserDashboard = ({ onClose }) => {
                               </div>
                               {applicationOfferDetails.serviceFee > 0 && (
                                 <div className="mt-3 pt-3 border-t border-amber-200 flex justify-between items-center">
-                                  <span className="text-sm font-medium text-gray-700">Frais de service Winner's Consulting</span>
+                                  <span className="text-sm font-medium text-gray-700">Frais de service AccessHub Global</span>
                                   <span className="font-bold text-[#1a56db]">{Number(applicationOfferDetails.serviceFee).toLocaleString()} {applicationOfferDetails.currency || 'CNY'}</span>
                                 </div>
                               )}
@@ -1002,7 +1002,7 @@ const UserDashboard = ({ onClose }) => {
                         {/* Footer */}
                         <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-500">
                           <p>Référence : #{selectedApplication.id?.substring(0, 8) || 'N/A'}</p>
-                          <p className="mt-1">Winner's Consulting - Excellence dans l'éducation internationale</p>
+                          <p className="mt-1">AccessHub Global - Excellence dans l'éducation internationale</p>
                         </div>
                       </div>
                     </div>
@@ -1143,7 +1143,7 @@ const UserDashboard = ({ onClose }) => {
                                     {reply.isAdmin ? 'WC' : user?.firstName?.charAt(0) + user?.lastName?.charAt(0)}
                                   </div>
                                   <span className={`font-medium ${reply.isAdmin ? 'text-green-700' : 'text-[#1a56db]'}`}>
-                                    {reply.isAdmin ? (reply.adminName || 'Équipe Winner\'s') : 'Vous'}
+                                    {reply.isAdmin ? (reply.adminName || 'Équipe AccessHub') : 'Vous'}
                                   </span>
                                   {reply.isAdmin && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Admin</span>}
                                   <span className="text-xs text-gray-400">

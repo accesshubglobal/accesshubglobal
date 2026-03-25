@@ -493,7 +493,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   data-testid="checkbox-terms"
                 />
                 <span className="text-sm text-gray-700">
-                  J'ai lu et j'accepte les conditions générales de Winner's Consulting. 
+                  J'ai lu et j'accepte les conditions générales d'AccessHub Global. 
                   Je certifie que les informations fournies sont exactes.
                 </span>
               </label>

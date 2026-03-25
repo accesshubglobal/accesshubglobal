@@ -179,7 +179,7 @@ const OfferFormModal = ({ offer, onClose, onSuccess }) => {
 
           {/* Service Fees */}
           <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-            <h4 className="font-medium text-gray-900 mb-3">Frais de service Winner's Consulting</h4>
+            <h4 className="font-medium text-gray-900 mb-3">Frais de service AccessHub Global</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Frais de dossier ({formData.currency})</label>

@@ -146,13 +146,13 @@ const AdminDashboard = ({ onClose }) => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src="https://customer-assets.emergentagent.com/job_chinese-education/artifacts/gc6ncp0j_0C3E8C4F-6FA9-4406-98A9-D40F8A0065C9-removebg-preview.png" 
+              src="https://customer-assets.emergentagent.com/job_d923ae2e-8158-4a92-a0e5-0f06423a47f2/artifacts/w2g70eik_40325035-1C06-41C7-B7A1-07655A801D38.jpg" 
               alt="Logo" 
               className="h-10"
             />
             <div>
               <h1 className="text-xl font-bold">Administration</h1>
-              <p className="text-sm text-blue-200">Winner's Consulting CMS</p>
+              <p className="text-sm text-blue-200">AccessHub Global CMS</p>
             </div>
           </div>
           <div className="flex items-center gap-4">

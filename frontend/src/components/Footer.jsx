@@ -123,11 +123,11 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <img 
-                src="https://customer-assets.emergentagent.com/job_chinese-education/artifacts/gc6ncp0j_0C3E8C4F-6FA9-4406-98A9-D40F8A0065C9-removebg-preview.png" 
-                alt="Winner's Consulting" 
+                src="https://customer-assets.emergentagent.com/job_d923ae2e-8158-4a92-a0e5-0f06423a47f2/artifacts/w2g70eik_40325035-1C06-41C7-B7A1-07655A801D38.jpg" 
+                alt="AccessHub Global" 
                 className="h-12 w-auto"
               />
-              <span className="text-xl font-bold">Winner's Consulting</span>
+              <span className="text-xl font-bold">AccessHub Global</span>
             </div>
             <p className="text-gray-400 mb-6 max-w-sm">
               Votre partenaire de confiance pour réaliser vos rêves d'études internationales. Expertise en Chine et France.
@@ -245,7 +245,7 @@ const Footer = () => {
       <div className="border-t border-gray-800">
         <div className="max-w-[1400px] mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-            <p>© 2019 - {currentYear} Winner's Consulting. Tous droits réservés.</p>
+            <p>© 2019 - {currentYear} AccessHub Global. Tous droits réservés.</p>
             <div className="flex flex-wrap justify-center gap-6">
               <a href="#" target="_blank" className="hover:text-white transition-colors">Politique de Confidentialité</a>
               <a href="#" target="_blank" className="hover:text-white transition-colors">Conditions d'Utilisation</a>

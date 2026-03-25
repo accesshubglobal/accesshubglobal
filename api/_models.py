@@ -304,16 +304,16 @@ class PaymentSettings(BaseModel):
     alipayQrCode: str = ""
     paypalEmail: str = "payments@winners-consulting.com"
     bankName: str = "Bank of China"
-    bankAccountName: str = "Winner's Consulting Ltd"
+    bankAccountName: str = "AccessHub Global Ltd"
     bankAccountNumber: str = "6222 0000 1234 5678 9012"
     bankSwiftCode: str = "BKCHCNBJ"
     bankIban: str = ""
     termsConditions: List[dict] = [
         {"title": "Engagement du candidat", "content": "En soumettant cette candidature, je certifie que toutes les informations fournies sont exactes et complètes. Je comprends que toute fausse déclaration peut entraîner le rejet de ma candidature ou l'annulation de mon inscription."},
         {"title": "Frais de dossier", "content": "Les frais de dossier ne sont pas remboursables, quelle que soit l'issue de la candidature."},
-        {"title": "Traitement des données", "content": "J'accepte que mes données personnelles soient traitées par Winner's Consulting dans le cadre de ma candidature et partagées avec l'université concernée."},
-        {"title": "Délais de traitement", "content": "Je comprends que le traitement de ma candidature peut prendre plusieurs semaines et que Winner's Consulting me tiendra informé de l'avancement par email."},
-        {"title": "Responsabilité", "content": "Winner's Consulting agit en tant qu'intermédiaire et ne garantit pas l'acceptation de ma candidature par l'université."}
+        {"title": "Traitement des données", "content": "J'accepte que mes données personnelles soient traitées par AccessHub Global dans le cadre de ma candidature et partagées avec l'université concernée."},
+        {"title": "Délais de traitement", "content": "Je comprends que le traitement de ma candidature peut prendre plusieurs semaines et que AccessHub Global me tiendra informé de l'avancement par email."},
+        {"title": "Responsabilité", "content": "AccessHub Global agit en tant qu'intermédiaire et ne garantit pas l'acceptation de ma candidature par l'université."}
     ]
 
 

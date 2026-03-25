@@ -604,7 +604,7 @@ const OfferDetailModal = ({ offer, isOpen, onClose, onOpenAuth }) => {
                   {offer.serviceFee > 0 && (
                     <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-700 font-medium">Frais de service Winner's Consulting</span>
+                        <span className="text-gray-700 font-medium">Frais de service AccessHub Global</span>
                         <span className="text-xl font-bold text-green-600">{formatCurrency(offer.serviceFee, offer.currency)}</span>
                       </div>
                       <p className="text-sm text-gray-500 mt-2">Assistance complète pour votre candidature</p>

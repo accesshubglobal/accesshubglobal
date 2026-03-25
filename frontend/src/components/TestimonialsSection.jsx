@@ -12,7 +12,7 @@ const defaultTestimonials = [
     userName: 'Marie Dubois',
     userCountry: 'France',
     program: 'Master en Commerce - Université de Pékin',
-    text: "Winner's Consulting m'a accompagnée du début à la fin. J'ai obtenu ma bourse CSC et trouvé un logement parfait à Beijing!",
+    text: "AccessHub Global m'a accompagnée du début à la fin. J'ai obtenu ma bourse CSC et trouvé un logement parfait à Beijing!",
     rating: 5
   },
   {
@@ -28,7 +28,7 @@ const defaultTestimonials = [
     userName: 'Sophie Chen',
     userCountry: 'Belgique',
     program: 'Médecine (MBBS) - Université de Shanghai',
-    text: "Grâce à Winner's Consulting, j'ai réalisé mon rêve d'étudier la médecine en Chine. Merci pour tout!",
+    text: "Grâce à AccessHub Global, j'ai réalisé mon rêve d'étudier la médecine en Chine. Merci pour tout!",
     rating: 5
   }
 ];
@@ -140,7 +140,7 @@ const TestimonialsSection = ({ onOpenAuth }) => {
                       onChange={(e) => setFormData({...formData, text: e.target.value})}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20 resize-none"
                       rows={4}
-                      placeholder="Partagez votre expérience avec Winner's Consulting..."
+                      placeholder="Partagez votre expérience avec AccessHub Global..."
                       required
                       data-testid="testimonial-text"
                     />
