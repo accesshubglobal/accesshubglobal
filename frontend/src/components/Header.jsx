@@ -167,12 +167,61 @@ const Header = ({ onOpenAuth }) => {
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="flex items-center gap-2 lg:hidden">
-            {isAuthenticated && <NotificationBell />}
-            <button 
-              className="p-2"
+          {/* Mobile Actions */}
+          <div className="flex items-center gap-1 lg:hidden">
+            {isAuthenticated ? (
+              <>
+                <NotificationBell />
+                <button
+                  onClick={() => { navigate(isAgent ? '/agent' : isAdmin ? '/admin' : '/dashboard'); }}
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1a56db] text-white text-xs font-bold"
+                  data-testid="mobile-user-btn"
+                >
+                  {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => onOpenAuth('login')}
+                className="px-3 py-1.5 border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-[#1a56db] hover:text-[#1a56db] transition-colors"
+                data-testid="mobile-login-button"
+              >
+                {t('header.login')}
+              </button>
+            )}
+
+            {/* Mobile Language */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLangDropdown(!showLangDropdown)}
+                className="flex items-center gap-0.5 px-2 py-1.5 text-gray-600 hover:text-[#1a56db] transition-colors"
+                data-testid="mobile-lang-selector"
+              >
+                <Globe size={18} />
+                <ChevronDown size={12} />
+              </button>
+              {showLangDropdown && (
+                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
+                  <button
+                    onClick={() => changeLanguage('FR')}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${currentLang === 'FR' ? 'text-[#1a56db] font-medium' : 'text-gray-700'}`}
+                  >
+                    FR Français
+                  </button>
+                  <button
+                    onClick={() => changeLanguage('EN')}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${currentLang === 'EN' ? 'text-[#1a56db] font-medium' : 'text-gray-700'}`}
+                  >
+                    EN English
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              className="p-2 text-gray-700"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="mobile-menu-toggle"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -192,21 +241,6 @@ const Header = ({ onOpenAuth }) => {
               <a href="/community" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-[#1a56db] font-medium">Communauté</a>
               
               <div className="border-t border-gray-100 pt-3 mt-2">
-                <div className="flex items-center gap-4 mb-3">
-                  <button 
-                    onClick={() => changeLanguage('FR')}
-                    className={`text-sm ${currentLang === 'FR' ? 'text-[#1a56db] font-medium' : 'text-gray-600'}`}
-                  >
-                    FR
-                  </button>
-                  <button 
-                    onClick={() => changeLanguage('EN')}
-                    className={`text-sm ${currentLang === 'EN' ? 'text-[#1a56db] font-medium' : 'text-gray-600'}`}
-                  >
-                    EN
-                  </button>
-                </div>
-                
                 {isAuthenticated ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-gray-900 font-medium">
@@ -238,12 +272,6 @@ const Header = ({ onOpenAuth }) => {
                   </div>
                 ) : (
                   <div className="flex gap-3">
-                    <button 
-                      onClick={() => { onOpenAuth('login'); setMobileMenuOpen(false); }}
-                      className="text-gray-700 font-medium"
-                    >
-                      {t('header.login')}
-                    </button>
                     <button 
                       onClick={() => { onOpenAuth('register'); setMobileMenuOpen(false); }}
                       className="bg-[#1a56db] text-white px-4 py-2 rounded-lg font-medium text-center flex-1"
