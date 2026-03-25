@@ -1,7 +1,6 @@
-import React from 'react';
-import { Mail, Phone, MessageCircle, MapPin, Music2, Facebook, Instagram, Youtube, ArrowRight, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, Phone, MessageCircle, MapPin, Music2, Facebook, Instagram, Youtube, ArrowRight, Users, ArrowUp } from 'lucide-react';
 import { FaWhatsapp } from "react-icons/fa";
-import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
@@ -11,7 +10,13 @@ const Footer = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState(null);
   const [newsletterMsg, setNewsletterMsg] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!newsletterEmail.trim()) return;
@@ -121,13 +126,12 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center mb-4">
               <img 
-                src="https://customer-assets.emergentagent.com/job_d923ae2e-8158-4a92-a0e5-0f06423a47f2/artifacts/w2g70eik_40325035-1C06-41C7-B7A1-07655A801D38.jpg" 
+                src="https://customer-assets.emergentagent.com/job_d923ae2e-8158-4a92-a0e5-0f06423a47f2/artifacts/he94oysv_sans.PNG" 
                 alt="AccessHub Global" 
-                className="h-12 w-auto"
+                className="h-16 w-auto"
               />
-              <span className="text-xl font-bold">AccessHub Global</span>
             </div>
             <p className="text-gray-400 mb-6 max-w-sm">
               Votre partenaire de confiance pour réaliser vos rêves d'études internationales. Expertise en Chine et France.
@@ -277,6 +281,18 @@ const Footer = () => {
       )}
 
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          data-testid="scroll-to-top"
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-[#1a56db] hover:bg-[#1648b8] text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110"
+          aria-label="Retour en haut"
+        >
+          <ArrowUp size={22} />
+        </button>
+      )}
     </footer>
   );
 };
