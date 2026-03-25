@@ -33,16 +33,12 @@ const Header = ({ onOpenAuth }) => {
       <div className="bg-white py-4 px-4 shadow-sm">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-3">
+          <a href="/" className="flex items-center">
             <img 
               src="https://customer-assets.emergentagent.com/job_d923ae2e-8158-4a92-a0e5-0f06423a47f2/artifacts/w2g70eik_40325035-1C06-41C7-B7A1-07655A801D38.jpg" 
               alt="AccessHub Global" 
-              className="h-14 w-auto"
+              className="h-16 sm:h-20 w-auto"
             />
-            <div className="hidden sm:block">
-              <h1 className="text-[#1a56db] text-xl font-bold">AccessHub Global</h1>
-              <span className="text-gray-500 text-xs">{t('header.tagline')}</span>
-            </div>
           </a>
 
           {/* Desktop Navigation */}
