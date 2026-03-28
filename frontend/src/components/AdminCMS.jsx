@@ -26,6 +26,7 @@ import FaqSection from './admin/FaqSection';
 import CommunitySection from './admin/CommunitySection';
 import PaymentSettingsSection from './admin/PaymentSettingsSection';
 import TermsSection from './admin/TermsSection';
+import PagesSection from './admin/PagesSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -103,6 +104,8 @@ const AdminCMS = ({ onClose }) => {
         return isPrincipalAdmin ? <PaymentSettingsSection /> : null;
       case 'terms-conditions':
         return isPrincipalAdmin ? <TermsSection /> : null;
+      case 'pages':
+        return isPrincipalAdmin ? <PagesSection /> : null;
       default:
         return <DashboardSection stats={stats} onNavigate={handleNavigate} />;
     }

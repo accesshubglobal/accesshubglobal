@@ -76,6 +76,7 @@ const AdminSidebar = ({
       items: [
         { id: 'payment-settings', label: 'Paiements', icon: CreditCard },
         { id: 'terms-conditions', label: 'Conditions', icon: FileText },
+        { id: 'pages', label: 'Pages du site', icon: Layers },
       ],
     }] : []),
   ];

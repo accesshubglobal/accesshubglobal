@@ -2105,3 +2105,181 @@ async def admin_reject_agent(agent_id: str, admin: dict = Depends(get_principal_
         raise HTTPException(status_code=404, detail="Agent non trouve")
     await db.users.update_one({"id": agent_id}, {"$set": {"isApproved": False, "isActive": False}})
     return {"message": "Agent rejete"}
+
+
+
+# ============= INSTITUTIONAL PAGES =============
+
+DEFAULT_PAGES = {
+    "about": {
+        "slug": "about",
+        "title": "À propos d'AccessHub Global",
+        "subtitle": "Votre passerelle vers l'excellence académique internationale",
+        "sections": {
+            "history": {
+                "title": "Notre histoire",
+                "content": "AccessHub Global a vu le jour en 2019 à Guangzhou, en Chine, née de la vision de Mr. MOUNTSOUKA Aaron Depousse. Ayant lui-même vécu l'expérience d'étudiant international en Chine, il a constaté les difficultés que rencontrent les étudiants africains et francophones dans leurs démarches d'admission, de visa et d'installation à l'étranger.\n\nCe qui a commencé comme un accompagnement informel entre amis et compatriotes s'est rapidement transformé en une structure professionnelle. En quelques années, AccessHub Global a accompagné des centaines d'étudiants vers des universités de renom en Chine et en France.\n\nAujourd'hui, avec des bureaux à Guangzhou (Chine) et à Brazzaville (Congo), AccessHub Global est devenu un acteur incontournable de la mobilité étudiante internationale en Afrique francophone."
+            },
+            "mission": {
+                "title": "Notre mission",
+                "content": "Rendre l'éducation internationale accessible, transparente et sécurisée pour chaque étudiant, quel que soit son pays d'origine. Nous croyons que le talent n'a pas de frontières et que chaque jeune mérite l'opportunité de réaliser son potentiel académique à l'international.",
+                "pillars": [
+                    {"title": "Accessibilité", "desc": "Simplifier les démarches complexes d'admission et de visa pour tous"},
+                    {"title": "Transparence", "desc": "Des processus clairs, des frais détaillés, aucune surprise"},
+                    {"title": "Excellence", "desc": "Des partenariats avec les meilleures universités de Chine et France"}
+                ]
+            },
+            "values": [
+                {"title": "Engagement", "desc": "Nous nous investissons personnellement dans la réussite de chaque étudiant, du premier contact jusqu'à l'installation dans le pays d'accueil."},
+                {"title": "Intégrité", "desc": "Nous agissons avec honnêteté et transparence dans toutes nos interactions. Nos étudiants sont informés de chaque étape et de chaque coût."},
+                {"title": "Innovation", "desc": "Nous utilisons la technologie pour simplifier les processus et offrir une expérience fluide à nos étudiants, partenaires et agents."},
+                {"title": "Diversité", "desc": "Nous célébrons la richesse culturelle de nos étudiants et favorisons les échanges interculturels comme moteur de croissance personnelle."}
+            ],
+            "team": [
+                {"name": "Mr. MOUNTSOUKA Aaron Depousse", "role": "Fondateur & Directeur Général", "desc": "Visionnaire et entrepreneur, il dirige AccessHub Global depuis sa création avec une passion pour l'éducation internationale."},
+                {"name": "Département Admissions", "role": "Équipe Admissions & Suivi", "desc": "Nos conseillers spécialisés accompagnent chaque étudiant dans le choix de programme et la préparation du dossier d'admission."},
+                {"name": "Département Logistique", "role": "Équipe Visa & Installation", "desc": "De la demande de visa à la recherche de logement, notre équipe assure une transition fluide vers le pays d'accueil."}
+            ],
+            "services": [
+                {"title": "Orientation académique", "desc": "Analyse de votre profil, recommandation de programmes et universités adaptés à vos objectifs et votre budget."},
+                {"title": "Accompagnement admission", "desc": "Préparation complète du dossier de candidature, traduction de documents, et suivi jusqu'à l'obtention de la lettre d'admission."},
+                {"title": "Assistance visa", "desc": "Aide à la constitution du dossier visa, préparation à l'entretien consulaire, et suivi de la demande."},
+                {"title": "Recherche de logement", "desc": "Mise en relation avec des résidences universitaires et des logements privés vérifiés dans la ville d'accueil."},
+                {"title": "Bourses d'études", "desc": "Identification des opportunités de bourses (CSC, bourses provinciales, bourses universitaires) et aide à la candidature."},
+                {"title": "Accueil & Installation", "desc": "Accueil à l'aéroport, aide à l'inscription universitaire, ouverture de compte bancaire et carte SIM."}
+            ]
+        }
+    },
+    "company": {
+        "slug": "company",
+        "title": "Informations sur l'entreprise",
+        "subtitle": "Toutes les informations officielles sur AccessHub Global",
+        "sections": {
+            "identity": {
+                "name": "AccessHub Global",
+                "registration": "DFS3455677 (Chine)",
+                "director": "Mr. MOUNTSOUKA Aaron Depousse",
+                "email": "accesshubglobal@gmail.com",
+                "founded": "2019",
+                "sector": "Conseil en éducation internationale & Mobilité étudiante"
+            },
+            "offices": [
+                {"country": "Chine", "flag": "🇨🇳", "address": "Vanke, Panyu District, GuangDong Province, Guangzhou City, Chine", "label": "Bureau principal - Opérations Asie"},
+                {"country": "Congo", "flag": "🇨🇬", "address": "34 rue Lénine, Moungali, Brazzaville, République du Congo", "label": "Bureau Afrique - Recrutement & Relations étudiants"}
+            ],
+            "departments": [
+                {"title": "Admissions", "desc": "Gestion des dossiers, suivi des candidatures, relations universités"},
+                {"title": "Relations Étudiants", "desc": "Conseil, orientation, accompagnement personnalisé"},
+                {"title": "Logistique & Visa", "desc": "Démarches visa, logement, accueil et installation"},
+                {"title": "Marketing & Communication", "desc": "Promotion, événements, réseaux sociaux, partenariats"}
+            ],
+            "clients": [
+                "Étudiants africains francophones souhaitant étudier en Chine ou en France",
+                "Professionnels en reconversion cherchant des programmes de MBA ou certifications internationales",
+                "Parents et familles accompagnant leurs enfants dans un projet d'études à l'étranger",
+                "Agents et partenaires locaux dans plusieurs pays africains"
+            ],
+            "partners": [
+                "Universités partenaires en Chine (Beijing, Shanghai, Guangzhou, Wuhan...)",
+                "Établissements d'enseignement supérieur en France",
+                "Résidences universitaires et agences de logement vérifiées",
+                "Réseau d'agents recruteurs dans plus de 10 pays africains"
+            ],
+            "stats": [
+                {"number": "500+", "label": "Étudiants accompagnés"},
+                {"number": "50+", "label": "Universités partenaires"},
+                {"number": "10+", "label": "Pays d'origine couverts"},
+                {"number": "6+", "label": "Années d'expérience"}
+            ]
+        }
+    },
+    "legal": {
+        "slug": "legal",
+        "title": "Mentions Légales",
+        "subtitle": "Dernière mise à jour : Mars 2026",
+        "sections": [
+            {"heading": "1. Éditeur du site", "content": "Raison sociale : AccessHub Global\nNuméro d'immatriculation : DFS3455677 (Chine)\nDirecteur de la publication : Mr. MOUNTSOUKA Aaron Depousse\nSiège social (Chine) : Vanke, Panyu District, GuangDong Province, Guangzhou City, Chine\nSiège social (Congo) : 34 rue Lénine, Moungali, Brazzaville, République du Congo\nEmail : accesshubglobal@gmail.com"},
+            {"heading": "2. Hébergement", "content": "Le site est hébergé par Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis."},
+            {"heading": "3. Propriété intellectuelle", "content": "L'ensemble du contenu de ce site (textes, images, logos, graphismes, icônes, logiciels, bases de données) est la propriété exclusive d'AccessHub Global ou de ses partenaires et est protégé par les lois relatives à la propriété intellectuelle.\n\nToute reproduction, représentation, modification, publication, distribution ou retransmission, totale ou partielle, du contenu de ce site, par quelque procédé que ce soit, sans l'autorisation préalable écrite d'AccessHub Global, est strictement interdite."},
+            {"heading": "4. Responsabilité", "content": "AccessHub Global s'efforce de fournir des informations aussi précises que possible sur ce site. Toutefois, AccessHub Global ne saurait être tenu responsable des omissions, inexactitudes et carences dans la mise à jour, qu'elles soient de son fait ou du fait de tiers partenaires."},
+            {"heading": "5. Liens hypertextes", "content": "Le site peut contenir des liens hypertextes vers d'autres sites. AccessHub Global n'exerce aucun contrôle sur le contenu de ces sites tiers et décline toute responsabilité quant à leur contenu."},
+            {"heading": "6. Cookies", "content": "Ce site utilise des cookies techniques nécessaires à son bon fonctionnement (authentification, préférences de langue). Aucun cookie de traçage publicitaire n'est utilisé."},
+            {"heading": "7. Droit applicable", "content": "Les présentes mentions légales sont régies par le droit applicable au lieu du siège social principal de l'entreprise."},
+            {"heading": "8. Contact", "content": "Pour toute question relative aux mentions légales, vous pouvez nous contacter à : accesshubglobal@gmail.com"}
+        ]
+    },
+    "privacy": {
+        "slug": "privacy",
+        "title": "Politique de Confidentialité",
+        "subtitle": "Dernière mise à jour : Mars 2026",
+        "sections": [
+            {"heading": "1. Introduction", "content": "AccessHub Global s'engage à protéger la vie privée de ses utilisateurs. La présente politique de confidentialité décrit les types d'informations personnelles que nous collectons, la manière dont nous les utilisons et les mesures que nous prenons pour les protéger."},
+            {"heading": "2. Données collectées", "content": "Données d'identification : nom, prénom, date de naissance, nationalité, sexe, numéro de passeport\nCoordonnées : adresse email, numéro de téléphone, adresse postale\nDonnées académiques : diplômes, relevés de notes, certificats de langue\nDocuments : copie de passeport, photos d'identité, preuves de paiement\nDonnées de navigation : adresse IP, type de navigateur, pages visitées"},
+            {"heading": "3. Finalités du traitement", "content": "Gestion de votre compte utilisateur et authentification\nTraitement de vos candidatures auprès des universités partenaires\nCommunication relative à vos dossiers\nEnvoi de newsletters (avec votre consentement)\nAmélioration de nos services\nRespect de nos obligations légales"},
+            {"heading": "4. Partage des données", "content": "Vos données peuvent être partagées avec : universités partenaires (dans le cadre de votre candidature), prestataires techniques (Vercel, Cloudinary, Resend), agents partenaires (uniquement avec votre accord).\n\nNous ne vendons jamais vos données personnelles à des tiers."},
+            {"heading": "5. Durée de conservation", "content": "Vos données sont conservées pendant toute la durée de votre relation avec AccessHub Global, puis pendant 3 ans après votre dernière interaction. Les données relatives aux candidatures sont conservées pendant 5 ans."},
+            {"heading": "6. Sécurité des données", "content": "Chiffrement des mots de passe (bcrypt)\nCommunication sécurisée via HTTPS/TLS\nAuthentification par token JWT avec expiration\nVérification d'email obligatoire\nContrôle d'accès basé sur les rôles (RBAC)"},
+            {"heading": "7. Vos droits", "content": "Droit d'accès : obtenir la confirmation que vos données sont traitées\nDroit de rectification : faire corriger vos données inexactes\nDroit de suppression : demander l'effacement de vos données\nDroit d'opposition : vous opposer au traitement\nDroit à la portabilité : recevoir vos données dans un format lisible\nDroit de retrait du consentement\n\nContact : accesshubglobal@gmail.com"},
+            {"heading": "8. Modifications", "content": "Nous nous réservons le droit de modifier cette politique à tout moment. Les modifications seront publiées sur cette page avec la date de mise à jour."}
+        ]
+    },
+    "terms": {
+        "slug": "terms",
+        "title": "Conditions d'Utilisation",
+        "subtitle": "Dernière mise à jour : Mars 2026",
+        "sections": [
+            {"heading": "1. Objet", "content": "Les présentes conditions générales d'utilisation (CGU) définissent les modalités d'accès et d'utilisation du site web AccessHub Global et des services proposés. L'accès au Site implique l'acceptation pleine et entière des présentes CGU."},
+            {"heading": "2. Description des Services", "content": "AccessHub Global propose une plateforme permettant aux étudiants de : consulter les programmes d'études et universités partenaires, soumettre des candidatures en ligne, suivre l'avancement de leurs candidatures, communiquer avec l'équipe, rechercher des logements, accéder aux informations sur les bourses."},
+            {"heading": "3. Inscription et compte", "content": "L'utilisateur s'engage à fournir des informations exactes, maintenir la confidentialité de ses identifiants, notifier toute utilisation non autorisée et vérifier son adresse email. AccessHub Global se réserve le droit de suspendre tout compte en cas de violation des CGU."},
+            {"heading": "4. Processus de candidature", "content": "AccessHub Global agit en tant qu'intermédiaire. La décision finale d'admission revient à l'université. Les documents soumis doivent être authentiques. Les frais de service sont non remboursables une fois le dossier transmis. Le paiement ne garantit pas l'acceptation de la candidature."},
+            {"heading": "5. Tarification et paiement", "content": "Les frais de service couvrent : l'accompagnement personnalisé, la vérification et préparation du dossier, la soumission de la candidature, le suivi jusqu'à la réponse. Les frais universitaires sont distincts et payés directement à l'université."},
+            {"heading": "6. Obligations de l'utilisateur", "content": "Utiliser le Site conformément à sa finalité\nNe pas porter atteinte au fonctionnement du Site\nNe pas usurper l'identité d'un tiers\nNe pas diffuser de contenu illicite\nRespecter les droits de propriété intellectuelle"},
+            {"heading": "7. Limitation de responsabilité", "content": "AccessHub Global ne peut être tenu responsable des décisions d'admission ou de refus des universités, des refus de visa, des interruptions temporaires du Site, ou des dommages indirects."},
+            {"heading": "8. Modifications des CGU", "content": "AccessHub Global se réserve le droit de modifier les CGU à tout moment. La poursuite de l'utilisation vaut acceptation des nouvelles conditions."},
+            {"heading": "9. Contact", "content": "Pour toute question : accesshubglobal@gmail.com"}
+        ]
+    }
+}
+
+
+@api_router.get("/pages/{slug}")
+async def get_page(slug: str):
+    db = get_db()
+    page = await db.pages.find_one({"slug": slug}, {"_id": 0})
+    if not page:
+        if slug in DEFAULT_PAGES:
+            default = {**DEFAULT_PAGES[slug], "updatedAt": datetime.now(timezone.utc).isoformat()}
+            await db.pages.insert_one(default)
+            return {k: v for k, v in default.items() if k != "_id"}
+        raise HTTPException(status_code=404, detail="Page non trouvee")
+    return page
+
+
+@api_router.put("/admin/pages/{slug}")
+async def update_page(slug: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    if slug not in DEFAULT_PAGES:
+        raise HTTPException(status_code=400, detail="Slug invalide")
+    data["slug"] = slug
+    data["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    data["updatedBy"] = admin.get("id")
+    existing = await db.pages.find_one({"slug": slug})
+    if existing:
+        await db.pages.update_one({"slug": slug}, {"$set": data})
+    else:
+        await db.pages.insert_one(data)
+    result = await db.pages.find_one({"slug": slug}, {"_id": 0})
+    return result
+
+
+@api_router.get("/admin/pages")
+async def admin_list_pages(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    pages = await db.pages.find({}, {"_id": 0}).to_list(20)
+    slugs_in_db = {p["slug"] for p in pages}
+    for slug, default in DEFAULT_PAGES.items():
+        if slug not in slugs_in_db:
+            default_copy = {**default, "updatedAt": datetime.now(timezone.utc).isoformat()}
+            await db.pages.insert_one(default_copy)
+            pages.append({k: v for k, v in default_copy.items() if k != "_id"})
+    return pages

@@ -28,9 +28,7 @@ import UniversityDetailPage from "./components/UniversityDetailPage";
 import UniversitiesListPage from "./components/UniversitiesListPage";
 import AboutPage from "./pages/AboutPage";
 import CompanyInfoPage from "./pages/CompanyInfoPage";
-import LegalNoticePage from "./pages/LegalNoticePage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import TermsOfUsePage from "./pages/TermsOfUsePage";
+import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from "./pages/LegalPages";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false }) => {
