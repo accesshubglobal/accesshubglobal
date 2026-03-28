@@ -234,12 +234,25 @@ const Footer = () => {
 
               <li className="flex items-center gap-3">
                 <Mail size={16} className="text-[#1a56db]" />
-                <span>contact@winnersc.com</span>
+                <span>accesshubglobal@gmail.com</span>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin size={16} className="text-[#1a56db] mt-1" />
-                <span>Avenue , Brazzaville, Rép du Congo</span>
+                <span>Vanke, Panyu District, Guangzhou, Chine</span>
               </li>
+              <li className="flex items-start gap-3">
+                <MapPin size={16} className="text-[#1a56db] mt-1" />
+                <span>34 rue Lénine, Moungali, Brazzaville, Congo</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Entreprise */}
+          <div>
+            <h3 className="text-white font-semibold text-lg mb-4">Entreprise</h3>
+            <ul className="space-y-3 text-gray-400">
+              <li><a href="/about" className="hover:text-white transition-colors">À propos</a></li>
+              <li><a href="/company" className="hover:text-white transition-colors">Informations sur l'entreprise</a></li>
             </ul>
           </div>
         </div>
@@ -251,9 +264,9 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
             <p>© 2019 - {currentYear} AccessHub Global. Tous droits réservés.</p>
             <div className="flex flex-wrap justify-center gap-6">
-              <a href="#" target="_blank" className="hover:text-white transition-colors">Politique de Confidentialité</a>
-              <a href="#" target="_blank" className="hover:text-white transition-colors">Conditions d'Utilisation</a>
-              <a href="#" target="_blank" className="hover:text-white transition-colors">Mentions Légales</a>
+              <a href="/privacy" className="hover:text-white transition-colors">Politique de Confidentialité</a>
+              <a href="/terms" className="hover:text-white transition-colors">Conditions d'Utilisation</a>
+              <a href="/legal" className="hover:text-white transition-colors">Mentions Légales</a>
             </div>
           </div>
         </div>

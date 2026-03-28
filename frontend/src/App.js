@@ -26,6 +26,11 @@ import AgentRegisterPage from "./components/AgentRegisterPage";
 import AgentDashboard from "./components/AgentDashboard";
 import UniversityDetailPage from "./components/UniversityDetailPage";
 import UniversitiesListPage from "./components/UniversitiesListPage";
+import AboutPage from "./pages/AboutPage";
+import CompanyInfoPage from "./pages/CompanyInfoPage";
+import LegalNoticePage from "./pages/LegalNoticePage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false }) => {
@@ -121,6 +126,11 @@ function App() {
               <Route path="/agent/register" element={<AgentRegisterPage />} />
               <Route path="/universities" element={<UniversitiesListPage />} />
               <Route path="/universities/:id" element={<UniversityDetailPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/company" element={<CompanyInfoPage />} />
+              <Route path="/legal" element={<LegalNoticePage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfUsePage />} />
               <Route 
                 path="/dashboard" 
                 element={
