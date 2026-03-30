@@ -187,6 +187,7 @@ const ApplicationsSection = () => {
                 <div>
                   <h3 className="text-white font-semibold text-lg">{selectedApp.firstName} {selectedApp.lastName}</h3>
                   <p className="text-blue-200 text-sm">{selectedApp.offerTitle}</p>
+                  <p className="text-blue-300 text-xs mt-0.5">Réf : #{selectedApp.id?.substring(0, 8)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap justify-end">
@@ -215,18 +216,6 @@ const ApplicationsSection = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Full Application Content */}
             <div className="lg:col-span-2 space-y-6">
-
-              {/* Application Header (screen only, not in PDF) */}
-              <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-[#1e3a5f]">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">{selectedApp.offerTitle}</h2>
-                    <p className="text-gray-500 text-sm mt-1">Réf : #{selectedApp.id?.substring(0, 8)}</p>
-                    <p className="text-gray-500 text-sm">Soumis le {new Date(selectedApp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                  </div>
-                  <div>{getStatusBadge(selectedApp.status)}</div>
-                </div>
-              </div>
 
               {/* ===== PDF TARGET: Personal info only ===== */}
               <div id="admin-application-detail-content" className="space-y-6">
