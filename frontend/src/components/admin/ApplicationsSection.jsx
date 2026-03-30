@@ -213,10 +213,10 @@ const ApplicationsSection = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Full Application Content (PDF target) */}
-            <div className="lg:col-span-2 space-y-6" id="admin-application-detail-content">
+            {/* Left: Full Application Content */}
+            <div className="lg:col-span-2 space-y-6">
 
-              {/* Application Header for PDF */}
+              {/* Application Header (screen only, not in PDF) */}
               <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-[#1e3a5f]">
                 <div className="flex items-start justify-between">
                   <div>
@@ -225,6 +225,18 @@ const ApplicationsSection = () => {
                     <p className="text-gray-500 text-sm">Soumis le {new Date(selectedApp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
                   <div>{getStatusBadge(selectedApp.status)}</div>
+                </div>
+              </div>
+
+              {/* ===== PDF TARGET: Personal info only ===== */}
+              <div id="admin-application-detail-content" className="space-y-6">
+
+              {/* PDF Header */}
+              <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-[#1e3a5f]">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedApp.offerTitle}</h2>
+                  <p className="text-gray-500 text-sm mt-1">Candidat : {selectedApp.firstName} {selectedApp.lastName}</p>
+                  <p className="text-gray-500 text-sm">Réf : #{selectedApp.id?.substring(0, 8)} — Soumis le {new Date(selectedApp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
               </div>
 
@@ -403,7 +415,10 @@ const ApplicationsSection = () => {
                 </SectionBlock>
               )}
 
-              {/* Documents */}
+              </div>
+              {/* ===== END PDF TARGET ===== */}
+
+              {/* Documents (excluded from PDF) */}
               <SectionBlock title="Documents soumis" icon={Paperclip}>
                 {selectedApp.documents?.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
