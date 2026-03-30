@@ -82,6 +82,296 @@ async def send_password_reset_email(email: str, code: str):
     """
     return await send_email(email, f"Reinitialisation mot de passe: {code}", html)
 
+
+# ============= NEWSLETTER =============
+
+SITE_URL = os.environ.get('SITE_URL', 'https://accesshub-cms.preview.emergentagent.com')
+
+def _newsletter_footer():
+    return f"""
+    <div style="background:#0f1f35;padding:32px 24px;margin-top:0;text-align:center;">
+      <p style="color:#ffffff;font-weight:700;font-size:16px;margin:0 0 4px;letter-spacing:0.5px;">AccessHub Global</p>
+      <p style="color:#93c5fd;font-size:12px;margin:0 0 20px;">Votre passerelle vers l'excellence académique internationale</p>
+      <div style="display:inline-block;margin:0 0 20px;">
+        <a href="https://wa.me/message/4KVMCWCH4LQPN1" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;margin-right:10px;">WhatsApp</a>
+        <a href="{SITE_URL}" style="display:inline-block;padding:10px 20px;background:#1a56db;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;">Visiter le site</a>
+      </div>
+      <div style="border-top:1px solid #1e3a5f;padding-top:16px;">
+        <p style="color:#6b7280;font-size:12px;margin:0 0 4px;">📞 +86 138 811 301 75 &nbsp;|&nbsp; ✉️ accesshubglobal@gmail.com</p>
+        <p style="color:#6b7280;font-size:12px;margin:0 0 4px;">📍 Vanke, Panyu District, Guangzhou, Chine</p>
+        <p style="color:#6b7280;font-size:12px;margin:0 0 16px;">📍 34 rue Lénine, Moungali, Brazzaville, Congo</p>
+        <p style="color:#4b5563;font-size:11px;margin:0;">Vous recevez cet email car vous êtes inscrit à la newsletter AccessHub Global.</p>
+      </div>
+    </div>
+    """
+
+
+def _build_offer_email(offer: dict) -> str:
+    title = offer.get('title', '')
+    university = offer.get('university', '')
+    city = offer.get('city', '')
+    country = offer.get('country', 'Chine')
+    degree = offer.get('degree', '')
+    duration = offer.get('duration', '')
+    teaching_lang = offer.get('teachingLanguage', '')
+    intake = offer.get('intake', '')
+    deadline = offer.get('deadline', 'Ouvert')
+    description = offer.get('description', '')
+    has_scholarship = offer.get('hasScholarship', False)
+    scholarship_type = offer.get('scholarshipType', '')
+    original_tuition = offer.get('originalTuition', 0)
+    scholarship_tuition = offer.get('scholarshipTuition', 0)
+    currency = offer.get('currency', 'CNY')
+    image = offer.get('image', '')
+    offer_id = offer.get('id', '')
+    category_label = offer.get('categoryLabel', '')
+    service_fee = offer.get('serviceFee', 0)
+    offer_url = f"{SITE_URL}"
+
+    scholarship_badge = ""
+    if has_scholarship:
+        scholarship_badge = f'<span style="display:inline-block;background:#dcfce7;color:#15803d;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px;">{scholarship_type or "Bourse disponible"}</span>'
+
+    image_block = ""
+    if image:
+        image_block = f'<img src="{image}" alt="{title}" style="width:100%;max-height:280px;object-fit:cover;display:block;" />'
+
+    tuition_block = ""
+    if original_tuition > 0:
+        if has_scholarship and scholarship_tuition >= 0:
+            tuition_block = f"""
+            <div style="display:flex;gap:16px;margin:16px 0;">
+              <div style="flex:1;background:#fef9c3;border-radius:10px;padding:14px;text-align:center;">
+                <p style="color:#854d0e;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Frais normaux</p>
+                <p style="color:#92400e;font-size:18px;font-weight:700;margin:0;text-decoration:line-through;">{int(original_tuition):,} {currency}</p>
+              </div>
+              <div style="flex:1;background:#dcfce7;border-radius:10px;padding:14px;text-align:center;">
+                <p style="color:#14532d;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Après bourse</p>
+                <p style="color:#166534;font-size:18px;font-weight:700;margin:0;">{int(scholarship_tuition):,} {currency}</p>
+              </div>
+            </div>"""
+        else:
+            tuition_block = f"""
+            <div style="background:#eff6ff;border-radius:10px;padding:14px;text-align:center;margin:16px 0;">
+              <p style="color:#1e40af;font-size:11px;margin:0 0 4px;text-transform:uppercase;">Frais de scolarité</p>
+              <p style="color:#1e3a5f;font-size:22px;font-weight:700;margin:0;">{int(original_tuition):,} {currency} / an</p>
+            </div>"""
+
+    if service_fee > 0:
+        tuition_block += f"""
+        <div style="background:#f0fdf4;border:1px dashed #86efac;border-radius:8px;padding:10px 14px;margin-top:8px;text-align:center;">
+          <p style="color:#15803d;font-size:12px;margin:0;">Frais de service AccessHub Global : <strong>{int(service_fee):,} {currency}</strong></p>
+        </div>"""
+
+    description_block = ""
+    if description:
+        short_desc = description[:300] + ("..." if len(description) > 300 else "")
+        description_block = f'<p style="color:#374151;font-size:14px;line-height:1.7;margin:16px 0;">{short_desc}</p>'
+
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#1e3a5f 0%,#1a56db 100%);padding:28px 32px;text-align:center;">
+    <p style="color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;">AccessHub Global</p>
+    <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 6px;line-height:1.3;">Nouvelle Opportunité<br>de Bourse !</h1>
+    <p style="color:#bfdbfe;font-size:13px;margin:0;">Une nouvelle offre vient d'être ajoutée sur la plateforme</p>
+  </div>
+
+  <!-- Cover Image -->
+  {image_block}
+
+  <!-- Body -->
+  <div style="padding:28px 32px;">
+
+    <!-- Title & University -->
+    <div style="border-left:4px solid #1a56db;padding-left:16px;margin-bottom:20px;">
+      <h2 style="color:#1e3a5f;font-size:20px;font-weight:700;margin:0 0 6px;line-height:1.3;">{title} {scholarship_badge}</h2>
+      <p style="color:#4b5563;font-size:14px;margin:0;">🎓 {university} &nbsp;•&nbsp; 📍 {city}, {country}</p>
+      {f'<p style="color:#6b7280;font-size:13px;margin:4px 0 0;">{category_label}</p>' if category_label else ""}
+    </div>
+
+    {description_block}
+
+    {tuition_block}
+
+    <!-- Key Details Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0;">
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Diplôme</p>
+        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{degree}</p>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Durée</p>
+        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{duration}</p>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Langue d'enseignement</p>
+        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{teaching_lang}</p>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
+        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Rentrée</p>
+        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{intake}</p>
+      </div>
+      <div style="background:{'#fef2f2' if deadline != 'Ouvert' else '#f0fdf4'};border-radius:8px;padding:12px;grid-column:1/-1;">
+        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Date limite de candidature</p>
+        <p style="color:{'#dc2626' if deadline != 'Ouvert' else '#16a34a'};font-size:15px;font-weight:700;margin:0;">⏰ {deadline}</p>
+      </div>
+    </div>
+
+    <!-- CTA Button -->
+    <div style="text-align:center;margin:28px 0 8px;">
+      <a href="{offer_url}" style="display:inline-block;background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#ffffff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 15px rgba(26,86,219,0.4);">
+        Postuler maintenant &rarr;
+      </a>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:8px 0 0;">Connectez-vous à votre compte pour soumettre votre candidature</p>
+
+  </div>
+
+  <!-- Footer -->
+  {_newsletter_footer()}
+
+</div>
+</body>
+</html>"""
+
+
+def _build_blog_email(post: dict) -> str:
+    title = post.get('title', '')
+    excerpt = post.get('excerpt', '')
+    content = post.get('content', '')
+    cover_image = post.get('coverImage', '')
+    category = post.get('category', '')
+    author_name = post.get('authorName', 'AccessHub Global')
+    post_id = post.get('id', '')
+    created_at = post.get('createdAt', '')
+    post_url = f"{SITE_URL}/blog/{post_id}"
+
+    # Format date
+    date_str = ""
+    if created_at:
+        try:
+            from datetime import datetime as dt
+            d = dt.fromisoformat(created_at.replace('Z', '+00:00'))
+            months_fr = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+                        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+            date_str = f"{d.day} {months_fr[d.month]} {d.year}"
+        except Exception:
+            date_str = created_at[:10]
+
+    # Prepare preview text
+    preview = excerpt
+    if not preview and content:
+        import re
+        plain = re.sub(r'<[^>]+>', '', content)
+        preview = plain[:280] + ("..." if len(plain) > 280 else "")
+
+    cover_block = ""
+    if cover_image:
+        cover_block = f'<img src="{cover_image}" alt="{title}" style="width:100%;max-height:300px;object-fit:cover;display:block;" />'
+
+    category_map = {
+        'general': 'Général', 'visa': 'Visa & Immigration', 'bourse': 'Bourses',
+        'vie_etudiante': 'Vie Étudiante', 'conseils': 'Conseils', 'actualites': 'Actualités',
+        'chine': 'Chine', 'france': 'France'
+    }
+    category_label = category_map.get(category, category.capitalize() if category else 'Article')
+
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#1e3a5f 0%,#0f4c8a 100%);padding:28px 32px;text-align:center;">
+    <p style="color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;">AccessHub Global — Blog</p>
+    <h1 style="color:#ffffff;font-size:21px;font-weight:800;margin:0 0 6px;line-height:1.3;">Nouvel Article Publié</h1>
+    <p style="color:#bfdbfe;font-size:13px;margin:0;">Restez informé de l'actualité des études à l'étranger</p>
+  </div>
+
+  <!-- Cover Image -->
+  {cover_block}
+
+  <!-- Body -->
+  <div style="padding:28px 32px;">
+
+    <!-- Category & Meta -->
+    <div style="margin-bottom:18px;">
+      <span style="display:inline-block;background:#eff6ff;color:#1d4ed8;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">{category_label}</span>
+      {f'<span style="color:#9ca3af;font-size:12px;margin-left:10px;">{date_str}</span>' if date_str else ""}
+      {f'<span style="color:#9ca3af;font-size:12px;margin-left:8px;">par {author_name}</span>' if author_name else ""}
+    </div>
+
+    <!-- Title -->
+    <h2 style="color:#1e3a5f;font-size:22px;font-weight:800;margin:0 0 16px;line-height:1.35;">{title}</h2>
+
+    <!-- Preview -->
+    {f'<p style="color:#4b5563;font-size:15px;line-height:1.75;margin:0 0 24px;border-left:3px solid #bfdbfe;padding-left:16px;">{preview}</p>' if preview else ""}
+
+    <!-- Decorative separator -->
+    <div style="border-top:1px solid #e5e7eb;margin:24px 0;"></div>
+
+    <!-- CTA Button -->
+    <div style="text-align:center;margin:24px 0 8px;">
+      <a href="{post_url}" style="display:inline-block;background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#ffffff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 15px rgba(26,86,219,0.4);">
+        Lire l'article complet &rarr;
+      </a>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:8px 0 0;">Retrouvez tous nos articles sur le blog AccessHub Global</p>
+
+  </div>
+
+  <!-- Footer -->
+  {_newsletter_footer()}
+
+</div>
+</body>
+</html>"""
+
+
+async def broadcast_newsletter_offer(offer: dict):
+    """Send newsletter to all subscribers when a new offer is published. Runs in background."""
+    try:
+        db = get_db()
+        subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(10000)
+        if not subscribers:
+            logger.info("Newsletter offer: no subscribers found")
+            return
+        html = _build_offer_email(offer)
+        subject = f"Nouvelle offre : {offer.get('title', '')} — {offer.get('university', '')} 🎓"
+        tasks = [send_email(sub["email"], subject, html) for sub in subscribers]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        sent = sum(1 for r in results if not isinstance(r, Exception) and r is not None)
+        logger.info(f"Newsletter offer sent to {sent}/{len(subscribers)} subscribers")
+    except Exception as e:
+        logger.error(f"Newsletter offer broadcast failed: {e}")
+
+
+async def broadcast_newsletter_blog(post: dict):
+    """Send newsletter to all subscribers when a new blog post is published. Runs in background."""
+    try:
+        db = get_db()
+        subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(10000)
+        if not subscribers:
+            logger.info("Newsletter blog: no subscribers found")
+            return
+        html = _build_blog_email(post)
+        subject = f"Nouvel article : {post.get('title', '')} ✍️"
+        tasks = [send_email(sub["email"], subject, html) for sub in subscribers]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        sent = sum(1 for r in results if not isinstance(r, Exception) and r is not None)
+        logger.info(f"Newsletter blog sent to {sent}/{len(subscribers)} subscribers")
+    except Exception as e:
+        logger.error(f"Newsletter blog broadcast failed: {e}")
+
+
 # ============= DATABASE =============
 
 _client = None

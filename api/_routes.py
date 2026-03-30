@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
 from fastapi.security import HTTPAuthorizationCredentials
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 import uuid
 import os
+import asyncio
 import logging
 
 from _models import (
@@ -27,6 +28,7 @@ from _helpers import (
     get_current_user, get_admin_user, get_principal_admin, get_agent_user, serialize_doc, security,
     send_notification, broadcast_to_admins,
     generate_verification_code, send_verification_email, send_password_reset_email,
+    broadcast_newsletter_offer, broadcast_newsletter_blog,
 )
 
 logger = logging.getLogger(__name__)
@@ -948,7 +950,9 @@ async def admin_get_offers(admin: dict = Depends(get_admin_user)):
 async def admin_create_offer(offer_data: OfferCreate, admin: dict = Depends(get_admin_user)):
     db = get_db()
     offer = Offer(**offer_data.model_dump())
-    await db.offers.insert_one(serialize_doc(offer.model_dump()))
+    offer_dict = serialize_doc(offer.model_dump())
+    await db.offers.insert_one(offer_dict)
+    asyncio.create_task(broadcast_newsletter_offer(offer.model_dump()))
     return {"message": "Offre créée avec succès", "id": offer.id}
 
 
@@ -1301,17 +1305,25 @@ async def admin_create_blog_post(post: BlogPostCreate, admin: dict = Depends(get
     }
     await db.blog_posts.insert_one(post_data)
     del post_data["_id"]
+    if post_data.get("published"):
+        asyncio.create_task(broadcast_newsletter_blog(post_data))
     return post_data
 
 
 @api_router.put("/admin/blog/{post_id}")
 async def admin_update_blog_post(post_id: str, update: BlogPostUpdate, admin: dict = Depends(get_admin_user)):
     db = get_db()
+    prev = await db.blog_posts.find_one({"id": post_id}, {"_id": 0, "published": 1})
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
     result = await db.blog_posts.update_one({"id": post_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Article non trouvé")
+    # Send newsletter if post just got published
+    if update_data.get("published") and prev and not prev.get("published"):
+        full_post = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+        if full_post:
+            asyncio.create_task(broadcast_newsletter_blog(full_post))
     return {"message": "Article mis à jour"}
 
 
