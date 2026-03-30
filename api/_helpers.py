@@ -140,16 +140,19 @@ def _build_offer_email(offer: dict) -> str:
     if original_tuition > 0:
         if has_scholarship and scholarship_tuition >= 0:
             tuition_block = f"""
-            <div style="display:flex;gap:16px;margin:16px 0;">
-              <div style="flex:1;background:#fef9c3;border-radius:10px;padding:14px;text-align:center;">
-                <p style="color:#854d0e;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Frais normaux</p>
-                <p style="color:#92400e;font-size:18px;font-weight:700;margin:0;text-decoration:line-through;">{int(original_tuition):,} {currency}</p>
-              </div>
-              <div style="flex:1;background:#dcfce7;border-radius:10px;padding:14px;text-align:center;">
-                <p style="color:#14532d;font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">Après bourse</p>
-                <p style="color:#166534;font-size:18px;font-weight:700;margin:0;">{int(scholarship_tuition):,} {currency}</p>
-              </div>
-            </div>"""
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-collapse:separate;border-spacing:12px 0;">
+              <tr>
+                <td width="48%" style="background:#fef9c3;border-radius:10px;padding:16px;text-align:center;vertical-align:top;">
+                  <p style="color:#854d0e;font-size:11px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Frais normaux</p>
+                  <p style="color:#92400e;font-size:20px;font-weight:700;margin:0;text-decoration:line-through;">{int(original_tuition):,} {currency}</p>
+                </td>
+                <td width="4%"></td>
+                <td width="48%" style="background:#dcfce7;border-radius:10px;padding:16px;text-align:center;vertical-align:top;">
+                  <p style="color:#14532d;font-size:11px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Après bourse</p>
+                  <p style="color:#166534;font-size:20px;font-weight:700;margin:0;">{int(scholarship_tuition):,} {currency}</p>
+                </td>
+              </tr>
+            </table>"""
         else:
             tuition_block = f"""
             <div style="background:#eff6ff;border-radius:10px;padding:14px;text-align:center;margin:16px 0;">
@@ -177,9 +180,9 @@ def _build_offer_email(offer: dict) -> str:
 
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#1e3a5f 0%,#1a56db 100%);padding:28px 32px;text-align:center;">
-    <p style="color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;">AccessHub Global</p>
+    <p style="color:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;opacity:0.85;">AccessHub Global</p>
     <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 6px;line-height:1.3;">Nouvelle Opportunité<br>de Bourse !</h1>
-    <p style="color:#bfdbfe;font-size:13px;margin:0;">Une nouvelle offre vient d'être ajoutée sur la plateforme</p>
+    <p style="color:#ffffff;font-size:13px;margin:0;opacity:0.9;">Une nouvelle offre vient d'être ajoutée sur la plateforme</p>
   </div>
 
   <!-- Cover Image -->
@@ -200,28 +203,36 @@ def _build_offer_email(offer: dict) -> str:
     {tuition_block}
 
     <!-- Key Details Grid -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0;">
-      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
-        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Diplôme</p>
-        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{degree}</p>
-      </div>
-      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
-        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Durée</p>
-        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{duration}</p>
-      </div>
-      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
-        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Langue d'enseignement</p>
-        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{teaching_lang}</p>
-      </div>
-      <div style="background:#f8fafc;border-radius:8px;padding:12px;">
-        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Rentrée</p>
-        <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{intake}</p>
-      </div>
-      <div style="background:{'#fef2f2' if deadline != 'Ouvert' else '#f0fdf4'};border-radius:8px;padding:12px;grid-column:1/-1;">
-        <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Date limite de candidature</p>
-        <p style="color:{'#dc2626' if deadline != 'Ouvert' else '#16a34a'};font-size:15px;font-weight:700;margin:0;">⏰ {deadline}</p>
-      </div>
-    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 8px;">
+      <tr>
+        <td width="49%" style="background:#f8fafc;border-radius:8px;padding:12px;vertical-align:top;">
+          <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Diplôme</p>
+          <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{degree}</p>
+        </td>
+        <td width="2%"></td>
+        <td width="49%" style="background:#f8fafc;border-radius:8px;padding:12px;vertical-align:top;">
+          <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Durée</p>
+          <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{duration}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#f8fafc;border-radius:8px;padding:12px;vertical-align:top;">
+          <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Langue d'enseignement</p>
+          <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{teaching_lang}</p>
+        </td>
+        <td></td>
+        <td style="background:#f8fafc;border-radius:8px;padding:12px;vertical-align:top;">
+          <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Rentrée</p>
+          <p style="color:#111827;font-size:14px;font-weight:600;margin:0;">{intake}</p>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="3" style="background:{'#fef2f2' if deadline != 'Ouvert' else '#f0fdf4'};border-radius:8px;padding:12px;vertical-align:top;">
+          <p style="color:#9ca3af;font-size:11px;margin:0 0 3px;text-transform:uppercase;">Date limite de candidature</p>
+          <p style="color:{'#dc2626' if deadline != 'Ouvert' else '#16a34a'};font-size:15px;font-weight:700;margin:0;">⏰ {deadline}</p>
+        </td>
+      </tr>
+    </table>
 
     <!-- CTA Button -->
     <div style="text-align:center;margin:28px 0 8px;">
