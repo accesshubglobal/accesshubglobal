@@ -31,6 +31,8 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] Resend domaine mis à jour (auth.accesshubglobal.com)
 - [x] Fix upload images universités
 - [x] 5 pages institutionnelles (/about, /company, /legal, /privacy, /terms)
+- [x] Formulaire candidature étendu: 11 sections (Personal Info, Adresses, Santé, Chine, Passeport, Formation, Expérience, Famille, Garant, Contact urgence)
+- [x] Credentials Cloudinary et Resend mis à jour (cloud: dtjgzpmna)
 
 ## Tâches À Venir
 ### P1 - Priorité haute

@@ -717,7 +717,7 @@ async def get_application_details(app_id: str, current_user: dict = Depends(get_
     if not application:
         raise HTTPException(status_code=404, detail="Candidature non trouvée")
 
-    if application["userId"] != current_user["id"] and current_user.get("role") != "admin":
+    if application["userId"] != current_user["id"] and current_user.get("role") not in ["admin", "admin_principal", "admin_secondaire"]:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
     return application
