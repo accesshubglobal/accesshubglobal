@@ -138,10 +138,10 @@ const Footer = () => {
             </p>
          <div className="flex gap-3">
           {[
-            { Icon: Facebook, link: "https://www.facebook.com/share/14VpiUC1fpP/?mibextid=wwXIfr" },
-            { Icon: Music2, link: "https://www.tiktok.com/@winnersconsulting" },
-            { Icon: Instagram, link: "https://www.instagram.com/winnerssconsulting?igsh=M3U3cjY2dWZkNHUy&utm_source=qr" },
-            { Icon: Youtube, link: "https://youtube.com/@winnersconsulting?si=bIT3rN-NJn2Yi-Sn" },
+            { Icon: Facebook, link: "https://www.facebook.com/share/1JuB8dae6F/?mibextid=wwXIfr" },
+            { Icon: Music2, link: "https://www.tiktok.com/@accesshubglobal" },
+            { Icon: Instagram, link: "https://www.youtube.com/redirect?event=channel_description&redir_token=QUFFLUhqbUFYWFkyaE1aZEtGMlBsb2ZJbmNiSjJtUVlsZ3xBQ3Jtc0trRkFUTTNwazdXdW5yeDhJTU0xM0FoaGxBUDJ2eDVLcG1WTFBDbHZaZkZxcDhTOTJMM0VkZXBOaGZ0TTR4Y3ltR1pqZ2p2NElvUndiMXpydkVqTWxhT2FYQmJDWkdpYUEyZnowUVhuRzRzdlA4c2pOWQ&q=https%3A%2F%2Fwww.instagram.com%2Faccesshubglobal%3Figsh%3DM3U3cjY2dWZkNHUy%26utm_source%3Dqr" },
+            { Icon: Youtube, link: "http://www.youtube.com/@AccessHubGlobal" },
           ].map(({ Icon, link }, index) => (
             <a
               key={index}
