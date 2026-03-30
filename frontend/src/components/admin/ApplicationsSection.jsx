@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   FileText, Search, ArrowLeft, User, Mail, Phone, MapPin, Calendar, CreditCard,
   Paperclip, Eye, Download, ExternalLink, AlertTriangle, CheckCircle, XCircle,
-  RefreshCw, MessageCircle, Send, X, ClipboardList, ChevronRight
+  RefreshCw, MessageCircle, Send, X, ClipboardList, ChevronRight,
+  Heart, BookOpen, Briefcase, Users, Globe, Printer
 } from 'lucide-react';
 import axios, { API, BACKEND_URL } from './adminApi';
 
@@ -17,6 +18,27 @@ const getStatusBadge = (status) => {
   const c = config[status] || config.pending;
   return <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.color}`}>{c.label}</span>;
 };
+
+const InfoRow = ({ label, value }) => (
+  value ? (
+    <div>
+      <p className="text-xs text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className="text-sm text-gray-800 font-medium mt-0.5">{value}</p>
+    </div>
+  ) : null
+);
+
+const SectionBlock = ({ title, icon: Icon, color = 'text-[#1e3a5f]', children }) => (
+  <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div className="px-6 py-4 border-b border-gray-100">
+      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+        {Icon && <Icon size={18} className={color} />}
+        {title}
+      </h4>
+    </div>
+    <div className="p-6">{children}</div>
+  </div>
+);
 
 const ApplicationsSection = () => {
   const [applications, setApplications] = useState([]);
@@ -105,6 +127,20 @@ const ApplicationsSection = () => {
 
   const openApplicationDetail = (app) => { setSelectedApp(app); loadAppMessages(app.id); };
 
+  // PDF Download
+  const handleDownloadPDF = async () => {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const element = document.getElementById('admin-application-detail-content');
+    const opt = {
+      margin: 8,
+      filename: `candidature-${selectedApp.firstName}-${selectedApp.lastName}-${selectedApp.id?.substring(0, 8)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  };
+
   const getFilteredApplications = () => {
     return applications.filter(app => {
       const matchesSearch = appSearchQuery === '' ||
@@ -115,6 +151,9 @@ const ApplicationsSection = () => {
       return matchesSearch && matchesStatus;
     });
   };
+
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+  const val = (v) => v || '—';
 
   return (
     <div data-testid="applications-admin-section">
@@ -140,6 +179,7 @@ const ApplicationsSection = () => {
       {selectedApp ? (
         /* Application Detail View */
         <div className="space-y-6" data-testid="application-detail-view">
+          {/* Header */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -149,87 +189,259 @@ const ApplicationsSection = () => {
                   <p className="text-blue-200 text-sm">{selectedApp.offerTitle}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap justify-end">
                 {getStatusBadge(selectedApp.status)}
                 <span className="text-blue-200 text-xs">{new Date(selectedApp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                {/* PDF Download Button */}
+                <button
+                  data-testid="download-pdf-btn"
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl border border-white/20 transition-all"
+                >
+                  <Download size={16} />
+                  Télécharger PDF
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl border border-white/20 transition-all"
+                >
+                  <Printer size={16} />
+                  Imprimer
+                </button>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              {/* Personal Information */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100"><h4 className="font-semibold text-gray-900 flex items-center gap-2"><User size={18} className="text-[#1e3a5f]" /> Informations personnelles</h4></div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    {[
-                      { icon: User, label: 'Nom complet', value: `${selectedApp.firstName} ${selectedApp.lastName}` },
-                      { icon: Mail, label: 'Email', value: selectedApp.userEmail },
-                      { icon: Phone, label: 'Téléphone', value: selectedApp.phoneNumber || '—' },
-                      { icon: MapPin, label: 'Adresse', value: selectedApp.address || '—' },
-                      { icon: ClipboardList, label: 'Nationalité', value: selectedApp.nationality || '—' },
-                      { icon: User, label: 'Sexe', value: selectedApp.sex === 'M' ? 'Masculin' : selectedApp.sex === 'F' ? 'Féminin' : (selectedApp.sex || '—') },
-                      { icon: FileText, label: 'N° Passeport', value: selectedApp.passportNumber || '—' },
-                      { icon: Calendar, label: 'Date de naissance', value: selectedApp.dateOfBirth || '—' },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-gray-50"><item.icon size={16} className="text-gray-500" /></div>
-                        <div><p className="text-xs text-gray-400 uppercase tracking-wide">{item.label}</p><p className="text-sm text-gray-800 font-medium mt-0.5">{item.value}</p></div>
-                      </div>
-                    ))}
+            {/* Left: Full Application Content (PDF target) */}
+            <div className="lg:col-span-2 space-y-6" id="admin-application-detail-content">
+
+              {/* Application Header for PDF */}
+              <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-[#1e3a5f]">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">{selectedApp.offerTitle}</h2>
+                    <p className="text-gray-500 text-sm mt-1">Réf : #{selectedApp.id?.substring(0, 8)}</p>
+                    <p className="text-gray-500 text-sm">Soumis le {new Date(selectedApp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
-                  {selectedApp.additionalPrograms?.length > 0 && (
-                    <div className="mt-5 pt-5 border-t border-gray-100">
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Programmes additionnels</p>
-                      <div className="flex flex-wrap gap-2">{selectedApp.additionalPrograms.map((p, i) => <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">{p}</span>)}</div>
-                    </div>
-                  )}
+                  <div>{getStatusBadge(selectedApp.status)}</div>
                 </div>
               </div>
 
-              {/* Documents */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100"><h4 className="font-semibold text-gray-900 flex items-center gap-2"><Paperclip size={18} className="text-[#1e3a5f]" /> Documents ({selectedApp.documents?.length || 0})</h4></div>
-                <div className="p-6">
-                  {selectedApp.documents?.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {selectedApp.documents.map((doc, i) => {
-                        const docName = typeof doc === 'string' ? doc : (doc.name || doc.label || `Document ${i + 1}`);
-                        const docUrl = typeof doc === 'string' ? doc : (doc.url || doc.file || doc);
-                        const isImage = typeof docUrl === 'string' && /\.(jpg|jpeg|png|gif|webp)/i.test(docUrl);
-                        return (
-                          <div key={i} className="border border-gray-100 rounded-xl p-4 hover:border-[#1e3a5f]/30 hover:shadow-sm transition-all group">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2.5 rounded-lg bg-blue-50 group-hover:bg-blue-100"><FileText size={18} className="text-[#1e3a5f]" /></div>
-                              <div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-800 truncate">{docName}</p></div>
-                            </div>
-                            {typeof docUrl === 'string' && docUrl.startsWith('http') && (
-                              <div className="flex gap-2 mt-3">
-                                <a href={docUrl} target="_blank" rel="noopener noreferrer" data-testid={`view-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-medium text-gray-700"><Eye size={14} /> Voir</a>
-                                <a href={docUrl} download data-testid={`download-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg text-xs font-medium text-[#1e3a5f]"><Download size={14} /> Télécharger</a>
-                              </div>
-                            )}
-                            {isImage && typeof docUrl === 'string' && <div className="mt-3 rounded-lg overflow-hidden border border-gray-100"><img src={docUrl} alt={docName} className="w-full h-32 object-cover" /></div>}
-                          </div>
-                        );
-                      })}
+              {/* 1. Personal Information */}
+              <SectionBlock title="1. Informations Personnelles" icon={User}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <InfoRow label="Nom de famille" value={val(selectedApp.lastName)} />
+                  <InfoRow label="Prénom" value={val(selectedApp.firstName)} />
+                  <InfoRow label="Genre" value={selectedApp.sex === 'male' ? 'Masculin' : selectedApp.sex === 'female' ? 'Féminin' : val(selectedApp.sex)} />
+                  <InfoRow label="Nationalité" value={val(selectedApp.nationality)} />
+                  <InfoRow label="Pays de naissance" value={val(selectedApp.countryOfBirth)} />
+                  <InfoRow label="Langue maternelle" value={val(selectedApp.nativeLanguage)} />
+                  <InfoRow label="Religion" value={val(selectedApp.religion)} />
+                  <InfoRow label="Situation matrimoniale" value={val(selectedApp.maritalStatus)} />
+                  <InfoRow label="Date de naissance" value={formatDate(selectedApp.dateOfBirth)} />
+                  <InfoRow label="Lieu de naissance" value={val(selectedApp.placeOfBirth)} />
+                  <InfoRow label="Niveau d'études" value={val(selectedApp.highestEducation)} />
+                  <InfoRow label="Filière souhaitée (Chine)" value={val(selectedApp.majorInChina)} />
+                  <InfoRow label="Employeur/Institution" value={val(selectedApp.currentEmployer)} />
+                  <InfoRow label="Téléphone" value={val(selectedApp.phoneNumber)} />
+                  <InfoRow label="Email personnel" value={val(selectedApp.personalEmail || selectedApp.userEmail)} />
+                  <InfoRow label="Profession" value={val(selectedApp.occupation)} />
+                  <InfoRow label="Loisirs" value={val(selectedApp.hobby)} />
+                </div>
+              </SectionBlock>
+
+              {/* 2. Adresse permanente */}
+              <SectionBlock title="2. Adresse Permanente" icon={MapPin}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <InfoRow label="Adresse" value={val(selectedApp.address)} />
+                  <InfoRow label="Adresse détaillée" value={val(selectedApp.addressDetailed)} />
+                  <InfoRow label="Téléphone" value={val(selectedApp.addressPhone)} />
+                  <InfoRow label="Code postal" value={val(selectedApp.zipCode)} />
+                </div>
+                {(selectedApp.currentAddress) && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Adresse actuelle (si différente)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <InfoRow label="Adresse" value={val(selectedApp.currentAddress)} />
+                      <InfoRow label="Adresse détaillée" value={val(selectedApp.currentAddressDetailed)} />
+                      <InfoRow label="Téléphone" value={val(selectedApp.currentAddressPhone)} />
+                      <InfoRow label="Code postal" value={val(selectedApp.currentAddressZipCode)} />
                     </div>
-                  ) : (
-                    <div className="text-center py-8"><FileText size={32} className="mx-auto text-gray-200 mb-2" /><p className="text-sm text-gray-400">Aucun document</p></div>
-                  )}
-                  {selectedApp.paymentProof && (
-                    <div className="mt-5 pt-5 border-t border-gray-100">
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Preuve de paiement</p>
-                      <div className="border border-gray-100 rounded-xl p-4 flex items-center gap-3">
-                        <div className="p-2.5 rounded-lg bg-green-50"><CreditCard size={18} className="text-green-600" /></div>
-                        <div className="flex-1"><p className="text-sm font-medium text-gray-800">{selectedApp.paymentMethod || 'Preuve de paiement'}</p></div>
-                        <a href={selectedApp.paymentProof.startsWith('http') ? selectedApp.paymentProof : `${BACKEND_URL}${selectedApp.paymentProof}`} target="_blank" rel="noopener noreferrer" data-testid="view-payment-proof" className="px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-xs font-medium text-green-700 flex items-center gap-1.5"><ExternalLink size={14} /> Voir</a>
+                  </div>
+                )}
+              </SectionBlock>
+
+              {/* 3. Health Status */}
+              <SectionBlock title="3. État de Santé" icon={Heart} color="text-rose-600">
+                <div className="grid grid-cols-3 gap-4">
+                  <InfoRow label="Groupe sanguin" value={val(selectedApp.bloodGroup)} />
+                  <InfoRow label="Taille" value={val(selectedApp.height)} />
+                  <InfoRow label="Poids" value={val(selectedApp.weight)} />
+                </div>
+              </SectionBlock>
+
+              {/* 4. China Status */}
+              <SectionBlock title="4. Situation en Chine" icon={Globe} color="text-red-700">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <InfoRow label="Actuellement en Chine" value={selectedApp.inChinaNow ? 'Oui' : 'Non'} />
+                  {selectedApp.inChinaNow && <>
+                    <InfoRow label="École / Organisation" value={val(selectedApp.chinaSchool)} />
+                    <InfoRow label="Période (début)" value={formatDate(selectedApp.chinaLearningPeriodStart)} />
+                    <InfoRow label="Période (fin)" value={formatDate(selectedApp.chinaLearningPeriodEnd)} />
+                    <InfoRow label="Type de visa" value={val(selectedApp.chinaVisaType)} />
+                    <InfoRow label="N° de visa" value={val(selectedApp.chinaVisaNo)} />
+                    <InfoRow label="Expiration visa" value={formatDate(selectedApp.chinaVisaExpiry)} />
+                  </>}
+                </div>
+              </SectionBlock>
+
+              {/* 5. Passport */}
+              <SectionBlock title="5. Informations Passeport" icon={FileText} color="text-indigo-700">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <InfoRow label="N° Passeport" value={val(selectedApp.passportNumber)} />
+                  <InfoRow label="Date de délivrance" value={formatDate(selectedApp.passportIssuedDate)} />
+                  <InfoRow label="Date d'expiration" value={formatDate(selectedApp.passportExpiryDate)} />
+                  <InfoRow label="Ancien N° Passeport" value={val(selectedApp.oldPassportNo)} />
+                  <InfoRow label="Délivrance (ancien)" value={formatDate(selectedApp.oldPassportIssuedDate)} />
+                  <InfoRow label="Expiration (ancien)" value={formatDate(selectedApp.oldPassportExpiryDate)} />
+                </div>
+              </SectionBlock>
+
+              {/* 6. Educational Background */}
+              {selectedApp.educationalBackground?.some(e => e.instituteName) && (
+                <SectionBlock title="6. Formation Académique" icon={BookOpen} color="text-teal-700">
+                  <div className="space-y-4">
+                    {selectedApp.educationalBackground.filter(e => e.instituteName).map((edu, idx) => (
+                      <div key={idx} className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-3">École {String.fromCharCode(65 + idx)}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <InfoRow label="Établissement" value={val(edu.instituteName)} />
+                          <InfoRow label="Filière" value={val(edu.fieldOfStudy)} />
+                          <InfoRow label="Niveau" value={val(edu.educationLevel)} />
+                          <InfoRow label="De" value={formatDate(edu.yearsFrom)} />
+                          <InfoRow label="À" value={formatDate(edu.yearsTo)} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionBlock>
+              )}
+
+              {/* 7. Work Experience */}
+              {selectedApp.workExperience?.some(w => w.companyName) && (
+                <SectionBlock title="7. Expérience Professionnelle" icon={Briefcase} color="text-amber-700">
+                  <div className="space-y-4">
+                    {selectedApp.workExperience.filter(w => w.companyName).map((work, idx) => (
+                      <div key={idx} className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Expérience {String.fromCharCode(65 + idx)}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <InfoRow label="Entreprise" value={val(work.companyName)} />
+                          <InfoRow label="Poste" value={val(work.position)} />
+                          <InfoRow label="Secteur" value={val(work.industryType)} />
+                          <InfoRow label="De" value={formatDate(work.yearsFrom)} />
+                          <InfoRow label="À" value={formatDate(work.yearsTo)} />
+                          <InfoRow label="Personne de contact" value={val(work.contactPerson)} />
+                          <InfoRow label="Tél. contact" value={val(work.contactPhone)} />
+                          <InfoRow label="Email contact" value={val(work.contactEmail)} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionBlock>
+              )}
+
+              {/* 8. Family Information */}
+              <SectionBlock title="8. Informations Familiales" icon={Users} color="text-purple-700">
+                <div className="space-y-4">
+                  {[
+                    { key: 'fatherInfo', label: 'Père' },
+                    { key: 'motherInfo', label: 'Mère' },
+                    { key: 'spouseInfo', label: 'Conjoint(e)' }
+                  ].map(({ key, label }) => selectedApp[key]?.name && (
+                    <div key={key} className="bg-gray-50 rounded-xl p-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{label}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <InfoRow label="Nom" value={val(selectedApp[key].name)} />
+                        <InfoRow label="Nationalité" value={val(selectedApp[key].nationality)} />
+                        <InfoRow label="Date de naissance" value={formatDate(selectedApp[key].dob)} />
+                        <InfoRow label="N° Pièce d'identité" value={val(selectedApp[key].idNo)} />
+                        <InfoRow label="Téléphone" value={val(selectedApp[key].mobile)} />
+                        <InfoRow label="Email" value={val(selectedApp[key].email)} />
+                        <InfoRow label="Profession" value={val(selectedApp[key].occupation)} />
+                        <InfoRow label="Employeur" value={val(selectedApp[key].employer)} />
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              </div>
+              </SectionBlock>
+
+              {/* 9. Financial Sponsor */}
+              {selectedApp.financialSponsor?.relationship && (
+                <SectionBlock title="9. Garant Financier" icon={CreditCard} color="text-green-700">
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoRow label="Relation" value={val(selectedApp.financialSponsor.relationship)} />
+                    <InfoRow label="Adresse complète" value={val(selectedApp.financialSponsor.address)} />
+                  </div>
+                </SectionBlock>
+              )}
+
+              {/* 10. Emergency Contact */}
+              {selectedApp.emergencyContact?.name && (
+                <SectionBlock title="10. Contact d'Urgence en Chine" icon={Phone} color="text-orange-700">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <InfoRow label="Nom" value={val(selectedApp.emergencyContact.name)} />
+                    <InfoRow label="Relation" value={val(selectedApp.emergencyContact.relationship)} />
+                    <InfoRow label="Profession" value={val(selectedApp.emergencyContact.occupation)} />
+                    <InfoRow label="Nationalité" value={val(selectedApp.emergencyContact.nationality)} />
+                    <InfoRow label="N° Pièce d'identité" value={val(selectedApp.emergencyContact.idNo)} />
+                    <InfoRow label="Employeur" value={val(selectedApp.emergencyContact.employer)} />
+                    <InfoRow label="Adresse en Chine" value={val(selectedApp.emergencyContact.addressChina)} />
+                    <InfoRow label="Téléphone" value={val(selectedApp.emergencyContact.phone)} />
+                    <InfoRow label="Email" value={val(selectedApp.emergencyContact.email)} />
+                  </div>
+                </SectionBlock>
+              )}
+
+              {/* Documents */}
+              <SectionBlock title="Documents soumis" icon={Paperclip}>
+                {selectedApp.documents?.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedApp.documents.map((doc, i) => {
+                      const docName = typeof doc === 'string' ? doc : (doc.name || doc.label || `Document ${i + 1}`);
+                      const docUrl = typeof doc === 'string' ? doc : (doc.url || doc.file || doc);
+                      const isImage = typeof docUrl === 'string' && /\.(jpg|jpeg|png|gif|webp)/i.test(docUrl);
+                      return (
+                        <div key={i} className="border border-gray-100 rounded-xl p-4 hover:border-[#1e3a5f]/30 hover:shadow-sm transition-all group">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2.5 rounded-lg bg-blue-50 group-hover:bg-blue-100"><FileText size={18} className="text-[#1e3a5f]" /></div>
+                            <div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-800 truncate">{docName}</p></div>
+                          </div>
+                          {typeof docUrl === 'string' && docUrl.startsWith('http') && (
+                            <div className="flex gap-2 mt-3">
+                              <a href={docUrl} target="_blank" rel="noopener noreferrer" data-testid={`view-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-medium text-gray-700"><Eye size={14} /> Voir</a>
+                              <a href={docUrl} download data-testid={`download-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg text-xs font-medium text-[#1e3a5f]"><Download size={14} /> Télécharger</a>
+                            </div>
+                          )}
+                          {isImage && typeof docUrl === 'string' && <div className="mt-3 rounded-lg overflow-hidden border border-gray-100"><img src={docUrl} alt={docName} className="w-full h-32 object-cover" /></div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8"><FileText size={32} className="mx-auto text-gray-200 mb-2" /><p className="text-sm text-gray-400">Aucun document</p></div>
+                )}
+                {selectedApp.paymentProof && (
+                  <div className="mt-5 pt-5 border-t border-gray-100">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Preuve de paiement</p>
+                    <div className="border border-gray-100 rounded-xl p-4 flex items-center gap-3">
+                      <div className="p-2.5 rounded-lg bg-green-50"><CreditCard size={18} className="text-green-600" /></div>
+                      <div className="flex-1"><p className="text-sm font-medium text-gray-800">{selectedApp.paymentMethod || 'Preuve de paiement'}</p></div>
+                      <a href={selectedApp.paymentProof.startsWith('http') ? selectedApp.paymentProof : `${BACKEND_URL}${selectedApp.paymentProof}`} target="_blank" rel="noopener noreferrer" data-testid="view-payment-proof" className="px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-xs font-medium text-green-700 flex items-center gap-1.5"><ExternalLink size={14} /> Voir</a>
+                    </div>
+                  </div>
+                )}
+              </SectionBlock>
 
               {selectedApp.status === 'modify' && selectedApp.modifyReason && (
                 <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5" data-testid="modify-reason-display">
@@ -238,7 +450,7 @@ const ApplicationsSection = () => {
               )}
             </div>
 
-            {/* Right column */}
+            {/* Right column: Actions & Messaging */}
             <div className="space-y-6">
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100"><h4 className="font-semibold text-gray-900 text-sm">Actions rapides</h4></div>
