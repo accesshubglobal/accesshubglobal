@@ -1,10 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Upload, Check, AlertCircle, Loader2, FileText, User, CreditCard, Copy, ExternalLink } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Upload, Check, AlertCircle, Loader2, FileText, User, CreditCard, Copy, Plus, Trash2, Heart, BookOpen, Briefcase, Users } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
+
+// Reusable input component
+const Field = ({ label, required, children }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    {children}
+  </div>
+);
+
+const inputCls = "w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] text-sm";
+const selectCls = "w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] text-sm bg-white";
+
+// Section header
+const SectionHeader = ({ icon: Icon, title, color = "bg-[#1e3a5f]" }) => (
+  <div className={`flex items-center gap-2 px-4 py-2 ${color} text-white rounded-lg mb-4 mt-6 first:mt-0`}>
+    {Icon && <Icon size={16} />}
+    <span className="font-semibold text-sm">{title}</span>
+  </div>
+);
+
+const defaultEducation = { instituteName: '', yearsFrom: '', yearsTo: '', fieldOfStudy: '', educationLevel: '' };
+const defaultWork = { companyName: '', position: '', industryType: '', yearsFrom: '', yearsTo: '', contactPerson: '', contactPhone: '', contactEmail: '' };
+const defaultFamilyMember = { name: '', nationality: '', dob: '', idNo: '', mobile: '', email: '', occupation: '', employer: '' };
 
 const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const { user, token } = useAuth();
@@ -14,16 +39,67 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [deadlineStatus, setDeadlineStatus] = useState(null);
 
-  // Form data
   const [formData, setFormData] = useState({
+    // Personal Info
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
-    nationality: '',
     sex: '',
-    passportNumber: '',
+    nationality: '',
+    countryOfBirth: '',
+    nativeLanguage: '',
+    religion: '',
+    maritalStatus: '',
     dateOfBirth: '',
+    placeOfBirth: '',
+    highestEducation: '',
+    majorInChina: '',
+    currentEmployer: '',
     phoneNumber: user?.phone || '',
+    personalEmail: user?.email || '',
+    occupation: '',
+    hobby: '',
+    // Home Address
     address: '',
+    addressDetailed: '',
+    addressPhone: '',
+    zipCode: '',
+    // Current Address (if different)
+    currentAddress: '',
+    currentAddressDetailed: '',
+    currentAddressPhone: '',
+    currentAddressZipCode: '',
+    // Health
+    bloodGroup: '',
+    height: '',
+    weight: '',
+    // China
+    inChinaNow: false,
+    chinaSchool: '',
+    chinaLearningPeriodStart: '',
+    chinaLearningPeriodEnd: '',
+    chinaVisaType: '',
+    chinaVisaNo: '',
+    chinaVisaExpiry: '',
+    // Passport
+    passportNumber: '',
+    passportIssuedDate: '',
+    passportExpiryDate: '',
+    oldPassportNo: '',
+    oldPassportIssuedDate: '',
+    oldPassportExpiryDate: '',
+    // Education (3 schools)
+    educationalBackground: [{ ...defaultEducation }, { ...defaultEducation }, { ...defaultEducation }],
+    // Work (2 entries)
+    workExperience: [{ ...defaultWork }, { ...defaultWork }],
+    // Family
+    fatherInfo: { ...defaultFamilyMember },
+    motherInfo: { ...defaultFamilyMember },
+    spouseInfo: { ...defaultFamilyMember },
+    // Financial Sponsor
+    financialSponsor: { relationship: '', address: '' },
+    // Emergency Contact
+    emergencyContact: { name: '', relationship: '', occupation: '', nationality: '', idNo: '', employer: '', addressChina: '', phone: '', email: '' },
+    // Application
     additionalPrograms: [],
     documents: [],
     termsAccepted: false,
@@ -32,7 +108,6 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     paymentAmount: 0
   });
 
-  // Uploaded files state
   const [uploadedDocs, setUploadedDocs] = useState({});
   const [uploadingDoc, setUploadingDoc] = useState(null);
   const [paymentProofFile, setPaymentProofFile] = useState(null);
@@ -49,10 +124,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     try {
       const response = await axios.get(`${API}/payment-settings`);
       setPaymentSettings(response.data);
-      setFormData(prev => ({
-        ...prev,
-        paymentAmount: response.data.applicationFee || 50
-      }));
+      setFormData(prev => ({ ...prev, paymentAmount: response.data.applicationFee || 50 }));
     } catch (err) {
       console.error('Error loading payment settings:', err);
     }
@@ -68,57 +140,35 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     }
   };
 
-  // Upload file: try direct Cloudinary first (avoids Vercel 4.5MB limit), fallback to backend
   const uploadFile = async (file) => {
-    // Step 1: Get Cloudinary signature from backend
     let sigData;
     try {
-      const sigRes = await axios.get(`${API}/upload/signature`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const sigRes = await axios.get(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
       sigData = sigRes.data;
-    } catch (sigErr) {
-      // Signature endpoint failed - try direct backend upload as fallback
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
-      const response = await axios.post(`${API}/upload`, formDataUpload, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        timeout: 60000
-      });
+    } catch {
+      const fd = new FormData();
+      fd.append('file', file);
+      const response = await axios.post(`${API}/upload`, fd, { headers: { 'Authorization': `Bearer ${token}` }, timeout: 60000 });
       return { url: response.data.url, filename: file.name };
     }
-
-    // Step 2: Verify we have all required Cloudinary params
     const { signature, timestamp, cloud_name, api_key, folder } = sigData;
     if (!api_key || !cloud_name || !signature) {
-      // Cloudinary not configured on server - try direct backend upload
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
-      const response = await axios.post(`${API}/upload`, formDataUpload, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        timeout: 60000
-      });
+      const fd = new FormData();
+      fd.append('file', file);
+      const response = await axios.post(`${API}/upload`, fd, { headers: { 'Authorization': `Bearer ${token}` }, timeout: 60000 });
       return { url: response.data.url, filename: file.name };
     }
-
-    // Step 3: Upload directly to Cloudinary
     const cloudFormData = new FormData();
     cloudFormData.append('file', file);
     cloudFormData.append('signature', signature);
     cloudFormData.append('timestamp', String(timestamp));
     cloudFormData.append('api_key', api_key);
     cloudFormData.append('folder', folder);
-
-    const cloudRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
-      { method: 'POST', body: cloudFormData }
-    );
-
+    const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, { method: 'POST', body: cloudFormData });
     if (!cloudRes.ok) {
       const errData = await cloudRes.json().catch(() => ({}));
       throw new Error(errData?.error?.message || 'Erreur Cloudinary');
     }
-
     const cloudData = await cloudRes.json();
     return { url: cloudData.secure_url, filename: file.name };
   };
@@ -126,31 +176,18 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const handleDocUpload = async (e, docName) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError(`Le fichier ${docName} est trop volumineux (max 10 Mo)`);
-      return;
-    }
-
-    setUploadingDoc(docName);
-    setError('');
-
+    if (file.size > 10 * 1024 * 1024) { setError(`Le fichier ${docName} est trop volumineux (max 10 Mo)`); return; }
+    setUploadingDoc(docName); setError('');
     try {
       const result = await uploadFile(file);
-
-      setUploadedDocs(prev => ({
-        ...prev,
-        [docName]: { name: file.name, url: result.url }
-      }));
-
+      setUploadedDocs(prev => ({ ...prev, [docName]: { name: file.name, url: result.url } }));
       setFormData(prev => {
         const newDocs = prev.documents.filter(d => d.name !== docName);
         newDocs.push({ name: docName, url: result.url, filename: file.name });
         return { ...prev, documents: newDocs };
       });
     } catch (err) {
-      const detail = err.response?.data?.detail || err.message || '';
-      setError(`Erreur lors du téléchargement de ${docName}. ${detail}`);
+      setError(`Erreur lors du téléchargement de ${docName}. ${err.response?.data?.detail || err.message || ''}`);
     }
     setUploadingDoc(null);
   };
@@ -158,40 +195,27 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const handlePaymentProofUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Le fichier est trop volumineux (max 10 Mo)');
-      return;
-    }
-
-    setUploadingProof(true);
-    setError('');
-
+    if (file.size > 10 * 1024 * 1024) { setError('Le fichier est trop volumineux (max 10 Mo)'); return; }
+    setUploadingProof(true); setError('');
     try {
       const result = await uploadFile(file);
       setPaymentProofFile({ name: file.name, url: result.url });
       setFormData(prev => ({ ...prev, paymentProof: result.url }));
     } catch (err) {
-      const detail = err.response?.data?.detail || err.message || '';
-      setError(`Erreur lors du téléchargement du justificatif. ${detail}`);
+      setError(`Erreur lors du téléchargement du justificatif. ${err.response?.data?.detail || err.message || ''}`);
     }
     setUploadingProof(false);
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
-
+    setLoading(true); setError('');
     try {
       await axios.post(`${API}/applications/full`, {
         offerId: offer.id,
         offerTitle: offer.title,
         ...formData,
         paymentAmount: offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || formData.paymentAmount
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      }, { headers: { Authorization: `Bearer ${token}` } });
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
@@ -200,23 +224,26 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     setLoading(false);
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-  };
+  const copyToClipboard = (text) => navigator.clipboard.writeText(text);
 
-  const canProceedStep1 = formData.firstName && formData.lastName && formData.nationality && 
+  const setField = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
+  const setNestedField = (parent, key, value) => setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [key]: value } }));
+  const setArrayField = (arrayKey, index, field, value) => setFormData(prev => {
+    const arr = [...prev[arrayKey]];
+    arr[index] = { ...arr[index], [field]: value };
+    return { ...prev, [arrayKey]: arr };
+  });
+
+  const canProceedStep1 = formData.firstName && formData.lastName && formData.nationality &&
     formData.sex && formData.passportNumber && formData.dateOfBirth && formData.phoneNumber && formData.address;
 
   const requiredDocs = offer?.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer?.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV'];
   const canProceedStep2 = requiredDocs.length === 0 || formData.documents.length >= 1;
-
   const canProceedStep3 = formData.termsAccepted;
-
   const canSubmit = formData.paymentMethod && formData.paymentProof;
 
   if (!isOpen || !offer) return null;
 
-  // Check if deadline passed
   if (deadlineStatus && !deadlineStatus.isOpen) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -226,253 +253,456 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
             <AlertCircle size={32} className="text-red-500" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">Date limite dépassée</h3>
-          <p className="text-gray-600 mb-6">
-            La date limite de candidature pour ce programme était le {deadlineStatus.deadline}. 
-            Les candidatures ne sont plus acceptées.
-          </p>
-          <button
-            onClick={onClose}
-            className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-          >
-            Fermer
-          </button>
+          <p className="text-gray-600 mb-6">La date limite de candidature pour ce programme était le {deadlineStatus.deadline}. Les candidatures ne sont plus acceptées.</p>
+          <button onClick={onClose} className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">Fermer</button>
         </div>
       </div>
     );
   }
 
+  const steps = [
+    { num: 1, label: 'Profil', icon: User },
+    { num: 2, label: 'Documents', icon: FileText },
+    { num: 3, label: 'Conditions', icon: Check },
+    { num: 4, label: 'Paiement', icon: CreditCard }
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      
-      <div className="relative bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden" data-testid="application-modal">
+      <div className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col" data-testid="application-modal">
+
         {/* Header */}
-        <div className="bg-[#1e3a5f] text-white p-6">
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
-          >
-            <X size={24} />
-          </button>
-          <h2 className="text-xl font-bold mb-1">Postuler: {offer.title}</h2>
+        <div className="bg-[#1e3a5f] text-white px-6 py-4 flex-shrink-0">
+          <button onClick={onClose} className="absolute top-4 right-4 text-white/80 hover:text-white"><X size={24} /></button>
+          <h2 className="text-xl font-bold mb-1">Postuler : {offer.title}</h2>
           <p className="text-white/70 text-sm">{offer.university} • {offer.city}</p>
         </div>
 
         {/* Progress Steps */}
-        <div className="bg-gray-50 px-6 py-4 border-b">
+        <div className="bg-gray-50 px-6 py-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between max-w-lg mx-auto">
-            {[
-              { num: 1, label: 'Informations', icon: User },
-              { num: 2, label: 'Documents', icon: FileText },
-              { num: 3, label: 'Conditions', icon: Check },
-              { num: 4, label: 'Paiement', icon: CreditCard }
-            ].map((step, index) => {
+            {steps.map((step, index) => {
               const Icon = step.icon;
               const isActive = currentStep === step.num;
               const isCompleted = currentStep > step.num;
               return (
                 <React.Fragment key={step.num}>
                   <div className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      isCompleted ? 'bg-green-500 text-white' :
-                      isActive ? 'bg-[#1a56db] text-white' :
-                      'bg-gray-200 text-gray-500'
-                    }`}>
-                      {isCompleted ? <Check size={18} /> : <Icon size={18} />}
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${isCompleted ? 'bg-green-500 text-white' : isActive ? 'bg-[#1a56db] text-white' : 'bg-gray-200 text-gray-500'}`}>
+                      {isCompleted ? <Check size={16} /> : <Icon size={16} />}
                     </div>
-                    <span className={`text-xs mt-1 ${isActive ? 'text-[#1a56db] font-medium' : 'text-gray-500'}`}>
-                      {step.label}
-                    </span>
+                    <span className={`text-xs mt-1 ${isActive ? 'text-[#1a56db] font-medium' : 'text-gray-500'}`}>{step.label}</span>
                   </div>
-                  {index < 3 && (
-                    <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.num ? 'bg-green-500' : 'bg-gray-200'}`} />
-                  )}
+                  {index < 3 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.num ? 'bg-green-500' : 'bg-gray-200'}`} />}
                 </React.Fragment>
               );
             })}
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="mx-6 mt-4 bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-            <AlertCircle size={18} />
-            {error}
+          <div className="mx-6 mt-3 bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2 flex-shrink-0">
+            <AlertCircle size={16} />{error}
           </div>
         )}
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-300px)]">
-          {/* Step 1: Personal Information */}
+        <div className="flex-1 overflow-y-auto p-6">
+
+          {/* ===== STEP 1: FULL PROFILE ===== */}
           {currentStep === 1 && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 mb-4">Informations personnelles</h3>
-              
+            <div>
+              {/* 1. Personal Information */}
+              <SectionHeader icon={User} title="1. Informations Personnelles / Personal Information" />
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                  <input
-                    type="text"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    data-testid="input-firstName"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input
-                    type="text"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    data-testid="input-lastName"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité *</label>
-                  <input
-                    type="text"
-                    value={formData.nationality}
-                    onChange={(e) => setFormData({...formData, nationality: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    placeholder="Ex: Français"
-                    data-testid="input-nationality"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sexe *</label>
-                  <select
-                    value={formData.sex}
-                    onChange={(e) => setFormData({...formData, sex: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    data-testid="input-sex"
-                  >
+                <Field label="Nom de famille (comme sur passeport)" required>
+                  <input type="text" value={formData.lastName} onChange={e => setField('lastName', e.target.value)} className={inputCls} data-testid="input-lastName" />
+                </Field>
+                <Field label="Prénom (comme sur passeport)" required>
+                  <input type="text" value={formData.firstName} onChange={e => setField('firstName', e.target.value)} className={inputCls} data-testid="input-firstName" />
+                </Field>
+                <Field label="Genre / Gender" required>
+                  <select value={formData.sex} onChange={e => setField('sex', e.target.value)} className={selectCls} data-testid="input-sex">
                     <option value="">Sélectionner</option>
-                    <option value="male">Masculin</option>
-                    <option value="female">Féminin</option>
+                    <option value="male">Masculin / Male</option>
+                    <option value="female">Féminin / Female</option>
+                    <option value="other">Autre / Other</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de passeport *</label>
-                  <input
-                    type="text"
-                    value={formData.passportNumber}
-                    onChange={(e) => setFormData({...formData, passportNumber: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    data-testid="input-passport"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance *</label>
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    data-testid="input-dob"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
-                  <input
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db]"
-                    placeholder="+33 6 12 34 56 78"
-                    data-testid="input-phone"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse complète *</label>
-                  <textarea
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] resize-none"
-                    rows={2}
-                    placeholder="Numéro, rue, code postal, ville, pays"
-                    data-testid="input-address"
-                  />
-                </div>
+                </Field>
+                <Field label="Nationalité / Nationality" required>
+                  <input type="text" value={formData.nationality} onChange={e => setField('nationality', e.target.value)} className={inputCls} placeholder="Ex: Camerounais(e)" data-testid="input-nationality" />
+                </Field>
+                <Field label="Pays de naissance / Country of Birth">
+                  <input type="text" value={formData.countryOfBirth} onChange={e => setField('countryOfBirth', e.target.value)} className={inputCls} data-testid="input-countryOfBirth" />
+                </Field>
+                <Field label="Langue maternelle / Native Language">
+                  <input type="text" value={formData.nativeLanguage} onChange={e => setField('nativeLanguage', e.target.value)} className={inputCls} placeholder="Ex: Français, Anglais" data-testid="input-nativeLanguage" />
+                </Field>
+                <Field label="Religion">
+                  <select value={formData.religion} onChange={e => setField('religion', e.target.value)} className={selectCls} data-testid="input-religion">
+                    <option value="">Sélectionner</option>
+                    <option value="christian">Chrétien(ne)</option>
+                    <option value="islam">Islam</option>
+                    <option value="buddhism">Bouddhisme</option>
+                    <option value="hinduism">Hindouisme</option>
+                    <option value="other">Autre</option>
+                    <option value="none">Aucune</option>
+                  </select>
+                </Field>
+                <Field label="Situation matrimoniale / Marital Status">
+                  <select value={formData.maritalStatus} onChange={e => setField('maritalStatus', e.target.value)} className={selectCls} data-testid="input-maritalStatus">
+                    <option value="">Sélectionner</option>
+                    <option value="single">Célibataire / Single</option>
+                    <option value="married">Marié(e) / Married</option>
+                    <option value="divorced">Divorcé(e) / Divorced</option>
+                    <option value="widowed">Veuf/Veuve / Widowed</option>
+                  </select>
+                </Field>
+                <Field label="Date de naissance / Date of Birth" required>
+                  <input type="date" value={formData.dateOfBirth} onChange={e => setField('dateOfBirth', e.target.value)} className={inputCls} data-testid="input-dob" />
+                </Field>
+                <Field label="Lieu de naissance (Ville, Province) / Place of Birth">
+                  <input type="text" value={formData.placeOfBirth} onChange={e => setField('placeOfBirth', e.target.value)} className={inputCls} placeholder="Ville, Province" data-testid="input-placeOfBirth" />
+                </Field>
+                <Field label="Niveau d'études / Highest Education">
+                  <select value={formData.highestEducation} onChange={e => setField('highestEducation', e.target.value)} className={selectCls} data-testid="input-highestEducation">
+                    <option value="">Sélectionner</option>
+                    <option value="high_school">Lycée / High School</option>
+                    <option value="bachelor">Licence / Bachelor's Degree</option>
+                    <option value="master">Master / Master's Degree</option>
+                    <option value="phd">Doctorat / PhD</option>
+                    <option value="other">Autre / Other</option>
+                  </select>
+                </Field>
+                <Field label="Filière souhaitée en Chine / Major in China">
+                  <input type="text" value={formData.majorInChina} onChange={e => setField('majorInChina', e.target.value)} className={inputCls} placeholder="Ex: Médecine, Ingénierie..." data-testid="input-majorInChina" />
+                </Field>
+                <Field label="Employeur / Institution actuelle / Current Employer">
+                  <input type="text" value={formData.currentEmployer} onChange={e => setField('currentEmployer', e.target.value)} className={inputCls} data-testid="input-currentEmployer" />
+                </Field>
+                <Field label="Téléphone personnel / Personal Mobile" required>
+                  <input type="tel" value={formData.phoneNumber} onChange={e => setField('phoneNumber', e.target.value)} className={inputCls} placeholder="+237 6XX XXX XXX" data-testid="input-phone" />
+                </Field>
+                <Field label="Email personnel / Personal Email">
+                  <input type="email" value={formData.personalEmail} onChange={e => setField('personalEmail', e.target.value)} className={inputCls} data-testid="input-personalEmail" />
+                </Field>
+                <Field label="Profession / Occupation">
+                  <input type="text" value={formData.occupation} onChange={e => setField('occupation', e.target.value)} className={inputCls} data-testid="input-occupation" />
+                </Field>
+                <Field label="Loisirs / Hobby">
+                  <input type="text" value={formData.hobby} onChange={e => setField('hobby', e.target.value)} className={inputCls} data-testid="input-hobby" />
+                </Field>
               </div>
+
+              {/* 2. Home Address */}
+              <SectionHeader icon={null} title="2. Adresse Permanente / Home Address" color="bg-slate-600" />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Adresse (Rue, Province, Pays)" required>
+                  <input type="text" value={formData.address} onChange={e => setField('address', e.target.value)} className={inputCls} placeholder="Numéro, rue, province, pays" data-testid="input-address" />
+                </Field>
+                <Field label="Adresse détaillée / Detailed Address">
+                  <input type="text" value={formData.addressDetailed} onChange={e => setField('addressDetailed', e.target.value)} className={inputCls} data-testid="input-addressDetailed" />
+                </Field>
+                <Field label="Téléphone / Mobile No">
+                  <input type="tel" value={formData.addressPhone} onChange={e => setField('addressPhone', e.target.value)} className={inputCls} data-testid="input-addressPhone" />
+                </Field>
+                <Field label="Code postal / Zip Code">
+                  <input type="text" value={formData.zipCode} onChange={e => setField('zipCode', e.target.value)} className={inputCls} data-testid="input-zipCode" />
+                </Field>
+              </div>
+
+              {/* 3. Current Address if different */}
+              <SectionHeader icon={null} title="3. Adresse Actuelle (si différente) / Current Address" color="bg-slate-600" />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Adresse actuelle (Rue, Province, Pays)">
+                  <input type="text" value={formData.currentAddress} onChange={e => setField('currentAddress', e.target.value)} className={inputCls} data-testid="input-currentAddress" />
+                </Field>
+                <Field label="Adresse détaillée / Detailed Address">
+                  <input type="text" value={formData.currentAddressDetailed} onChange={e => setField('currentAddressDetailed', e.target.value)} className={inputCls} data-testid="input-currentAddressDetailed" />
+                </Field>
+                <Field label="Téléphone / Mobile No">
+                  <input type="tel" value={formData.currentAddressPhone} onChange={e => setField('currentAddressPhone', e.target.value)} className={inputCls} data-testid="input-currentAddressPhone" />
+                </Field>
+                <Field label="Code postal / Zip Code">
+                  <input type="text" value={formData.currentAddressZipCode} onChange={e => setField('currentAddressZipCode', e.target.value)} className={inputCls} data-testid="input-currentAddressZipCode" />
+                </Field>
+              </div>
+
+              {/* 4. Health Status */}
+              <SectionHeader icon={Heart} title="4. État de Santé / Health Status" color="bg-rose-700" />
+              <div className="grid grid-cols-3 gap-4">
+                <Field label="Groupe sanguin / Blood Group">
+                  <select value={formData.bloodGroup} onChange={e => setField('bloodGroup', e.target.value)} className={selectCls} data-testid="input-bloodGroup">
+                    <option value="">Sélectionner</option>
+                    {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                  </select>
+                </Field>
+                <Field label="Taille / Height (cm)">
+                  <input type="text" value={formData.height} onChange={e => setField('height', e.target.value)} className={inputCls} placeholder="Ex: 175 cm" data-testid="input-height" />
+                </Field>
+                <Field label="Poids / Weight (kg)">
+                  <input type="text" value={formData.weight} onChange={e => setField('weight', e.target.value)} className={inputCls} placeholder="Ex: 70 kg" data-testid="input-weight" />
+                </Field>
+              </div>
+
+              {/* 5. Whether in China */}
+              <SectionHeader icon={null} title="5. Êtes-vous actuellement en Chine ? / Currently in China?" color="bg-red-800" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-6">
+                  {['yes', 'no'].map(val => (
+                    <label key={val} className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="inChinaNow" value={val} checked={formData.inChinaNow === (val === 'yes')} onChange={() => setField('inChinaNow', val === 'yes')} className="w-4 h-4 text-[#1a56db]" data-testid={`radio-china-${val}`} />
+                      <span className="text-sm font-medium text-gray-700">{val === 'yes' ? 'Oui / Yes' : 'Non / No'}</span>
+                    </label>
+                  ))}
+                </div>
+                {formData.inChinaNow && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <Field label="École/Organisation en Chine">
+                      <input type="text" value={formData.chinaSchool} onChange={e => setField('chinaSchool', e.target.value)} className={inputCls} data-testid="input-chinaSchool" />
+                    </Field>
+                    <Field label="Type de visa">
+                      <input type="text" value={formData.chinaVisaType} onChange={e => setField('chinaVisaType', e.target.value)} className={inputCls} data-testid="input-chinaVisaType" />
+                    </Field>
+                    <Field label="Période d'apprentissage — Début">
+                      <input type="date" value={formData.chinaLearningPeriodStart} onChange={e => setField('chinaLearningPeriodStart', e.target.value)} className={inputCls} data-testid="input-chinaStart" />
+                    </Field>
+                    <Field label="Période d'apprentissage — Fin">
+                      <input type="date" value={formData.chinaLearningPeriodEnd} onChange={e => setField('chinaLearningPeriodEnd', e.target.value)} className={inputCls} data-testid="input-chinaEnd" />
+                    </Field>
+                    <Field label="Numéro de visa">
+                      <input type="text" value={formData.chinaVisaNo} onChange={e => setField('chinaVisaNo', e.target.value)} className={inputCls} data-testid="input-chinaVisaNo" />
+                    </Field>
+                    <Field label="Date d'expiration du visa">
+                      <input type="date" value={formData.chinaVisaExpiry} onChange={e => setField('chinaVisaExpiry', e.target.value)} className={inputCls} data-testid="input-chinaVisaExpiry" />
+                    </Field>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Passport Information */}
+              <SectionHeader icon={null} title="6. Informations Passeport / Passport Information" color="bg-indigo-700" />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Numéro de passeport / Passport No" required>
+                  <input type="text" value={formData.passportNumber} onChange={e => setField('passportNumber', e.target.value)} className={inputCls} data-testid="input-passport" />
+                </Field>
+                <Field label="Date de délivrance / Issued Date">
+                  <input type="date" value={formData.passportIssuedDate} onChange={e => setField('passportIssuedDate', e.target.value)} className={inputCls} data-testid="input-passportIssuedDate" />
+                </Field>
+                <Field label="Date d'expiration / Expiry Date">
+                  <input type="date" value={formData.passportExpiryDate} onChange={e => setField('passportExpiryDate', e.target.value)} className={inputCls} data-testid="input-passportExpiryDate" />
+                </Field>
+                <Field label="Ancien numéro de passeport (si applicable)">
+                  <input type="text" value={formData.oldPassportNo} onChange={e => setField('oldPassportNo', e.target.value)} className={inputCls} data-testid="input-oldPassportNo" />
+                </Field>
+                <Field label="Date de délivrance (ancien passeport)">
+                  <input type="date" value={formData.oldPassportIssuedDate} onChange={e => setField('oldPassportIssuedDate', e.target.value)} className={inputCls} data-testid="input-oldPassportIssuedDate" />
+                </Field>
+                <Field label="Date d'expiration (ancien passeport)">
+                  <input type="date" value={formData.oldPassportExpiryDate} onChange={e => setField('oldPassportExpiryDate', e.target.value)} className={inputCls} data-testid="input-oldPassportExpiryDate" />
+                </Field>
+              </div>
+
+              {/* 7. Educational Background */}
+              <SectionHeader icon={BookOpen} title="7. Formation Académique (3 dernières écoles) / Educational Background" color="bg-teal-700" />
+              {formData.educationalBackground.map((edu, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg p-4 mb-3">
+                  <p className="text-sm font-semibold text-gray-600 mb-3">École {String.fromCharCode(65 + idx)} / School {String.fromCharCode(65 + idx)}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Nom de l'établissement / Institute Name">
+                      <input type="text" value={edu.instituteName} onChange={e => setArrayField('educationalBackground', idx, 'instituteName', e.target.value)} className={inputCls} data-testid={`edu-${idx}-institute`} />
+                    </Field>
+                    <Field label="Niveau d'études / Education Level">
+                      <select value={edu.educationLevel} onChange={e => setArrayField('educationalBackground', idx, 'educationLevel', e.target.value)} className={selectCls} data-testid={`edu-${idx}-level`}>
+                        <option value="">Sélectionner</option>
+                        <option value="primary">Primaire / Primary</option>
+                        <option value="secondary">Secondaire / Secondary</option>
+                        <option value="high_school">Lycée / High School</option>
+                        <option value="bachelor">Licence / Bachelor</option>
+                        <option value="master">Master</option>
+                        <option value="phd">Doctorat / PhD</option>
+                      </select>
+                    </Field>
+                    <Field label="Filière / Major / Field of Study">
+                      <input type="text" value={edu.fieldOfStudy} onChange={e => setArrayField('educationalBackground', idx, 'fieldOfStudy', e.target.value)} className={inputCls} data-testid={`edu-${idx}-field`} />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="De / From">
+                        <input type="date" value={edu.yearsFrom} onChange={e => setArrayField('educationalBackground', idx, 'yearsFrom', e.target.value)} className={inputCls} data-testid={`edu-${idx}-from`} />
+                      </Field>
+                      <Field label="À / To">
+                        <input type="date" value={edu.yearsTo} onChange={e => setArrayField('educationalBackground', idx, 'yearsTo', e.target.value)} className={inputCls} data-testid={`edu-${idx}-to`} />
+                      </Field>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* 8. Work Experience */}
+              <SectionHeader icon={Briefcase} title="8. Expérience Professionnelle / Work Experience" color="bg-amber-700" />
+              {formData.workExperience.map((work, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg p-4 mb-3">
+                  <p className="text-sm font-semibold text-gray-600 mb-3">Expérience {String.fromCharCode(65 + idx)} / Experience {String.fromCharCode(65 + idx)}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Entreprise & Adresse / Company & Address">
+                      <input type="text" value={work.companyName} onChange={e => setArrayField('workExperience', idx, 'companyName', e.target.value)} className={inputCls} data-testid={`work-${idx}-company`} />
+                    </Field>
+                    <Field label="Poste / Position">
+                      <input type="text" value={work.position} onChange={e => setArrayField('workExperience', idx, 'position', e.target.value)} className={inputCls} data-testid={`work-${idx}-position`} />
+                    </Field>
+                    <Field label="Secteur / Industry Type">
+                      <input type="text" value={work.industryType} onChange={e => setArrayField('workExperience', idx, 'industryType', e.target.value)} className={inputCls} data-testid={`work-${idx}-industry`} />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="De / From">
+                        <input type="date" value={work.yearsFrom} onChange={e => setArrayField('workExperience', idx, 'yearsFrom', e.target.value)} className={inputCls} data-testid={`work-${idx}-from`} />
+                      </Field>
+                      <Field label="À / To">
+                        <input type="date" value={work.yearsTo} onChange={e => setArrayField('workExperience', idx, 'yearsTo', e.target.value)} className={inputCls} data-testid={`work-${idx}-to`} />
+                      </Field>
+                    </div>
+                    <Field label="Personne de contact (référence)">
+                      <input type="text" value={work.contactPerson} onChange={e => setArrayField('workExperience', idx, 'contactPerson', e.target.value)} className={inputCls} data-testid={`work-${idx}-contact`} />
+                    </Field>
+                    <Field label="Téléphone de la référence">
+                      <input type="tel" value={work.contactPhone} onChange={e => setArrayField('workExperience', idx, 'contactPhone', e.target.value)} className={inputCls} data-testid={`work-${idx}-phone`} />
+                    </Field>
+                    <Field label="Email de la référence">
+                      <input type="email" value={work.contactEmail} onChange={e => setArrayField('workExperience', idx, 'contactEmail', e.target.value)} className={inputCls} data-testid={`work-${idx}-email`} />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+
+              {/* 9. Family Information */}
+              <SectionHeader icon={Users} title="9. Informations Familiales / Family Information" color="bg-purple-700" />
+              {[
+                { key: 'fatherInfo', label: 'A. Père / Father' },
+                { key: 'motherInfo', label: 'B. Mère / Mother' },
+                { key: 'spouseInfo', label: 'C. Conjoint(e) / Spouse (si marié(e) / if married)' }
+              ].map(({ key, label }) => (
+                <div key={key} className="border border-gray-200 rounded-lg p-4 mb-3">
+                  <p className="text-sm font-semibold text-gray-600 mb-3">{label}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Nom complet (comme sur pièce d'identité)">
+                      <input type="text" value={formData[key].name} onChange={e => setNestedField(key, 'name', e.target.value)} className={inputCls} data-testid={`${key}-name`} />
+                    </Field>
+                    <Field label="Nationalité / Nationality">
+                      <input type="text" value={formData[key].nationality} onChange={e => setNestedField(key, 'nationality', e.target.value)} className={inputCls} data-testid={`${key}-nationality`} />
+                    </Field>
+                    <Field label="Date de naissance / Date of Birth">
+                      <input type="date" value={formData[key].dob} onChange={e => setNestedField(key, 'dob', e.target.value)} className={inputCls} data-testid={`${key}-dob`} />
+                    </Field>
+                    <Field label="N° Pièce d'identité / National ID / Passport No">
+                      <input type="text" value={formData[key].idNo} onChange={e => setNestedField(key, 'idNo', e.target.value)} className={inputCls} data-testid={`${key}-idNo`} />
+                    </Field>
+                    <Field label="Téléphone / Mobile No">
+                      <input type="tel" value={formData[key].mobile} onChange={e => setNestedField(key, 'mobile', e.target.value)} className={inputCls} data-testid={`${key}-mobile`} />
+                    </Field>
+                    <Field label="Email">
+                      <input type="email" value={formData[key].email} onChange={e => setNestedField(key, 'email', e.target.value)} className={inputCls} data-testid={`${key}-email`} />
+                    </Field>
+                    <Field label="Profession / Occupation">
+                      <input type="text" value={formData[key].occupation} onChange={e => setNestedField(key, 'occupation', e.target.value)} className={inputCls} data-testid={`${key}-occupation`} />
+                    </Field>
+                    <Field label="Employeur / Institution actuelle">
+                      <input type="text" value={formData[key].employer} onChange={e => setNestedField(key, 'employer', e.target.value)} className={inputCls} data-testid={`${key}-employer`} />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+
+              {/* 10. Financial Sponsor */}
+              <SectionHeader icon={null} title="10. Garant Financier / Financial Sponsor (Parents recommandés)" color="bg-green-700" />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Relation avec l'étudiant / Relationship">
+                  <input type="text" value={formData.financialSponsor.relationship} onChange={e => setNestedField('financialSponsor', 'relationship', e.target.value)} className={inputCls} placeholder="Ex: Père, Mère..." data-testid="sponsor-relationship" />
+                </Field>
+                <Field label="Adresse complète / Full Address">
+                  <input type="text" value={formData.financialSponsor.address} onChange={e => setNestedField('financialSponsor', 'address', e.target.value)} className={inputCls} data-testid="sponsor-address" />
+                </Field>
+              </div>
+
+              {/* 11. Emergency Contact in China */}
+              <SectionHeader icon={null} title="11. Contact d'Urgence en Chine / Emergency Contact in China" color="bg-orange-700" />
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Nom complet (comme sur pièce d'identité)">
+                  <input type="text" value={formData.emergencyContact.name} onChange={e => setNestedField('emergencyContact', 'name', e.target.value)} className={inputCls} data-testid="emergency-name" />
+                </Field>
+                <Field label="Relation avec l'étudiant">
+                  <input type="text" value={formData.emergencyContact.relationship} onChange={e => setNestedField('emergencyContact', 'relationship', e.target.value)} className={inputCls} data-testid="emergency-relationship" />
+                </Field>
+                <Field label="Profession / Occupation">
+                  <input type="text" value={formData.emergencyContact.occupation} onChange={e => setNestedField('emergencyContact', 'occupation', e.target.value)} className={inputCls} data-testid="emergency-occupation" />
+                </Field>
+                <Field label="Nationalité / Nationality">
+                  <input type="text" value={formData.emergencyContact.nationality} onChange={e => setNestedField('emergencyContact', 'nationality', e.target.value)} className={inputCls} data-testid="emergency-nationality" />
+                </Field>
+                <Field label="N° Pièce d'identité / National ID / Passport No">
+                  <input type="text" value={formData.emergencyContact.idNo} onChange={e => setNestedField('emergencyContact', 'idNo', e.target.value)} className={inputCls} data-testid="emergency-idNo" />
+                </Field>
+                <Field label="Employeur / Institution actuelle">
+                  <input type="text" value={formData.emergencyContact.employer} onChange={e => setNestedField('emergencyContact', 'employer', e.target.value)} className={inputCls} data-testid="emergency-employer" />
+                </Field>
+                <Field label="Adresse en Chine / Address in China (Full)">
+                  <input type="text" value={formData.emergencyContact.addressChina} onChange={e => setNestedField('emergencyContact', 'addressChina', e.target.value)} className={inputCls} data-testid="emergency-addressChina" />
+                </Field>
+                <Field label="Téléphone en Chine / Mobile in China">
+                  <input type="tel" value={formData.emergencyContact.phone} onChange={e => setNestedField('emergencyContact', 'phone', e.target.value)} className={inputCls} data-testid="emergency-phone" />
+                </Field>
+                <Field label="Email">
+                  <input type="email" value={formData.emergencyContact.email} onChange={e => setNestedField('emergencyContact', 'email', e.target.value)} className={inputCls} data-testid="emergency-email" />
+                </Field>
+              </div>
+
+              <p className="text-xs text-gray-400 mt-6 text-center">Les champs marqués <span className="text-red-500">*</span> sont obligatoires pour passer à l'étape suivante.</p>
             </div>
           )}
 
-          {/* Step 2: Documents */}
+          {/* ===== STEP 2: DOCUMENTS ===== */}
           {currentStep === 2 && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 mb-4">Documents requis</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Veuillez télécharger les documents suivants. Tous les documents doivent être en PDF ou image (JPG, PNG).
-              </p>
-              
+              <p className="text-sm text-gray-600 mb-6">Veuillez télécharger les documents suivants. Tous les documents doivent être en PDF ou image (JPG, PNG).</p>
               <div className="space-y-3">
-                {(offer.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV']).map((doc, index) => (
+                {requiredDocs.map((doc, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-[#1a56db]/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          uploadedDocs[doc] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${uploadedDocs[doc] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                           {uploadedDocs[doc] ? <Check size={16} /> : <FileText size={16} />}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{doc}</p>
-                          {uploadedDocs[doc] && (
-                            <p className="text-xs text-green-600">{uploadedDocs[doc].name}</p>
-                          )}
+                          {uploadedDocs[doc] && <p className="text-xs text-green-600">{uploadedDocs[doc].name}</p>}
                         </div>
                       </div>
                       <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => handleDocUpload(e, doc)}
-                          disabled={uploadingDoc === doc}
-                        />
-                        <span className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          uploadedDocs[doc]
-                            ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                            : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'
-                        }`}>
-                          {uploadingDoc === doc ? (
-                            <Loader2 size={16} className="animate-spin inline" />
-                          ) : uploadedDocs[doc] ? (
-                            'Modifier'
-                          ) : (
-                            <><Upload size={14} className="inline mr-1" /> Télécharger</>
-                          )}
+                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload(e, doc)} disabled={uploadingDoc === doc} />
+                        <span className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadedDocs[doc] ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'}`}>
+                          {uploadingDoc === doc ? <Loader2 size={16} className="animate-spin inline" /> : uploadedDocs[doc] ? 'Modifier' : <><Upload size={14} className="inline mr-1" />Télécharger</>}
                         </span>
                       </label>
                     </div>
                   </div>
                 ))}
               </div>
-              
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
-                <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> Vous devez soumettre votre candidature avec les documents              
-                  originaux en langue originale et la version traduite en anglais au même moment.
-                  Si vous avez besoin d'une traduction contactez-nous depuis votre compte
-                </p>
+                <p className="text-sm text-yellow-800"><strong>Note :</strong> Vous devez soumettre votre candidature avec les documents originaux en langue originale et la version traduite en anglais au même moment. Si vous avez besoin d'une traduction, contactez-nous depuis votre compte.</p>
               </div>
             </div>
           )}
 
-          {/* Step 3: Terms and Conditions */}
+          {/* ===== STEP 3: TERMS ===== */}
           {currentStep === 3 && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 mb-4">Conditions générales</h3>
-              
               <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto text-sm text-gray-600 space-y-4">
                 {paymentSettings?.termsConditions?.length > 0 ? (
                   paymentSettings.termsConditions.map((term, idx) => (
-                    <div key={idx}>
-                      <p><strong>{idx + 1}. {term.title}</strong></p>
-                      <p>{term.content}</p>
-                    </div>
+                    <div key={idx}><p><strong>{idx + 1}. {term.title}</strong></p><p>{term.content}</p></div>
                   ))
                 ) : (
                   <>
@@ -483,40 +713,25 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   </>
                 )}
               </div>
-              
               <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-[#1a56db] transition-colors">
-                <input
-                  type="checkbox"
-                  checked={formData.termsAccepted}
-                  onChange={(e) => setFormData({...formData, termsAccepted: e.target.checked})}
-                  className="mt-1 w-5 h-5 text-[#1a56db] rounded"
-                  data-testid="checkbox-terms"
-                />
-                <span className="text-sm text-gray-700">
-                  J'ai lu et j'accepte les conditions générales d'AccessHub Global. 
-                  Je certifie que les informations fournies sont exactes.
-                </span>
+                <input type="checkbox" checked={formData.termsAccepted} onChange={(e) => setField('termsAccepted', e.target.checked)} className="mt-1 w-5 h-5 text-[#1a56db] rounded" data-testid="checkbox-terms" />
+                <span className="text-sm text-gray-700">J'ai lu et j'accepte les conditions générales d'AccessHub Global. Je certifie que les informations fournies sont exactes.</span>
               </label>
             </div>
           )}
 
-          {/* Step 4: Payment */}
+          {/* ===== STEP 4: PAYMENT ===== */}
           {currentStep === 4 && paymentSettings && (
             <div className="space-y-6">
               <h3 className="font-semibold text-gray-900 mb-4">Paiement des frais de dossier</h3>
-              
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Frais de dossier à payer:</span>
-                  <span className="text-2xl font-bold text-[#1a56db]">
-                    {offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}
-                  </span>
+                  <span className="text-gray-700">Frais de dossier à payer :</span>
+                  <span className="text-2xl font-bold text-[#1a56db]">{offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}</span>
                 </div>
               </div>
-              
-              {/* Payment Methods */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Choisissez votre méthode de paiement:</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Choisissez votre méthode de paiement :</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'wechat_alipay', label: 'WeChat / Alipay', icon: '💳' },
@@ -524,154 +739,72 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     { id: 'bank_transfer', label: 'Virement bancaire', icon: '🏦' },
                     { id: 'cash', label: 'Espèces', icon: '💵' }
                   ].map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setFormData({...formData, paymentMethod: method.id})}
-                      className={`p-4 border-2 rounded-xl text-left transition-all ${
-                        formData.paymentMethod === method.id
-                          ? 'border-[#1a56db] bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      data-testid={`payment-${method.id}`}
-                    >
+                    <button key={method.id} type="button" onClick={() => setField('paymentMethod', method.id)}
+                      className={`p-4 border-2 rounded-xl text-left transition-all ${formData.paymentMethod === method.id ? 'border-[#1a56db] bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                      data-testid={`payment-${method.id}`}>
                       <span className="text-2xl mb-2 block">{method.icon}</span>
                       <span className="font-medium text-gray-900">{method.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
-              
-              {/* Payment Details based on selected method */}
               {formData.paymentMethod && (
                 <div className="bg-gray-50 rounded-xl p-4 space-y-4">
                   {formData.paymentMethod === 'wechat_alipay' && (
                     <div className="grid md:grid-cols-2 gap-6">
-                      <div className="text-center">
-                        <p className="font-medium text-gray-700 mb-2">WeChat Pay</p>
-                        <img 
-                          src={paymentSettings.wechatQrCode} 
-                          alt="WeChat QR" 
-                          className="w-48 h-48 mx-auto rounded-lg border border-gray-200"
-                        />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-medium text-gray-700 mb-2">Alipay</p>
-                        <img 
-                          src={paymentSettings.alipayQrCode} 
-                          alt="Alipay QR" 
-                          className="w-48 h-48 mx-auto rounded-lg border border-gray-200"
-                        />
-                      </div>
+                      <div className="text-center"><p className="font-medium text-gray-700 mb-2">WeChat Pay</p><img src={paymentSettings.wechatQrCode} alt="WeChat QR" className="w-48 h-48 mx-auto rounded-lg border border-gray-200" /></div>
+                      <div className="text-center"><p className="font-medium text-gray-700 mb-2">Alipay</p><img src={paymentSettings.alipayQrCode} alt="Alipay QR" className="w-48 h-48 mx-auto rounded-lg border border-gray-200" /></div>
                     </div>
                   )}
-                  
                   {formData.paymentMethod === 'paypal' && (
                     <div className="text-center py-4">
-                      <p className="text-gray-600 mb-3">Envoyez le paiement à:</p>
+                      <p className="text-gray-600 mb-3">Envoyez le paiement à :</p>
                       <div className="flex items-center justify-center gap-2 bg-white px-4 py-3 rounded-lg border">
                         <span className="font-mono text-lg">{paymentSettings.paypalEmail}</span>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(paymentSettings.paypalEmail)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          <Copy size={16} className="text-gray-500" />
-                        </button>
+                        <button type="button" onClick={() => copyToClipboard(paymentSettings.paypalEmail)} className="p-1 hover:bg-gray-100 rounded"><Copy size={16} className="text-gray-500" /></button>
                       </div>
                     </div>
                   )}
-                  
                   {formData.paymentMethod === 'bank_transfer' && (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Banque:</span>
-                          <p className="font-medium">{paymentSettings.bankName}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Titulaire:</span>
-                          <p className="font-medium">{paymentSettings.bankAccountName}</p>
-                        </div>
+                        <div><span className="text-gray-500">Banque :</span><p className="font-medium">{paymentSettings.bankName}</p></div>
+                        <div><span className="text-gray-500">Titulaire :</span><p className="font-medium">{paymentSettings.bankAccountName}</p></div>
                         <div className="col-span-2">
-                          <span className="text-gray-500">Numéro de compte:</span>
+                          <span className="text-gray-500">Numéro de compte :</span>
                           <div className="flex items-center gap-2">
                             <p className="font-mono font-medium">{paymentSettings.bankAccountNumber}</p>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(paymentSettings.bankAccountNumber)}
-                              className="p-1 hover:bg-gray-200 rounded"
-                            >
-                              <Copy size={14} className="text-gray-500" />
-                            </button>
+                            <button type="button" onClick={() => copyToClipboard(paymentSettings.bankAccountNumber)} className="p-1 hover:bg-gray-200 rounded"><Copy size={14} className="text-gray-500" /></button>
                           </div>
                         </div>
-                        <div>
-                          <span className="text-gray-500">Code SWIFT:</span>
-                          <p className="font-mono font-medium">{paymentSettings.bankSwiftCode}</p>
-                        </div>
-                        {paymentSettings.bankIban && (
-                          <div>
-                            <span className="text-gray-500">IBAN:</span>
-                            <p className="font-mono font-medium">{paymentSettings.bankIban}</p>
-                          </div>
-                        )}
+                        <div><span className="text-gray-500">Code SWIFT :</span><p className="font-mono font-medium">{paymentSettings.bankSwiftCode}</p></div>
+                        {paymentSettings.bankIban && <div><span className="text-gray-500">IBAN :</span><p className="font-mono font-medium">{paymentSettings.bankIban}</p></div>}
                       </div>
                     </div>
                   )}
-                  
                   {formData.paymentMethod === 'cash' && (
                     <div className="text-center py-4">
-                      <p className="text-gray-600">
-                        Pour un paiement en espèces, veuillez nous contacter directement pour organiser un rendez-vous.
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Après le paiement, téléchargez une photo du reçu ci-dessous.
-                      </p>
+                      <p className="text-gray-600">Pour un paiement en espèces, veuillez nous contacter directement pour organiser un rendez-vous.</p>
+                      <p className="text-sm text-gray-500 mt-2">Après le paiement, téléchargez une photo du reçu ci-dessous.</p>
                     </div>
                   )}
                 </div>
               )}
-              
-              {/* Upload Payment Proof */}
               {formData.paymentMethod && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preuve de paiement *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Preuve de paiement *</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#1a56db] transition-colors">
                     {paymentProofFile ? (
                       <div className="flex items-center justify-center gap-3">
                         <Check size={20} className="text-green-500" />
                         <span className="text-green-600 font-medium">{paymentProofFile.name}</span>
-                        <label className="text-[#1a56db] hover:underline cursor-pointer text-sm">
-                          Modifier
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={handlePaymentProofUpload}
-                          />
-                        </label>
+                        <label className="text-[#1a56db] hover:underline cursor-pointer text-sm">Modifier<input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePaymentProofUpload} /></label>
                       </div>
                     ) : (
                       <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={handlePaymentProofUpload}
-                          disabled={uploadingProof}
-                          data-testid="upload-payment-proof"
-                        />
-                        {uploadingProof ? (
-                          <Loader2 size={32} className="mx-auto text-gray-400 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload size={32} className="mx-auto text-gray-400 mb-2" />
-                            <p className="text-gray-600">Cliquez pour télécharger votre preuve de paiement</p>
-                            <p className="text-sm text-gray-400 mt-1">Screenshot, photo du reçu, confirmation de virement...</p>
-                          </>
+                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePaymentProofUpload} disabled={uploadingProof} data-testid="upload-payment-proof" />
+                        {uploadingProof ? <Loader2 size={32} className="mx-auto text-gray-400 animate-spin" /> : (
+                          <><Upload size={32} className="mx-auto text-gray-400 mb-2" /><p className="text-gray-600">Cliquez pour télécharger votre preuve de paiement</p><p className="text-sm text-gray-400 mt-1">Screenshot, photo du reçu, confirmation de virement...</p></>
                         )}
                       </label>
                     )}
@@ -683,43 +816,23 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
         </div>
 
         {/* Footer Navigation */}
-        <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose()}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
+        <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <button type="button" onClick={() => currentStep > 1 ? setCurrentStep(currentStep - 1) : onClose()} className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
             <ChevronLeft size={18} />
             {currentStep > 1 ? 'Précédent' : 'Annuler'}
           </button>
-          
           {currentStep < 4 ? (
-            <button
-              type="button"
-              onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={
-                (currentStep === 1 && !canProceedStep1) ||
-                (currentStep === 3 && !canProceedStep3)
-              }
+            <button type="button" onClick={() => setCurrentStep(currentStep + 1)}
+              disabled={(currentStep === 1 && !canProceedStep1) || (currentStep === 3 && !canProceedStep3)}
               className="flex items-center gap-2 px-6 py-2 bg-[#1a56db] text-white rounded-lg font-medium hover:bg-[#1648b8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              data-testid="next-step-btn"
-            >
-              Suivant
-              <ChevronRight size={18} />
+              data-testid="next-step-btn">
+              Suivant <ChevronRight size={18} />
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit || loading}
+            <button type="button" onClick={handleSubmit} disabled={!canSubmit || loading}
               className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              data-testid="submit-application-btn"
-            >
-              {loading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Check size={18} />
-              )}
+              data-testid="submit-application-btn">
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
               Soumettre la candidature
             </button>
           )}

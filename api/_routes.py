@@ -693,24 +693,9 @@ async def create_full_application(app_data: FullApplicationCreate, current_user:
         userId=current_user["id"],
         userName=f"{current_user['firstName']} {current_user['lastName']}",
         userEmail=current_user["email"],
-        offerId=app_data.offerId,
-        offerTitle=app_data.offerTitle,
-        firstName=app_data.firstName,
-        lastName=app_data.lastName,
-        nationality=app_data.nationality,
-        sex=app_data.sex,
-        passportNumber=app_data.passportNumber,
-        dateOfBirth=app_data.dateOfBirth,
-        phoneNumber=app_data.phoneNumber,
-        address=app_data.address,
-        additionalPrograms=app_data.additionalPrograms,
-        documents=app_data.documents,
-        termsAccepted=app_data.termsAccepted,
-        paymentMethod=app_data.paymentMethod,
-        paymentProof=app_data.paymentProof,
-        paymentAmount=app_data.paymentAmount,
         paymentStatus="submitted",
-        status="pending"
+        status="pending",
+        **app_data.model_dump()
     )
 
     await db.applications.insert_one(serialize_doc(application.model_dump()))

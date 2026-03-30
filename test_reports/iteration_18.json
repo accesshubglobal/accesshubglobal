@@ -1,0 +1,64 @@
+{
+  "summary": "Full testing of 11-section ApplicationModal and /api/applications/full endpoint. All 11 form sections verified in UI. Backend endpoint saves all new fields correctly. Required field validation, China conditional display, and 4-step navigation all working. One backend bug found: admin GET /applications/{id} endpoint uses role=='admin' check but admin has role='admin_principal', causing 403.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/applications/{app_id}",
+        "issue": "Role check uses `role == 'admin'` but the admin account has role='admin_principal'. Admin gets 403 'Accès refusé' when trying to view individual applications by ID via this endpoint. Admin list works via /admin/applications but single-item GET does not.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "ApplicationModal - Step 4 (Paiement) - Data Science offer",
+        "issues": ["Payment amount shows '0 CNY' - the Data Science offer has no applicationFee set (falls to 0 instead of payment settings default). Currency mismatch: offer uses CNY but payment settings may use different currency. Check offer.fees.applicationFee configuration."]
+      },
+      {
+        "screen": "ApplicationModal - Step 3 (Conditions)",
+        "issues": ["Suivant button is programmatically disabled (is_disabled()=True) before terms accepted, but visually appears fully blue (no visible opacity reduction). Tailwind disabled:opacity-50 may not be rendering as expected in some scenarios - UX feedback for disabled state is unclear."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_full_application_form.py",
+    "/app/test_reports/pytest/pytest_full_application.xml"
+  ],
+  "action_items": [
+    "Fix GET /api/applications/{app_id} role check: change `current_user.get('role') != 'admin'` to `current_user.get('role') not in ['admin', 'admin_principal', 'admin_secondary']` (or use the `get_admin_user` dependency)",
+    "Verify Data Science offer application fee is correctly set (shows 0 CNY on payment step)",
+    "Check if disabled:opacity-50 Tailwind class renders correctly for the Suivant button on Step 3 - add explicit opacity/color change for better UX disabled feedback"
+  ],
+  "critical_code_review_comments": [
+    "BUG: /api/applications/{app_id} (line 720 in _routes.py) checks `current_user.get('role') != 'admin'` but the admin system uses 'admin_principal' and 'admin_secondary' roles, not 'admin'. This means ADMINS CAN'T VIEW INDIVIDUAL APPLICATIONS VIA THIS ENDPOINT. Use `get_admin_user` dependency or check `role not in ['admin', 'admin_principal', 'admin_secondary']`",
+    "GOOD: All 11 new fields correctly modeled in ApplicationCreate Pydantic model with proper Optional types and defaults",
+    "GOOD: FullApplicationCreate = ApplicationCreate alias is clean and works correctly",
+    "GOOD: model_dump() usage in create_full_application correctly passes all new fields to Application model",
+    "GOOD: Application model uses ConfigDict(extra='ignore') which correctly ignores unknown fields"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_full_application_form.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests pass)",
+    "frontend": "95% - All 11 sections verified, all 4 steps navigate correctly, China conditional display works, required field validation works"
+  },
+  "test_credentials": {
+    "admin": "admin@winners-consulting.com / Admin2025!",
+    "test_user": "ui_test_user@test.com / Test2025! (email verified)"
+  },
+  "seed_data_creation": "Created ui_test_user@test.com / Test2025! for UI testing (email verified via API). Also created several TEST_ prefixed users in backend tests for application submission testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 18: Full testing of 11-section ApplicationModal form. ApplicationModal.jsx completely rewritten with 11 sub-sections (1.Infos Personnelles, 2.Adresse Permanente, 3.Adresse Actuelle, 4.Etat Sante, 5.Chine, 6.Passeport, 7.Formation, 8.Experience, 9.Famille, 10.Garant, 11.Contact Urgence). Backend models extended with ~50 new fields. Main bug: /api/applications/{id} GET uses wrong role check (admin vs admin_principal). Test user created: ui_test_user@test.com / Test2025! (emailVerified=true). Backend test file: /app/backend/tests/test_full_application_form.py.",
+  "rca_of_issue": {
+    "issue": "GET /api/applications/{app_id} returns 403 for admin_principal user",
+    "root_cause": "Line 720 in /app/api/_routes.py checks `current_user.get('role') != 'admin'` but the admin system uses 'admin_principal' as the primary admin role (since line ~903 sets role to 'admin_principal'). The old check for 'admin' doesn't match the current role hierarchy.",
+    "reproduction": "1. Login as admin (admin@winners-consulting.com). 2. GET /api/applications/{any_app_id} with admin Bearer token. 3. Receives 403 'Accès refusé'.",
+    "mitigation": "Change line 720 from `current_user.get('role') != 'admin'` to `current_user.get('role') not in ['admin', 'admin_principal', 'admin_secondary']` OR replace `Depends(get_current_user)` with `Depends(get_admin_user)` which already handles all admin roles."
+  }
+}

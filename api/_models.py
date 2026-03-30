@@ -255,14 +255,66 @@ class Application(BaseModel):
     userEmail: str
     offerId: str
     offerTitle: str
+    # --- Personal Information ---
     firstName: str = ""
     lastName: str = ""
     nationality: str = ""
     sex: str = ""
-    passportNumber: str = ""
+    countryOfBirth: str = ""
+    placeOfBirth: str = ""
+    nativeLanguage: str = ""
+    religion: str = ""
+    maritalStatus: str = ""
+    occupation: str = ""
+    hobby: str = ""
+    highestEducation: str = ""
+    majorInChina: str = ""
+    currentEmployer: str = ""
+    personalEmail: str = ""
     dateOfBirth: str = ""
     phoneNumber: str = ""
+    # --- Home/Permanent Address ---
     address: str = ""
+    addressDetailed: str = ""
+    addressPhone: str = ""
+    zipCode: str = ""
+    # --- Current Address if different ---
+    currentAddress: str = ""
+    currentAddressDetailed: str = ""
+    currentAddressPhone: str = ""
+    currentAddressZipCode: str = ""
+    # --- Health Status ---
+    bloodGroup: str = ""
+    height: str = ""
+    weight: str = ""
+    # --- Whether in China Now ---
+    inChinaNow: bool = False
+    chinaSchool: str = ""
+    chinaLearningPeriodStart: str = ""
+    chinaLearningPeriodEnd: str = ""
+    chinaVisaType: str = ""
+    chinaVisaNo: str = ""
+    chinaVisaExpiry: str = ""
+    # --- Passport Information ---
+    passportNumber: str = ""
+    passportIssuedDate: str = ""
+    passportExpiryDate: str = ""
+    oldPassportNo: str = ""
+    oldPassportIssuedDate: str = ""
+    oldPassportExpiryDate: str = ""
+    # --- Educational Background (last 3 schools) ---
+    educationalBackground: List[dict] = []
+    # --- Work Experience ---
+    workExperience: List[dict] = []
+    # --- Family Information ---
+    fatherInfo: dict = {}
+    motherInfo: dict = {}
+    spouseInfo: dict = {}
+    # --- Financial Sponsor ---
+    financialSponsor: dict = {}
+    # --- Emergency Contact in China ---
+    emergencyContact: dict = {}
+    # --- Application fields ---
     additionalPrograms: List[str] = []
     documents: List[dict] = []
     termsAccepted: bool = False
@@ -277,6 +329,7 @@ class Application(BaseModel):
 class ApplicationCreate(BaseModel):
     offerId: str
     offerTitle: str
+    # Required personal info
     firstName: str
     lastName: str
     nationality: str
@@ -285,6 +338,53 @@ class ApplicationCreate(BaseModel):
     dateOfBirth: str
     phoneNumber: str
     address: str
+    # Optional personal info
+    countryOfBirth: Optional[str] = ""
+    placeOfBirth: Optional[str] = ""
+    nativeLanguage: Optional[str] = ""
+    religion: Optional[str] = ""
+    maritalStatus: Optional[str] = ""
+    occupation: Optional[str] = ""
+    hobby: Optional[str] = ""
+    highestEducation: Optional[str] = ""
+    majorInChina: Optional[str] = ""
+    currentEmployer: Optional[str] = ""
+    personalEmail: Optional[str] = ""
+    addressDetailed: Optional[str] = ""
+    addressPhone: Optional[str] = ""
+    zipCode: Optional[str] = ""
+    currentAddress: Optional[str] = ""
+    currentAddressDetailed: Optional[str] = ""
+    currentAddressPhone: Optional[str] = ""
+    currentAddressZipCode: Optional[str] = ""
+    # Health
+    bloodGroup: Optional[str] = ""
+    height: Optional[str] = ""
+    weight: Optional[str] = ""
+    # China
+    inChinaNow: Optional[bool] = False
+    chinaSchool: Optional[str] = ""
+    chinaLearningPeriodStart: Optional[str] = ""
+    chinaLearningPeriodEnd: Optional[str] = ""
+    chinaVisaType: Optional[str] = ""
+    chinaVisaNo: Optional[str] = ""
+    chinaVisaExpiry: Optional[str] = ""
+    # Passport
+    passportIssuedDate: Optional[str] = ""
+    passportExpiryDate: Optional[str] = ""
+    oldPassportNo: Optional[str] = ""
+    oldPassportIssuedDate: Optional[str] = ""
+    oldPassportExpiryDate: Optional[str] = ""
+    # Education & Work
+    educationalBackground: Optional[List[dict]] = []
+    workExperience: Optional[List[dict]] = []
+    # Family
+    fatherInfo: Optional[dict] = {}
+    motherInfo: Optional[dict] = {}
+    spouseInfo: Optional[dict] = {}
+    financialSponsor: Optional[dict] = {}
+    emergencyContact: Optional[dict] = {}
+    # Application
     additionalPrograms: List[str] = []
     documents: List[dict] = []
     termsAccepted: bool
