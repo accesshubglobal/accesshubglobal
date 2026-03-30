@@ -19,21 +19,25 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 
 def _init_resend():
-    if RESEND_API_KEY:
+    # Always read fresh from env to handle serverless environments
+    api_key = os.environ.get('RESEND_API_KEY', RESEND_API_KEY)
+    if api_key:
         import resend
-        resend.api_key = RESEND_API_KEY
+        resend.api_key = api_key
         return resend
     return None
 
 
 async def send_email(to_email: str, subject: str, html: str):
     resend_mod = _init_resend()
+    sender = os.environ.get('SENDER_EMAIL', SENDER_EMAIL)
     if not resend_mod:
         logger.warning(f"Resend not configured, email to {to_email} skipped")
         return None
     try:
-        params = {"from": SENDER_EMAIL, "to": [to_email], "subject": subject, "html": html}
-        result = await asyncio.to_thread(resend_mod.Emails.send, params)
+        params = {"from": sender, "to": [to_email], "subject": subject, "html": html}
+        # Use direct sync call — more reliable in serverless (Vercel) environments
+        result = resend_mod.Emails.send(params)
         logger.info(f"Email sent to {to_email}: {result}")
         return result
     except Exception as e:
@@ -347,8 +351,25 @@ def _build_blog_email(post: dict) -> str:
 </html>"""
 
 
+def _send_email_sync(to_email: str, subject: str, html: str):
+    """Purely synchronous email send — works in all environments including Vercel serverless."""
+    try:
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        sender = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        if not api_key:
+            logger.warning(f"RESEND_API_KEY missing, skipping email to {to_email}")
+            return None
+        import resend
+        resend.api_key = api_key
+        result = resend.Emails.send({"from": sender, "to": [to_email], "subject": subject, "html": html})
+        logger.info(f"Email sent to {to_email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {e}")
+        return None
+
+
 async def broadcast_newsletter_offer(offer: dict):
-    """Send newsletter to all subscribers when a new offer is published. Runs in background."""
     try:
         db = get_db()
         subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(10000)
@@ -357,16 +378,21 @@ async def broadcast_newsletter_offer(offer: dict):
             return
         html = _build_offer_email(offer)
         subject = f"Nouvelle offre : {offer.get('title', '')} — {offer.get('university', '')} 🎓"
-        tasks = [send_email(sub["email"], subject, html) for sub in subscribers]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        sent = sum(1 for r in results if not isinstance(r, Exception) and r is not None)
+        sent = 0
+        for sub in subscribers:
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda email=sub["email"]: _send_email_sync(email, subject, html)
+            )
+            if result:
+                sent += 1
         logger.info(f"Newsletter offer sent to {sent}/{len(subscribers)} subscribers")
     except Exception as e:
         logger.error(f"Newsletter offer broadcast failed: {e}")
 
 
 async def broadcast_newsletter_blog(post: dict):
-    """Send newsletter to all subscribers when a new blog post is published. Runs in background."""
+    """Send newsletter to all subscribers when a new blog post is published."""
     try:
         db = get_db()
         subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(10000)
@@ -375,9 +401,14 @@ async def broadcast_newsletter_blog(post: dict):
             return
         html = _build_blog_email(post)
         subject = f"Nouvel article : {post.get('title', '')} ✍️"
-        tasks = [send_email(sub["email"], subject, html) for sub in subscribers]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        sent = sum(1 for r in results if not isinstance(r, Exception) and r is not None)
+        sent = 0
+        for sub in subscribers:
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda email=sub["email"]: _send_email_sync(email, subject, html)
+            )
+            if result:
+                sent += 1
         logger.info(f"Newsletter blog sent to {sent}/{len(subscribers)} subscribers")
     except Exception as e:
         logger.error(f"Newsletter blog broadcast failed: {e}")
