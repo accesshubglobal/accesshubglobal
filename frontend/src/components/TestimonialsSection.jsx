@@ -35,6 +35,7 @@ const defaultTestimonials = [
 ];
 
 const TestimonialsSection = ({ onOpenAuth }) => {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [testimonials, setTestimonials] = useState(defaultTestimonials);
   const [showForm, setShowForm] = useState(false);
@@ -86,12 +87,14 @@ const TestimonialsSection = ({ onOpenAuth }) => {
     <section className="py-20 bg-gray-50">
       <div className="max-w-[1400px] mx-auto px-4">
         <div className="text-center mb-12">
-          <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">Témoignages</span>
+          <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">
+            {t('testimonials.badge')}
+          </span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-4">
-            Ce Que Disent Nos Étudiants
+            {t('testimonials.title')}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto mb-6">
-            Découvrez les expériences de nos étudiants qui ont réalisé leur rêve d'étudier à l'étranger.
+            {t('testimonials.subtitle')}
           </p>
           <button
             onClick={handleOpenForm}
@@ -99,7 +102,7 @@ const TestimonialsSection = ({ onOpenAuth }) => {
             data-testid="add-testimonial-btn"
           >
             <Send size={18} />
-            Partager votre expérience
+            {t('testimonials.shareBtn')}
           </button>
         </div>
 
@@ -110,44 +113,44 @@ const TestimonialsSection = ({ onOpenAuth }) => {
             <div className="relative bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
               <div className="bg-gradient-to-r from-[#1a56db] to-[#3b82f6] p-6 text-white">
                 <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 text-white/80 hover:text-white"><X size={24} /></button>
-                <h3 className="text-xl font-bold">Partagez votre expérience</h3>
-                <p className="text-blue-100 mt-1">{"Votre témoignage sera publié après validation par l'équipe."}</p>
+                <h3 className="text-xl font-bold">{t('testimonials.modalTitle')}</h3>
+                <p className="text-blue-100 mt-1">{t('testimonials.modalSubtitle')}</p>
               </div>
               {success ? (
                 <div className="p-12 text-center">
                   <CheckCircle size={48} className="mx-auto text-green-500 mb-4" />
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">Merci pour votre témoignage !</h4>
-                  <p className="text-gray-600">Il sera visible après validation par notre équipe.</p>
+                  <h4 className="text-xl font-semibold text-gray-900 mb-2">{t('testimonials.successTitle')}</h4>
+                  <p className="text-gray-600">{t('testimonials.successText')}</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                   {error && <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">{error}</div>}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Programme suivi</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('testimonials.programLabel')}</label>
                     <input
                       type="text"
                       value={formData.program}
                       onChange={(e) => setFormData({...formData, program: e.target.value})}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20"
-                      placeholder="Ex: Master en Commerce - Université de Pékin"
+                      placeholder={t('testimonials.programPlaceholder')}
                       required
                       data-testid="testimonial-program"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Votre témoignage</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('testimonials.testimonialLabel')}</label>
                     <textarea
                       value={formData.text}
                       onChange={(e) => setFormData({...formData, text: e.target.value})}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20 resize-none"
                       rows={4}
-                      placeholder="Partagez votre expérience avec AccessHub Global..."
+                      placeholder={t('testimonials.testimonialPlaceholder')}
                       required
                       data-testid="testimonial-text"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('testimonials.ratingLabel')}</label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button key={star} type="button" onClick={() => setFormData({...formData, rating: star})} className="p-1" data-testid={`testimonial-star-${star}`}>
@@ -157,7 +160,7 @@ const TestimonialsSection = ({ onOpenAuth }) => {
                     </div>
                   </div>
                   <button type="submit" disabled={loading} className="w-full bg-[#1a56db] hover:bg-[#1648b8] text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50" data-testid="testimonial-submit">
-                    {loading ? <Loader2 size={20} className="animate-spin" /> : <><Send size={18} />Envoyer mon témoignage</>}
+                    {loading ? <Loader2 size={20} className="animate-spin" /> : <><Send size={18} />{t('testimonials.submitBtn')}</>}
                   </button>
                 </form>
               )}

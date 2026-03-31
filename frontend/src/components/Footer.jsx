@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
   const [showWeChatQR, setShowWeChatQR] = useState(false);
@@ -18,6 +19,7 @@ const Footer = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!newsletterEmail.trim()) return;
@@ -32,7 +34,7 @@ const Footer = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Erreur');
         setNewsletterStatus('success');
-        setNewsletterMsg('Inscription réussie !');
+        setNewsletterMsg(t('footer.subscribeSuccess'));
         setNewsletterEmail('');
         setTimeout(() => setNewsletterStatus(null), 4000);
       });
@@ -88,14 +90,14 @@ const Footer = () => {
         <div className="max-w-[1400px] mx-auto px-4 py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h3 className="text-2xl font-bold mb-2">Restez Informé</h3>
-              <p className="text-gray-400">Recevez les dernières opportunités de bourses et actualités.</p>
+              <h3 className="text-2xl font-bold mb-2">{t('footer.stayInformed')}</h3>
+              <p className="text-gray-400">{t('footer.newsletterSubtitle')}</p>
             </div>
             <form onSubmit={handleNewsletterSubmit} className="flex flex-col w-full md:w-auto">
               <div className="flex w-full md:w-auto">
                 <input
                   type="email"
-                  placeholder="Votre adresse email"
+                  placeholder={t('footer.emailPlaceholder')}
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
                   required
@@ -108,7 +110,7 @@ const Footer = () => {
                   data-testid="newsletter-submit-btn"
                   className="bg-[#1a56db] hover:bg-[#1648b8] px-6 py-3 rounded-r-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  {newsletterStatus === 'loading' ? 'Envoi...' : "S'inscrire"}
+                  {newsletterStatus === 'loading' ? t('footer.subscribing') : t('footer.subscribe')}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -135,31 +137,31 @@ const Footer = () => {
               />
             </div>
             <p className="text-gray-400 mb-6 max-w-sm">
-              Votre partenaire de confiance pour réaliser vos rêves d'études internationales. Expertise en Chine et France.
+              {t('footer.tagline')}
             </p>
-         <div className="flex gap-3">
-          {[
-            { Icon: Facebook, link: "https://www.facebook.com/share/1JuB8dae6F/?mibextid=wwXIfr" },
-            { Icon: Music2, link: "https://www.tiktok.com/@accesshubglobal" },
-            { Icon: Instagram, link: "https://www.youtube.com/redirect?event=channel_description&redir_token=QUFFLUhqbUFYWFkyaE1aZEtGMlBsb2ZJbmNiSjJtUVlsZ3xBQ3Jtc0trRkFUTTNwazdXdW5yeDhJTU0xM0FoaGxBUDJ2eDVLcG1WTFBDbHZaZkZxcDhTOTJMM0VkZXBOaGZ0TTR4Y3ltR1pqZ2p2NElvUndiMXpydkVqTWxhT2FYQmJDWkdpYUEyZnowUVhuRzRzdlA4c2pOWQ&q=https%3A%2F%2Fwww.instagram.com%2Faccesshubglobal%3Figsh%3DM3U3cjY2dWZkNHUy%26utm_source%3Dqr" },
-            { Icon: Youtube, link: "http://www.youtube.com/@AccessHubGlobal" },
-          ].map(({ Icon, link }, index) => (
-            <a
-              key={index}
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 bg-gray-800 hover:bg-[#1a56db] rounded-lg flex items-center justify-center transition-colors"
-            >
-              <Icon size={18} />
-            </a>
-          ))}
-        </div>
+            <div className="flex gap-3">
+              {[
+                { Icon: Facebook, link: "https://www.facebook.com/share/1JuB8dae6F/?mibextid=wwXIfr" },
+                { Icon: Music2, link: "https://www.tiktok.com/@accesshubglobal" },
+                { Icon: Instagram, link: "https://www.youtube.com/redirect?event=channel_description&redir_token=QUFFLUhqbUFYWFkyaE1aZEtGMlBsb2ZJbmNiSjJtUVlsZ3xBQ3Jtc0trRkFUTTNwazdXdW5yeDhJTU0xM0FoaGxBUDJ2eDVLcG1WTFBDbHZaZkZxcDhTOTJMM0VkZXBOaGZ0TTR4Y3ltR1pqZ2p2NElvUndiMXpydkVqTWxhT2FYQmJDWkdpYUEyZnowUVhuRzRzdlA4c2pOWQ&q=https%3A%2F%2Fwww.instagram.com%2Faccesshubglobal%3Figsh%3DM3U3cjY2dWZkNHUy%26utm_source%3Dqr" },
+                { Icon: Youtube, link: "http://www.youtube.com/@AccessHubGlobal" },
+              ].map(({ Icon, link }, index) => (
+                <a
+                  key={index}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-gray-800 hover:bg-[#1a56db] rounded-lg flex items-center justify-center transition-colors"
+                >
+                  <Icon size={18} />
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Services */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Services</h4>
+            <h4 className="font-semibold text-lg mb-4">{t('footer.servicesTitle')}</h4>
             <ul className="space-y-3 text-gray-400">
               {serviceLinks.map((svc) => (
                 <li key={svc.serviceId}>
@@ -177,7 +179,7 @@ const Footer = () => {
 
           {/* Programmes */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Programmes</h4>
+            <h4 className="font-semibold text-lg mb-4">{t('footer.programsTitle')}</h4>
             <ul className="space-y-3 text-gray-400">
               {programLinks.map((prog, i) => (
                 <li key={i}>
@@ -197,7 +199,7 @@ const Footer = () => {
                   className="hover:text-white transition-colors flex items-center gap-2 text-[#1a56db]"
                 >
                   <Users size={16} />
-                  Devenir Partenaire
+                  {t('footer.becomePartner')}
                 </button>
               </li>
             </ul>
@@ -205,34 +207,32 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Contact</h4>
+            <h4 className="font-semibold text-lg mb-4">{t('footer.contactTitle')}</h4>
             <ul className="space-y-4 text-gray-400">
               <li className="flex items-center gap-3">
                 <Phone size={16} className="text-[#1a56db]" />
                 <span>+86 138 811 301 75</span>
               </li>
-                <li className="flex items-center gap-3">
-                      <FaWhatsapp size={16} className="text-[#25D366]" />
-                      <a
-                        href="https://wa.me/message/4KVMCWCH4LQPN1"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-white transition-colors"
-                      >
-                        WhatsApp
-                      </a>
-                    </li>
-
-                    <li className="flex items-center gap-3">
-                    <MessageCircle size={16} className="text-[#1a56db]" />
-                    <button
-                      onClick={() => setShowWeChatQR(true)}
-                      className="hover:text-white transition-colors"
-                    >
-                      WeChat
-                    </button>
-                  </li>
-
+              <li className="flex items-center gap-3">
+                <FaWhatsapp size={16} className="text-[#25D366]" />
+                <a
+                  href="https://wa.me/message/4KVMCWCH4LQPN1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  WhatsApp
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <MessageCircle size={16} className="text-[#1a56db]" />
+                <button
+                  onClick={() => setShowWeChatQR(true)}
+                  className="hover:text-white transition-colors"
+                >
+                  WeChat
+                </button>
+              </li>
               <li className="flex items-center gap-3">
                 <Mail size={16} className="text-[#1a56db]" />
                 <span>accesshubglobal@gmail.com</span>
@@ -250,10 +250,10 @@ const Footer = () => {
 
           {/* Entreprise */}
           <div>
-            <h3 className="text-white font-semibold text-lg mb-4">Entreprise</h3>
+            <h3 className="text-white font-semibold text-lg mb-4">{t('footer.companyTitle')}</h3>
             <ul className="space-y-3 text-gray-400">
-              <li><a href="/about" className="hover:text-white transition-colors">À propos</a></li>
-              <li><a href="/company" className="hover:text-white transition-colors">Informations sur l'entreprise</a></li>
+              <li><a href="/about" className="hover:text-white transition-colors">{t('footer.about')}</a></li>
+              <li><a href="/company" className="hover:text-white transition-colors">{t('footer.companyInfo')}</a></li>
             </ul>
           </div>
         </div>
@@ -263,37 +263,34 @@ const Footer = () => {
       <div className="border-t border-gray-800">
         <div className="max-w-[1400px] mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-            <p>© 2019 - {currentYear} AccessHub Global. Tous droits réservés.</p>
+            <p>© 2019 - {currentYear} AccessHub Global. {t('footer.allRights')}</p>
             <div className="flex flex-wrap justify-center gap-6">
-              <a href="/privacy" className="hover:text-white transition-colors">Politique de Confidentialité</a>
-              <a href="/terms" className="hover:text-white transition-colors">Conditions d'Utilisation</a>
-              <a href="/legal" className="hover:text-white transition-colors">Mentions Légales</a>
+              <a href="/privacy" className="hover:text-white transition-colors">{t('footer.privacy')}</a>
+              <a href="/terms" className="hover:text-white transition-colors">{t('footer.terms')}</a>
+              <a href="/legal" className="hover:text-white transition-colors">{t('footer.legal')}</a>
             </div>
           </div>
         </div>
-              {showWeChatQR && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-white rounded-lg p-6 relative max-w-sm w-full">
-            <button
-              onClick={() => setShowWeChatQR(false)}
-              className="absolute top-2 right-2 text-gray-600 hover:text-black"
-            >
-              ✕
-            </button>
-
-            <h4 className="text-center font-semibold mb-4 text-gray-800">
-              Scannez le QR Code WeChat
-            </h4>
-
-            <img
-              src="/wechat-qr.jpg"
-              alt="WeChat QR Code"
-              className="w-full object-contain"
-            />
+        {showWeChatQR && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+            <div className="bg-white rounded-lg p-6 relative max-w-sm w-full">
+              <button
+                onClick={() => setShowWeChatQR(false)}
+                className="absolute top-2 right-2 text-gray-600 hover:text-black"
+              >
+                ✕
+              </button>
+              <h4 className="text-center font-semibold mb-4 text-gray-800">
+                {t('footer.scanWeChat')}
+              </h4>
+              <img
+                src="/wechat-qr.jpg"
+                alt="WeChat QR Code"
+                className="w-full object-contain"
+              />
+            </div>
           </div>
-        </div>
-      )}
-
+        )}
       </div>
 
       {/* Scroll to Top Button */}

@@ -8,6 +8,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
 const DestinationsSection = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('CN');
   const [universities, setUniversities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +19,7 @@ const DestinationsSection = () => {
 
   useEffect(() => {
     loadUniversities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const loadUniversities = async () => {
@@ -40,26 +42,28 @@ const DestinationsSection = () => {
     navigate(`/universities/${uni.id}`);
   };
 
+  const tabs = [
+    { code: 'CN', label: t('destinations.china'), flag: '\u{1F1E8}\u{1F1F3}' },
+    { code: 'FR', label: t('destinations.france'), flag: '\u{1F1EB}\u{1F1F7}' },
+  ];
+
   return (
     <section id="destinations" className="py-16 bg-white">
       <div className="max-w-[1400px] mx-auto px-4">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Universites Partenaires</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('destinations.title')}</h2>
           <button onClick={() => navigate('/universities')}
             className="px-4 py-2 border border-gray-300 rounded-full text-sm text-gray-600 hover:border-[#1a56db] hover:text-[#1a56db] transition-colors flex items-center gap-1"
             data-testid="universities-see-all">
-            Tout voir
+            {t('destinations.seeAll')}
             <ChevronRight size={16} />
           </button>
         </div>
 
         {/* Country Tabs */}
         <div className="flex justify-center gap-4 mb-10">
-          {[
-            { code: 'CN', label: 'Chine', flag: '\u{1F1E8}\u{1F1F3}' },
-            { code: 'FR', label: 'France', flag: '\u{1F1EB}\u{1F1F7}' },
-          ].map(tab => (
+          {tabs.map(tab => (
             <button key={tab.code}
               onClick={() => setActiveTab(tab.code)}
               data-testid={`tab-${tab.code}`}
@@ -78,7 +82,7 @@ const DestinationsSection = () => {
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
         ) : universities.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">Aucune universite pour ce pays</div>
+          <div className="text-center py-16 text-gray-400 text-sm">{t('destinations.noUniversities')}</div>
         ) : (
           <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {visible.map((uni) => (

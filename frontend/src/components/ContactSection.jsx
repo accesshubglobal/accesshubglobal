@@ -8,6 +8,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
 const ContactSection = () => {
+  const { t } = useTranslation();
   const [openFaq, setOpenFaq] = useState(0);
   const [faqs, setFaqs] = useState(defaultFaqs);
   const [formData, setFormData] = useState({
@@ -58,20 +59,20 @@ const ContactSection = () => {
         <div className="grid lg:grid-cols-2 gap-16">
           {/* Contact Form */}
           <div>
-            <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">Contact</span>
+            <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">{t('contact.badge')}</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-4">
-              Contactez-Nous
+              {t('contact.title')}
             </h2>
             <p className="text-gray-600 mb-8">
-              {"Vous avez des questions? Notre équipe est là pour vous aider."}
+              {t('contact.subtitle')}
             </p>
 
             {success && (
               <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3" data-testid="contact-success">
                 <CheckCircle size={20} className="text-green-600 flex-shrink-0" />
                 <div>
-                  <p className="font-medium text-green-800">{"Message envoyé avec succès !"}</p>
-                  <p className="text-sm text-green-600">{"Nous vous contacterons bientôt."}</p>
+                  <p className="font-medium text-green-800">{t('contact.successTitle')}</p>
+                  <p className="text-sm text-green-600">{t('contact.successSubtitle')}</p>
                 </div>
               </div>
             )}
@@ -83,7 +84,7 @@ const ContactSection = () => {
               <div className="grid md:grid-cols-2 gap-5">
                 <input
                   type="text"
-                  placeholder="Votre nom"
+                  placeholder={t('contact.namePlaceholder')}
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20 outline-none transition-all"
@@ -92,7 +93,7 @@ const ContactSection = () => {
                 />
                 <input
                   type="email"
-                  placeholder="Votre email"
+                  placeholder={t('contact.emailPlaceholder')}
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20 outline-none transition-all"
@@ -103,7 +104,7 @@ const ContactSection = () => {
               <div className="grid md:grid-cols-2 gap-5">
                 <input
                   type="tel"
-                  placeholder={"Téléphone"}
+                  placeholder={t('contact.phonePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20 outline-none transition-all"
@@ -115,16 +116,16 @@ const ContactSection = () => {
                   className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20 outline-none transition-all text-gray-600"
                   data-testid="contact-service"
                 >
-                  <option value="">{"Service souhaité"}</option>
-                  <option value="china">{"Études en Chine"}</option>
-                  <option value="france">{"Études en France"}</option>
-                  <option value="housing">Recherche de Logement</option>
-                  <option value="visa">Accompagnement Visa</option>
-                  <option value="other">Autre</option>
+                  <option value="">{t('contact.serviceDefault')}</option>
+                  <option value="china">{t('contact.serviceChina')}</option>
+                  <option value="france">{t('contact.serviceFrance')}</option>
+                  <option value="housing">{t('contact.serviceHousing')}</option>
+                  <option value="visa">{t('contact.serviceVisa')}</option>
+                  <option value="other">{t('contact.serviceOther')}</option>
                 </select>
               </div>
               <textarea
-                placeholder="Votre message"
+                placeholder={t('contact.messagePlaceholder')}
                 value={formData.message}
                 onChange={(e) => setFormData({...formData, message: e.target.value})}
                 rows={4}
@@ -139,7 +140,7 @@ const ContactSection = () => {
                 data-testid="contact-submit"
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                {loading ? 'Envoi en cours...' : 'Envoyer le message'}
+                {loading ? t('contact.sending') : t('contact.sendBtn')}
               </button>
             </form>
 
@@ -150,7 +151,7 @@ const ContactSection = () => {
                   <Phone size={18} className="text-[#1a56db]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">{"Téléphone"}</p>
+                  <p className="text-sm text-gray-500">{t('contact.phoneLabel')}</p>
                   <p className="font-medium">+86 138 811 301 75</p>
                 </div>
               </div>
@@ -168,7 +169,7 @@ const ContactSection = () => {
                   <MapPin size={18} className="text-[#1a56db]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Adresse</p>
+                  <p className="text-sm text-gray-500">{t('contact.addressLabel')}</p>
                   <p className="font-medium">{"Avenue, Brazzaville, Rép du Congo"}</p>
                 </div>
               </div>
@@ -177,8 +178,8 @@ const ContactSection = () => {
                   <Clock size={18} className="text-[#1a56db]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Horaires</p>
-                  <p className="font-medium">Lun-Ven 9h-18h</p>
+                  <p className="text-sm text-gray-500">{t('contact.hoursLabel')}</p>
+                  <p className="font-medium">{t('contact.hours')}</p>
                 </div>
               </div>
             </div>
@@ -186,9 +187,9 @@ const ContactSection = () => {
 
           {/* FAQ */}
           <div>
-            <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">FAQ</span>
+            <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">{t('contact.faqBadge')}</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-8">
-              {"Questions Fréquentes"}
+              {t('contact.faqTitle')}
             </h2>
 
             <div className="space-y-4">

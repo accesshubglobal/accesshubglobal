@@ -33,6 +33,10 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] 5 pages institutionnelles (/about, /company, /legal, /privacy, /terms)
 - [x] Formulaire candidature étendu: 11 sections (Personal Info, Adresses, Santé, Chine, Passeport, Formation, Expérience, Famille, Garant, Contact urgence)
 - [x] Credentials Cloudinary et Resend mis à jour (cloud: dtjgzpmna)
+- [x] Export PDF admin des candidatures (html2pdf.js)
+- [x] Système newsletter automatique Resend (offres + blog)
+- [x] Fix déploiement Vercel (package resend dans /api/requirements.txt)
+- [x] Traductions i18n complètes: ServicesSection, DestinationsSection, TestimonialsSection, Footer, ContactSection (FR/EN)
 
 ## Tâches À Venir
 ### P1 - Priorité haute

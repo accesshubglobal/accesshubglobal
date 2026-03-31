@@ -15,6 +15,7 @@ const iconMap = {
 };
 
 const ServiceDetailModal = ({ service, isOpen, onClose }) => {
+  const { t } = useTranslation();
   if (!isOpen || !service) return null;
   const details = service.details || {};
   const IconComp = iconMap[service.icon] || GraduationCap;
@@ -49,7 +50,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Countries (Études) */}
           {details.countries && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Pays disponibles</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.availableCountries')}</h3>
               <div className="grid gap-3">
                 {details.countries.map((country, i) => (
                   <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-xl p-4">
@@ -67,7 +68,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Visa Types */}
           {details.visaTypes && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Types de visa</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.visaTypes')}</h3>
               <div className="space-y-3">
                 {details.visaTypes.map((visa, i) => (
                   <div key={i} className="bg-gray-50 rounded-xl p-4">
@@ -82,7 +83,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Document Types (Traduction) */}
           {details.documentTypes && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Documents traduits</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.translatedDocuments')}</h3>
               <div className="grid grid-cols-2 gap-2">
                 {details.documentTypes.map((doc, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
@@ -104,7 +105,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Housing Options */}
           {details.options && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Types de logement</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.housingTypes')}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {details.options.map((opt, i) => (
                   <div key={i} className="bg-gray-50 rounded-xl p-4">
@@ -119,7 +120,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Services List (Guide Achat) */}
           {details.servicesList && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Nos prestations</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.ourServices')}</h3>
               <div className="space-y-3">
                 {details.servicesList.map((svc, i) => (
                   <div key={i} className="bg-gray-50 rounded-xl p-4">
@@ -134,7 +135,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Language Courses */}
           {details.languages && !details.documentTypes && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Langues proposées</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.languagesOffered')}</h3>
               <div className="space-y-3">
                 {details.languages.map((lang, i) => (
                   <div key={i} className="bg-gray-50 rounded-xl p-4">
@@ -149,7 +150,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
           {/* Features */}
           {details.features && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Ce que nous offrons</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('services.whatWeOffer')}</h3>
               <div className="space-y-2">
                 {details.features.map((feature, i) => (
                   <div key={i} className="flex items-start gap-3">
@@ -169,7 +170,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
               className={`w-full inline-flex items-center justify-center gap-2 ${service.color} text-white py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity`}
               data-testid="service-detail-contact-btn"
             >
-              Nous contacter pour ce service
+              {t('services.contactForService')}
               <ChevronRight size={18} />
             </a>
           </div>
@@ -180,6 +181,7 @@ const ServiceDetailModal = ({ service, isOpen, onClose }) => {
 };
 
 const ServicesSection = () => {
+  const { t } = useTranslation();
   const [selectedService, setSelectedService] = useState(null);
 
   useEffect(() => {
@@ -197,13 +199,13 @@ const ServicesSection = () => {
       <div className="max-w-[1400px] mx-auto px-4">
         <div className="text-center mb-12">
           <span className="text-[#1a56db] font-semibold text-sm uppercase tracking-wider">
-            Nos Services
+            {t('services.badge')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-4">
-            Nos Services
+            {t('services.title')}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Un accompagnement complet pour votre projet d'études, vos démarches administratives et vos achats en Chine.
+            {t('services.subtitle')}
           </p>
         </div>
 
@@ -223,7 +225,7 @@ const ServicesSection = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{service.title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{service.description}</p>
                 <span className="text-[#1a56db] font-medium text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-                  En savoir plus <ChevronRight size={16} />
+                  {t('services.learnMore')} <ChevronRight size={16} />
                 </span>
               </div>
             );
