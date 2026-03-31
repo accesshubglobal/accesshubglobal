@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { services } from '../data/siteContent';
 import { GraduationCap, FileText, Home, Stamp, Users, Globe, CheckCircle, ChevronRight, X, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const iconMap = {
   GraduationCap,

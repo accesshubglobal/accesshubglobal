@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { faqItems as defaultFaqs } from '../data/siteContent';
 import { ChevronDown, Send, MapPin, Phone, Mail, Clock, Loader2, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;

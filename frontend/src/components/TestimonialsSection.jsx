@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, Quote, Send, Loader2, CheckCircle, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
