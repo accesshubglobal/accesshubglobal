@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OfferFormModal from './OfferFormModal';
+import UniversityFormModal from './UniversityFormModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -11,110 +12,6 @@ const API = `${BACKEND_URL}/api`;
 const axiosAuth = (token) => axios.create({
   headers: { Authorization: `Bearer ${token}` }
 });
-
-// ── University Form ─────────────────────────────────────────────────────────
-const EMPTY_UNI = {
-  name: '', city: '', province: '', country: 'Chine', countryCode: 'CN',
-  status: 'public', image: '', coverImage: '', logo: '', ranking: '',
-  badges: [], youtubeUrl: '', description: '', foundedYear: '',
-  president: '', totalStudents: '', internationalStudents: '',
-  website: '', faculties: [], conditions: [], photos: [],
-};
-
-const UniversityForm = ({ uni, onSave, onCancel, loading }) => {
-  const [form, setForm] = useState(uni || EMPTY_UNI);
-
-  const handle = (e) => {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-  };
-
-  return (
-    <div className="bg-gray-50 rounded-2xl p-6 space-y-4 border border-gray-200">
-      <h4 className="font-semibold text-gray-800">{uni ? "Modifier l'université" : 'Soumettre une université'}</h4>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Nom de l'université *</label>
-          <input name="name" value={form.name} onChange={handle} required
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-            data-testid="uni-name" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Ville *</label>
-          <input name="city" value={form.city} onChange={handle} required
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-            data-testid="uni-city" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Province / Région</label>
-          <input name="province" value={form.province} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Pays</label>
-          <select name="countryCode" value={form.countryCode} onChange={(e) => {
-            const v = e.target.value;
-            setForm(f => ({ ...f, countryCode: v, country: v === 'CN' ? 'Chine' : 'France' }));
-          }} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
-            <option value="CN">Chine</option>
-            <option value="FR">France</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Site web</label>
-          <input name="website" type="url" value={form.website} onChange={handle}
-            placeholder="https://www.universite.com"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Classement</label>
-          <input name="ranking" value={form.ranking} onChange={handle}
-            placeholder="Ex: Top 100 QS"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Année de fondation</label>
-          <input name="foundedYear" value={form.foundedYear} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Nombre d'étudiants</label>
-          <input name="totalStudents" value={form.totalStudents} onChange={handle}
-            placeholder="Ex: 30 000"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">URL Image principale</label>
-          <input name="image" value={form.image} onChange={handle}
-            placeholder="https://..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">URL Logo</label>
-          <input name="logo" value={form.logo} onChange={handle}
-            placeholder="https://..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-medium text-gray-600 block mb-1">Description</label>
-        <textarea name="description" value={form.description} onChange={handle} rows={4}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none" />
-      </div>
-      <div className="flex gap-3">
-        <button onClick={() => onSave(form)} disabled={loading || !form.name || !form.city}
-          className="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
-          data-testid="uni-save-btn">
-          {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-          Enregistrer et soumettre
-        </button>
-        <button onClick={onCancel} className="px-5 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-          Annuler
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // ── Status Badge ─────────────────────────────────────────────────────────────
 const StatusBadge = ({ isApproved }) => {
@@ -137,6 +34,7 @@ const PartnerDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('university');
   const [stats, setStats] = useState(null);
+  const messagesEndRef = useRef(null);
 
   // University state
   const [university, setUniversity] = useState(null);
@@ -150,21 +48,34 @@ const PartnerDashboard = () => {
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
   const [offerError, setOfferError] = useState('');
+
+  // Messaging state
+  const [messages, setMessages] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const ax = useCallback(() => axiosAuth(token), [token]);
 
   useEffect(() => {
-    // Wait until auth is resolved before making any routing decision
     if (authLoading) return;
     if (!user) { navigate('/'); return; }
     if (user.role !== 'partenaire') { navigate('/'); return; }
-    // Approved partners: load data
     if (user.isApproved) {
       loadStats();
       loadUniversity();
       loadOffers();
+      loadUnreadCount();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, activeTab]);
 
   const loadStats = async () => {
     try {
@@ -187,6 +98,28 @@ const PartnerDashboard = () => {
       const res = await ax().get(`${API}/partner/offers`);
       setOffers(res.data);
     } catch (e) {}
+  };
+
+  const loadUnreadCount = async () => {
+    try {
+      const res = await ax().get(`${API}/partner/messages/unread-count`);
+      setUnreadCount(res.data.count || 0);
+    } catch (e) {}
+  };
+
+  const loadMessages = async () => {
+    setMsgLoading(true);
+    try {
+      const res = await ax().get(`${API}/partner/messages`);
+      setMessages(res.data);
+      setUnreadCount(0);
+    } catch (e) {}
+    setMsgLoading(false);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'messages') loadMessages();
   };
 
   const handleSaveUniversity = async (data) => {
@@ -237,6 +170,17 @@ const PartnerDashboard = () => {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) return;
+    try {
+      await ax().post(`${API}/partner/messages`, { message: messageText.trim() });
+      setMessageText('');
+      await loadMessages();
+    } catch (e) {
+      alert("Erreur lors de l'envoi du message");
+    }
+  };
+
   const handleLogout = () => { logout(); navigate('/'); };
 
   // ── Auth loading screen ────────────────────────────────────────────────────
@@ -284,6 +228,12 @@ const PartnerDashboard = () => {
     );
   }
 
+  const tabs = [
+    { id: 'university', label: 'Mon Université', icon: Building2 },
+    { id: 'offers', label: 'Mes Offres', icon: GraduationCap },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, badge: unreadCount },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -295,7 +245,7 @@ const PartnerDashboard = () => {
             </div>
             <div>
               <p className="font-semibold text-gray-900 text-sm">Espace Partenaire</p>
-              <p className="text-xs text-gray-500">{user?.firstName} {user?.lastName} {user?.company ? `— ${user.company}` : ''}</p>
+              <p className="text-xs text-gray-500">{user?.firstName} {user?.lastName}{user?.company ? ` — ${user.company}` : ''}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -327,20 +277,22 @@ const PartnerDashboard = () => {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2">
-          {[
-            { id: 'university', label: 'Mon Université', icon: Building2 },
-            { id: 'offers', label: 'Mes Offres', icon: GraduationCap },
-          ].map(tab => {
+        <div className="flex gap-2 flex-wrap">
+          {tabs.map(tab => {
             const Icon = tab.icon;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`partner-tab-${tab.id}`}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+              <button key={tab.id} onClick={() => handleTabChange(tab.id)} data-testid={`partner-tab-${tab.id}`}
+                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                   activeTab === tab.id
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-700'
                 }`}>
                 <Icon size={15} /> {tab.label}
+                {tab.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -366,21 +318,6 @@ const PartnerDashboard = () => {
                 </button>
               )}
             </div>
-
-            {uniError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm flex items-center gap-2">
-                <AlertCircle size={14} /> {uniError}
-              </div>
-            )}
-
-            {showUniForm && (
-              <UniversityForm
-                uni={university}
-                onSave={handleSaveUniversity}
-                onCancel={() => { setShowUniForm(false); setUniError(''); }}
-                loading={uniLoading}
-              />
-            )}
 
             {!showUniForm && university && (
               <div className="space-y-3">
@@ -422,61 +359,155 @@ const PartnerDashboard = () => {
         {/* ── Offers Tab ── */}
         {activeTab === 'offers' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Mes Offres ({offers.length})</h3>
-              <button onClick={() => { setEditingOffer(null); setShowOfferForm(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
-                data-testid="add-offer-btn">
-                <Plus size={15} /> Nouvelle offre
-              </button>
+            {/* Gate: university must be submitted first */}
+            {!university ? (
+              <div className="text-center py-14">
+                <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Building2 size={28} className="text-amber-600" />
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-2">Université requise</h4>
+                <p className="text-sm text-gray-500 max-w-xs mx-auto mb-6">
+                  Vous devez d'abord soumettre votre université avant de pouvoir créer des offres de formation.
+                </p>
+                <button onClick={() => setActiveTab('university')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+                  data-testid="go-to-university-btn">
+                  <ArrowLeft size={15} /> Soumettre mon université
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Mes Offres ({offers.length})</h3>
+                  <button onClick={() => { setEditingOffer(null); setShowOfferForm(true); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                    data-testid="add-offer-btn">
+                    <Plus size={15} /> Nouvelle offre
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {offers.map(offer => (
+                    <div key={offer.id} className="border border-gray-100 rounded-xl p-4 hover:border-gray-200 transition-colors"
+                      data-testid={`offer-item-${offer.id}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-medium text-gray-900 truncate">{offer.title}</h4>
+                            <StatusBadge isApproved={offer.isApproved} />
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">{offer.university} — {offer.city}, {offer.country}</p>
+                          <div className="flex gap-3 mt-2 text-xs text-gray-400">
+                            <span>{offer.degree}</span>
+                            <span>·</span>
+                            <span>{offer.duration}</span>
+                            <span>·</span>
+                            <span>{offer.teachingLanguage}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={() => { setEditingOffer(offer); setShowOfferForm(true); }}
+                            className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            data-testid={`edit-offer-${offer.id}`} title="Modifier">
+                            <Edit2 size={15} />
+                          </button>
+                          <button onClick={() => handleDeleteOffer(offer.id)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            data-testid={`delete-offer-${offer.id}`} title="Supprimer">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {offers.length === 0 && (
+                    <div className="text-center py-12 text-gray-400">
+                      <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Vous n'avez pas encore soumis d'offres.</p>
+                      <p className="text-xs mt-1">Cliquez sur "Nouvelle offre" pour commencer.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Messages Tab ── */}
+        {activeTab === 'messages' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                <MessageSquare size={16} className="text-blue-700" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Messagerie AccessHub Global</h3>
+                <p className="text-xs text-gray-500">Communication avec l'équipe admin</p>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {offers.map(offer => (
-                <div key={offer.id} className="border border-gray-100 rounded-xl p-4 hover:border-gray-200 transition-colors"
-                  data-testid={`offer-item-${offer.id}`}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium text-gray-900 truncate">{offer.title}</h4>
-                        <StatusBadge isApproved={offer.isApproved} />
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">{offer.university} — {offer.city}, {offer.country}</p>
-                      <div className="flex gap-3 mt-2 text-xs text-gray-400">
-                        <span>{offer.degree}</span>
-                        <span>·</span>
-                        <span>{offer.duration}</span>
-                        <span>·</span>
-                        <span>{offer.teachingLanguage}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => { setEditingOffer(offer); setShowOfferForm(true); }}
-                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                        data-testid={`edit-offer-${offer.id}`} title="Modifier">
-                        <Edit2 size={15} />
-                      </button>
-                      <button onClick={() => handleDeleteOffer(offer.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        data-testid={`delete-offer-${offer.id}`} title="Supprimer">
-                        <Trash2 size={15} />
-                      </button>
+            {/* Messages list */}
+            <div className="h-96 overflow-y-auto p-4 space-y-3 bg-gray-50" data-testid="partner-messages-list">
+              {msgLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+                  <MessageSquare size={32} className="opacity-30" />
+                  <p className="text-sm">Aucun message pour l'instant.</p>
+                  <p className="text-xs">L'équipe vous contactera ici pour toute révision d'offre.</p>
+                </div>
+              ) : (
+                messages.map(msg => (
+                  <div key={msg.id} className={`flex ${msg.fromRole === 'partenaire' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                      msg.fromRole === 'partenaire'
+                        ? 'bg-emerald-600 text-white rounded-br-sm'
+                        : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm'
+                    }`}>
+                      {msg.fromRole !== 'partenaire' && (
+                        <p className="text-xs font-semibold text-blue-600 mb-1">{msg.fromName || 'AccessHub Admin'}</p>
+                      )}
+                      {msg.offerTitle && (
+                        <p className={`text-xs mb-1 ${msg.fromRole === 'partenaire' ? 'text-emerald-200' : 'text-gray-400'}`}>
+                          Re: {msg.offerTitle}
+                        </p>
+                      )}
+                      <p>{msg.message}</p>
+                      <p className={`text-[10px] mt-1 ${msg.fromRole === 'partenaire' ? 'text-emerald-200' : 'text-gray-400'}`}>
+                        {new Date(msg.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
                   </div>
-                </div>
-              ))}
-              {offers.length === 0 && (
-                <div className="text-center py-12 text-gray-400">
-                  <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Vous n'avez pas encore soumis d'offres.</p>
-                  <p className="text-xs mt-1">Cliquez sur "Nouvelle offre" pour commencer.</p>
-                </div>
+                ))
               )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message input */}
+            <div className="p-4 border-t border-gray-100 bg-white flex gap-3 items-end">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Écrivez votre message à l'équipe AccessHub..."
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                rows={2}
+                data-testid="partner-message-input"
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!messageText.trim()}
+                className="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                data-testid="partner-message-send">
+                <Send size={16} />
+              </button>
             </div>
           </div>
         )}
 
-        {/* Shared Offer Form Modal */}
+        {/* Offer Form Modal */}
         {showOfferForm && (
           <OfferFormModal
             offer={editingOffer}
@@ -484,6 +515,18 @@ const PartnerDashboard = () => {
             onClose={() => { setShowOfferForm(false); setEditingOffer(null); setOfferError(''); }}
             loading={offersLoading}
             error={offerError}
+            isPartner={true}
+          />
+        )}
+
+        {/* University Form Modal */}
+        {showUniForm && (
+          <UniversityFormModal
+            university={university}
+            onClose={() => { setShowUniForm(false); setUniError(''); }}
+            onSave={handleSaveUniversity}
+            loading={uniLoading}
+            error={uniError}
             isPartner={true}
           />
         )}

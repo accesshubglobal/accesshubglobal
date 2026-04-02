@@ -2562,6 +2562,9 @@ async def partner_get_offers(partner: dict = Depends(get_partner_user)):
 @api_router.post("/partner/offers")
 async def partner_create_offer(data: OfferCreate, partner: dict = Depends(get_partner_user)):
     db = get_db()
+    existing_uni = await db.universities.find_one({"partnerId": partner["id"]})
+    if not existing_uni:
+        raise HTTPException(status_code=400, detail="Vous devez d'abord soumettre une université avant de créer des offres.")
     offer = Offer(**data.model_dump())
     offer_doc = offer.model_dump()
     offer_doc["createdAt"] = offer_doc["createdAt"].isoformat()
