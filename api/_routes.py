@@ -2601,3 +2601,85 @@ async def partner_delete_offer(offer_id: str, partner: dict = Depends(get_partne
     await db.offers.delete_one({"id": offer_id})
     return {"message": "Offre supprimée"}
 
+
+
+# ============= PARTNER MESSAGING =============
+
+@api_router.post("/admin/partner-messages")
+async def admin_send_message(data: dict, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    partner_id = data.get("partnerId")
+    partner = await db.users.find_one({"id": partner_id, "role": "partenaire"})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    msg = {
+        "id": str(uuid.uuid4()),
+        "partnerId": partner_id,
+        "fromRole": "admin",
+        "fromId": admin["id"],
+        "fromName": f"{admin['firstName']} {admin['lastName']}",
+        "message": data.get("message", ""),
+        "offerId": data.get("offerId"),
+        "offerTitle": data.get("offerTitle"),
+        "isRead": False,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.partner_messages.insert_one(msg)
+    del msg["_id"]
+    return msg
+
+
+@api_router.get("/admin/partner-messages/{partner_id}")
+async def admin_get_messages(partner_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    msgs = await db.partner_messages.find(
+        {"partnerId": partner_id}, {"_id": 0}
+    ).sort("createdAt", 1).to_list(500)
+    await db.partner_messages.update_many(
+        {"partnerId": partner_id, "fromRole": "partenaire", "isRead": False},
+        {"$set": {"isRead": True}}
+    )
+    return msgs
+
+
+@api_router.get("/partner/messages")
+async def partner_get_messages(partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    msgs = await db.partner_messages.find(
+        {"partnerId": partner["id"]}, {"_id": 0}
+    ).sort("createdAt", 1).to_list(500)
+    await db.partner_messages.update_many(
+        {"partnerId": partner["id"], "fromRole": "admin", "isRead": False},
+        {"$set": {"isRead": True}}
+    )
+    return msgs
+
+
+@api_router.post("/partner/messages")
+async def partner_send_message(data: dict, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    msg = {
+        "id": str(uuid.uuid4()),
+        "partnerId": partner["id"],
+        "fromRole": "partenaire",
+        "fromId": partner["id"],
+        "fromName": f"{partner['firstName']} {partner['lastName']}",
+        "message": data.get("message", ""),
+        "offerId": data.get("offerId"),
+        "offerTitle": data.get("offerTitle"),
+        "isRead": False,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.partner_messages.insert_one(msg)
+    del msg["_id"]
+    return msg
+
+
+@api_router.get("/partner/messages/unread-count")
+async def partner_unread_count(partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    count = await db.partner_messages.count_documents(
+        {"partnerId": partner["id"], "fromRole": "admin", "isRead": False}
+    )
+    return {"count": count}
+

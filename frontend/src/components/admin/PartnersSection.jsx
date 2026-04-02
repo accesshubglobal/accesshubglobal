@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2 } from 'lucide-react';
+import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2, MessageSquare } from 'lucide-react';
 import axios, { API } from './adminApi';
 import OfferFormModal from '../OfferFormModal';
 
@@ -130,6 +130,39 @@ const PartnersSection = ({ onBadgeUpdate }) => {
     setApproveAfterSave(andApprove);
     setOfferSaveError('');
   };
+
+  // ── Messaging ──
+  const [messageModal, setMessageModal] = useState(null);
+  const [messageText, setMessageText] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+
+  const openMessages = async (partnerId, partnerName, offerId = null, offerTitle = null) => {
+    setMessageModal({ partnerId, partnerName, offerId, offerTitle });
+    setMessageText('');
+    try {
+      const res = await axios.get(`${API}/admin/partner-messages/${partnerId}`);
+      setMessages(res.data);
+    } catch (e) { setMessages([]); }
+  };
+
+  const sendMessage = async () => {
+    if (!messageText.trim() || !messageModal) return;
+    setMsgLoading(true);
+    try {
+      await axios.post(`${API}/admin/partner-messages`, {
+        partnerId: messageModal.partnerId,
+        message: messageText.trim(),
+        offerId: messageModal.offerId,
+        offerTitle: messageModal.offerTitle,
+      });
+      const res = await axios.get(`${API}/admin/partner-messages/${messageModal.partnerId}`);
+      setMessages(res.data);
+      setMessageText('');
+    } catch (e) { alert("Erreur lors de l'envoi"); }
+    setMsgLoading(false);
+  };
+
 
   const handleSaveOffer = async (formData) => {
     setOfferSaveLoading(true);
@@ -353,13 +386,21 @@ const PartnersSection = ({ onBadgeUpdate }) => {
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
-                  {/* Edit button — always available */}
+                  {/* Edit button — fees only mode */}
                   <button
                     onClick={() => handleEditAndApprove(offer, false)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-                    title="Modifier l'offre (frais de service, etc.)"
+                    title="Modifier uniquement les frais de service"
                     data-testid={`edit-partner-offer-${offer.id}`}>
-                    <Edit2 size={14} /> Modifier
+                    <Edit2 size={14} /> Frais
+                  </button>
+                  {/* Message button */}
+                  <button
+                    onClick={() => openMessages(offer.partnerId, offer.partnerName, offer.id, offer.title)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                    title="Envoyer un message au partenaire"
+                    data-testid={`msg-partner-offer-${offer.id}`}>
+                    <MessageSquare size={14} /> Message
                   </button>
                   {/* Approve with edit — sets fees then approves */}
                   {!offer.isApproved && (
@@ -391,7 +432,7 @@ const PartnersSection = ({ onBadgeUpdate }) => {
         </div>
       )}
 
-      {/* Offer edit modal */}
+      {/* Offer edit modal — fees only */}
       {editingOffer && (
         <OfferFormModal
           offer={editingOffer}
@@ -400,8 +441,57 @@ const PartnersSection = ({ onBadgeUpdate }) => {
           loading={offerSaveLoading}
           error={offerSaveError}
           isPartner={false}
-          submitLabel={approveAfterSave ? 'Enregistrer & Approuver' : 'Enregistrer'}
+          feesOnlyMode={true}
+          submitLabel={approveAfterSave ? 'Enregistrer & Approuver' : 'Enregistrer les frais'}
         />
+      )}
+
+      {/* Message modal */}
+      {messageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMessageModal(null)} />
+          <div className="relative bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Message au partenaire</h3>
+                <p className="text-blue-100 text-sm">{messageModal.partnerName}</p>
+                {messageModal.offerTitle && <p className="text-blue-200 text-xs mt-0.5">Offre : {messageModal.offerTitle}</p>}
+              </div>
+              <button onClick={() => setMessageModal(null)} className="text-white/70 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="p-4 max-h-60 overflow-y-auto space-y-3">
+              {messages.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-4">Aucun message pour l'instant</p>
+              ) : messages.map(msg => (
+                <div key={msg.id} className={`flex ${msg.fromRole === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${msg.fromRole === 'admin' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                    <p>{msg.message}</p>
+                    {msg.offerTitle && <p className={`text-[10px] mt-0.5 ${msg.fromRole === 'admin' ? 'text-blue-200' : 'text-gray-400'}`}>Re: {msg.offerTitle}</p>}
+                    <p className={`text-[10px] mt-0.5 ${msg.fromRole === 'admin' ? 'text-blue-200' : 'text-gray-400'}`}>
+                      {new Date(msg.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t flex gap-2">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Votre message pour le partenaire..."
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
+                rows={2}
+                data-testid="admin-message-input"
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              />
+              <button onClick={sendMessage} disabled={msgLoading || !messageText.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm self-end"
+                data-testid="admin-message-send">
+                Envoyer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
