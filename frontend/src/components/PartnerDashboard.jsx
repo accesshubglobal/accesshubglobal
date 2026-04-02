@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp, Loader2, LogOut, AlertCircle, Eye } from 'lucide-react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp, Loader2, LogOut, AlertCircle, Eye, Handshake } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
