@@ -51,7 +51,8 @@ const OfferFormModal = ({ offer, onSave, onClose, loading = false, error = '', i
         admissionConditions: offer.admissionConditions || [],
         requiredDocuments: offer.requiredDocuments || [],
         documentTemplates: offer.documentTemplates || [{}, {}, {}],
-        fees: { ...defaultFormData.fees, ...(offer.fees || {}), otherFees: offer.fees?.otherFees || [] }
+        fees: { ...defaultFormData.fees, ...(offer.fees || {}), otherFees: offer.fees?.otherFees || [] },
+        deadline: (offer.deadline && /^\d{4}-\d{2}-\d{2}$/.test(offer.deadline)) ? offer.deadline : ''
       });
     } else {
       setFormData(defaultFormData);
