@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2 } from 'lucide-react';
 import axios, { API } from './adminApi';
+import OfferFormModal from '../OfferFormModal';
 
 const StatusBadge = ({ isApproved }) => {
   if (isApproved === true) return (
@@ -21,6 +22,11 @@ const PartnersSection = ({ onBadgeUpdate }) => {
   const [partnerUnis, setPartnerUnis] = useState([]);
   const [partnerOffers, setPartnerOffers] = useState([]);
   const [activeTab, setActiveTab] = useState('partners');
+
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [offerSaveLoading, setOfferSaveLoading] = useState(false);
+  const [offerSaveError, setOfferSaveError] = useState('');
+  const [approveAfterSave, setApproveAfterSave] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -117,6 +123,28 @@ const PartnersSection = ({ onBadgeUpdate }) => {
       await axios.put(`${API}/admin/partner-offers/${id}/approve`);
       loadPartnerOffers();
     } catch (err) { alert(err.response?.data?.detail || 'Erreur'); }
+  };
+
+  const handleEditAndApprove = (offer, andApprove = false) => {
+    setEditingOffer(offer);
+    setApproveAfterSave(andApprove);
+    setOfferSaveError('');
+  };
+
+  const handleSaveOffer = async (formData) => {
+    setOfferSaveLoading(true);
+    setOfferSaveError('');
+    try {
+      await axios.put(`${API}/admin/offers/${editingOffer.id}`, formData);
+      if (approveAfterSave) {
+        await axios.put(`${API}/admin/partner-offers/${editingOffer.id}/approve`);
+      }
+      setEditingOffer(null);
+      loadPartnerOffers();
+    } catch (err) {
+      setOfferSaveError(err.response?.data?.detail || 'Erreur lors de la sauvegarde');
+    }
+    setOfferSaveLoading(false);
   };
 
   const rejectOffer = async (id) => {
@@ -319,13 +347,35 @@ const PartnersSection = ({ onBadgeUpdate }) => {
                     <span>{offer.duration}</span>
                     <span>·</span>
                     <span>{offer.teachingLanguage}</span>
+                    {(offer.serviceFee > 0 || offer.fees?.applicationFee > 0) && (
+                      <span className="text-emerald-600 font-medium">· Frais de service configurés ✓</span>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                  {/* Edit button — always available */}
+                  <button
+                    onClick={() => handleEditAndApprove(offer, false)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                    title="Modifier l'offre (frais de service, etc.)"
+                    data-testid={`edit-partner-offer-${offer.id}`}>
+                    <Edit2 size={14} /> Modifier
+                  </button>
+                  {/* Approve with edit — sets fees then approves */}
+                  {!offer.isApproved && (
+                    <button
+                      onClick={() => handleEditAndApprove(offer, true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm"
+                      title="Modifier les frais puis approuver"
+                      data-testid={`edit-approve-partner-offer-${offer.id}`}>
+                      <Check size={14} /> Modifier & Approuver
+                    </button>
+                  )}
+                  {/* Quick approve without editing */}
                   {!offer.isApproved && (
                     <button onClick={() => approveOffer(offer.id)}
                       className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                      title="Approuver" data-testid={`approve-offer-${offer.id}`}>
+                      title="Approuver sans modifier" data-testid={`approve-offer-${offer.id}`}>
                       <Check size={16} />
                     </button>
                   )}
@@ -339,6 +389,19 @@ const PartnersSection = ({ onBadgeUpdate }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Offer edit modal */}
+      {editingOffer && (
+        <OfferFormModal
+          offer={editingOffer}
+          onSave={handleSaveOffer}
+          onClose={() => { setEditingOffer(null); setOfferSaveError(''); }}
+          loading={offerSaveLoading}
+          error={offerSaveError}
+          isPartner={false}
+          submitLabel={approveAfterSave ? 'Enregistrer & Approuver' : 'Enregistrer'}
+        />
       )}
     </div>
   );

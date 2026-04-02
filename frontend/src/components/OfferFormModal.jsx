@@ -37,8 +37,9 @@ const defaultFormData = {
  * @param {boolean}  loading    - Disable submit button while saving
  * @param {string}   error      - Error message to display
  * @param {boolean}  isPartner  - Hides AccessHub service-fee section for partners
+ * @param {string}   submitLabel - Custom label for the submit button
  */
-const OfferFormModal = ({ offer, onSave, onClose, loading = false, error = '', isPartner = false }) => {
+const OfferFormModal = ({ offer, onSave, onClose, loading = false, error = '', isPartner = false, submitLabel }) => {
   const [formData, setFormData] = useState(defaultFormData);
 
   useEffect(() => {
@@ -380,7 +381,7 @@ const OfferFormModal = ({ offer, onSave, onClose, loading = false, error = '', i
             <button type="submit" disabled={loading}
               className="flex-1 px-4 py-2 bg-[#1a56db] text-white rounded-lg hover:bg-[#1648b8] disabled:opacity-50"
               data-testid="offer-form-submit">
-              {loading ? 'Enregistrement...' : (isPartner ? 'Soumettre pour validation' : 'Enregistrer')}
+              {loading ? 'Enregistrement...' : (submitLabel || (isPartner ? 'Soumettre pour validation' : 'Enregistrer'))}
             </button>
           </div>
         </form>
