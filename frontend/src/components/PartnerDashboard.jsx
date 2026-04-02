@@ -253,7 +253,7 @@ const StatusBadge = ({ isApproved }) => {
 
 // ── Main Dashboard ───────────────────────────────────────────────────────────
 const PartnerDashboard = () => {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('university');
   const [stats, setStats] = useState(null);
@@ -273,12 +273,18 @@ const PartnerDashboard = () => {
   const ax = useCallback(() => axiosAuth(token), [token]);
 
   useEffect(() => {
-    if (!user || user.role !== 'partenaire') { navigate('/'); return; }
-    if (!user.isApproved) return;
-    loadStats();
-    loadUniversity();
-    loadOffers();
-  }, [user, navigate]);
+    // Wait until auth is resolved before making any routing decision
+    if (authLoading) return;
+    if (!user) { navigate('/'); return; }
+    if (user.role !== 'partenaire') { navigate('/'); return; }
+    // Approved partners: load data
+    if (user.isApproved) {
+      loadStats();
+      loadUniversity();
+      loadOffers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
 
   const loadStats = async () => {
     try {
@@ -352,6 +358,33 @@ const PartnerDashboard = () => {
   };
 
   const handleLogout = () => { logout(); navigate('/'); };
+
+  // ── Auth loading screen ────────────────────────────────────────────────────
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      </div>
+    );
+  }
+
+  // ── Email not verified ─────────────────────────────────────────────────────
+  if (user && !user.emailVerified) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Email non vérifié</h2>
+          <p className="text-gray-600 mb-4">Veuillez vérifier votre adresse email avant d'accéder à votre espace partenaire. Consultez votre boîte de réception.</p>
+          <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-2 mx-auto">
+            <LogOut size={14} /> Se déconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Not approved screen ────────────────────────────────────────────────────
   if (!user?.isApproved) {

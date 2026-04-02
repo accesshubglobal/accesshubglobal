@@ -165,6 +165,13 @@ async def login(credentials: UserLogin):
     if not user.get("isActive", True):
         raise HTTPException(status_code=401, detail="Compte désactivé")
 
+    # Block partner/agent login if email not verified
+    if user.get("role") in ("partenaire", "agent") and not user.get("emailVerified", False):
+        raise HTTPException(
+            status_code=403,
+            detail="Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception."
+        )
+
     access_token = create_access_token({"sub": user["id"]})
 
     return TokenResponse(
