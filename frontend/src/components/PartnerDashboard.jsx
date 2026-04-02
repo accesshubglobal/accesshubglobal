@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp, Loader2, LogOut, AlertCircle, Eye, Handshake } from 'lucide-react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import OfferFormModal from './OfferFormModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -10,127 +11,6 @@ const API = `${BACKEND_URL}/api`;
 const axiosAuth = (token) => axios.create({
   headers: { Authorization: `Bearer ${token}` }
 });
-
-// ── Offer Form ──────────────────────────────────────────────────────────────
-const EMPTY_OFFER = {
-  title: '', university: '', city: '', country: 'Chine', countryCode: 'CN',
-  category: 'engineering', categoryLabel: 'Ingénierie', degree: 'Licence',
-  duration: '3 ans', teachingLanguage: 'Anglais', intake: 'Automne 2025',
-  deadline: 'Ouvert', description: '', hasScholarship: false,
-  isPartialScholarship: false, isSelfFinanced: true, isOnline: false,
-  isNew: true, scholarshipType: '', originalTuition: 0, scholarshipTuition: 0,
-  currency: 'CNY', serviceFee: 0, badges: [], requiredDocuments: [],
-  requirements: {}, scholarshipDetails: {}, fees: {}, admissionConditions: [],
-  documentTemplates: [], documents: [], image: null,
-};
-
-const OfferForm = ({ offer, onSave, onCancel, loading }) => {
-  const [form, setForm] = useState(offer || EMPTY_OFFER);
-
-  const handle = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
-  };
-
-  return (
-    <div className="bg-gray-50 rounded-2xl p-6 space-y-4 border border-gray-200">
-      <h4 className="font-semibold text-gray-800">{offer ? 'Modifier l\'offre' : 'Nouvelle offre'}</h4>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Titre *</label>
-          <input name="title" value={form.title} onChange={handle} required
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-            data-testid="offer-title" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Université *</label>
-          <input name="university" value={form.university} onChange={handle} required
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-            data-testid="offer-university" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Ville</label>
-          <input name="city" value={form.city} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Pays</label>
-          <select name="countryCode" value={form.countryCode} onChange={(e) => {
-            const v = e.target.value;
-            setForm(f => ({ ...f, countryCode: v, country: v === 'CN' ? 'Chine' : 'France' }));
-          }} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
-            <option value="CN">Chine</option>
-            <option value="FR">France</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Diplôme</label>
-          <select name="degree" value={form.degree} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
-            {['Licence', 'Master', 'Doctorat', 'Préparatoire', 'Formation courte'].map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Durée</label>
-          <input name="duration" value={form.duration} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Langue d'enseignement</label>
-          <input name="teachingLanguage" value={form.teachingLanguage} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Rentrée</label>
-          <input name="intake" value={form.intake} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Date limite candidature</label>
-          <input name="deadline" value={form.deadline} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Frais de scolarité (CNY/EUR)</label>
-          <input name="originalTuition" type="number" value={form.originalTuition} onChange={handle}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" />
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-medium text-gray-600 block mb-1">Description</label>
-        <textarea name="description" value={form.description} onChange={handle} rows={3}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none" />
-      </div>
-      <div className="flex items-center gap-6">
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input type="checkbox" name="hasScholarship" checked={form.hasScholarship} onChange={handle} className="accent-emerald-600" />
-          Bourse disponible
-        </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input type="checkbox" name="isSelfFinanced" checked={form.isSelfFinanced} onChange={handle} className="accent-emerald-600" />
-          Auto-financement
-        </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input type="checkbox" name="isOnline" checked={form.isOnline} onChange={handle} className="accent-emerald-600" />
-          En ligne
-        </label>
-      </div>
-      <div className="flex gap-3">
-        <button onClick={() => onSave(form)} disabled={loading || !form.title || !form.university}
-          className="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
-          data-testid="offer-save-btn">
-          {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-          Enregistrer et soumettre
-        </button>
-        <button onClick={onCancel} className="px-5 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-          Annuler
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // ── University Form ─────────────────────────────────────────────────────────
 const EMPTY_UNI = {
@@ -544,29 +424,12 @@ const PartnerDashboard = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Mes Offres ({offers.length})</h3>
-              {!showOfferForm && !editingOffer && (
-                <button onClick={() => setShowOfferForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
-                  data-testid="add-offer-btn">
-                  <Plus size={15} /> Nouvelle offre
-                </button>
-              )}
+              <button onClick={() => { setEditingOffer(null); setShowOfferForm(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                data-testid="add-offer-btn">
+                <Plus size={15} /> Nouvelle offre
+              </button>
             </div>
-
-            {offerError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm flex items-center gap-2">
-                <AlertCircle size={14} /> {offerError}
-              </div>
-            )}
-
-            {(showOfferForm || editingOffer) && (
-              <OfferForm
-                offer={editingOffer}
-                onSave={handleSaveOffer}
-                onCancel={() => { setShowOfferForm(false); setEditingOffer(null); setOfferError(''); }}
-                loading={offersLoading}
-              />
-            )}
 
             <div className="space-y-3">
               {offers.map(offer => (
@@ -588,7 +451,7 @@ const PartnerDashboard = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => { setEditingOffer(offer); setShowOfferForm(false); }}
+                      <button onClick={() => { setEditingOffer(offer); setShowOfferForm(true); }}
                         className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         data-testid={`edit-offer-${offer.id}`} title="Modifier">
                         <Edit2 size={15} />
@@ -602,7 +465,7 @@ const PartnerDashboard = () => {
                   </div>
                 </div>
               ))}
-              {offers.length === 0 && !showOfferForm && (
+              {offers.length === 0 && (
                 <div className="text-center py-12 text-gray-400">
                   <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
                   <p className="text-sm">Vous n'avez pas encore soumis d'offres.</p>
@@ -611,6 +474,18 @@ const PartnerDashboard = () => {
               )}
             </div>
           </div>
+        )}
+
+        {/* Shared Offer Form Modal */}
+        {showOfferForm && (
+          <OfferFormModal
+            offer={editingOffer}
+            onSave={handleSaveOffer}
+            onClose={() => { setShowOfferForm(false); setEditingOffer(null); setOfferError(''); }}
+            loading={offersLoading}
+            error={offerError}
+            isPartner={true}
+          />
         )}
       </main>
     </div>
