@@ -23,6 +23,8 @@ import BlogDetailPage from "./components/BlogDetailPage";
 import CommunityPage from "./components/CommunityPage";
 import CommunityPostPage from "./components/CommunityPostPage";
 import AgentRegisterPage from "./components/AgentRegisterPage";
+import PartnerRegisterPage from "./components/PartnerRegisterPage";
+import PartnerDashboard from "./components/PartnerDashboard";
 import AgentDashboard from "./components/AgentDashboard";
 import UniversityDetailPage from "./components/UniversityDetailPage";
 import UniversitiesListPage from "./components/UniversitiesListPage";
@@ -122,6 +124,8 @@ function App() {
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/community/:id" element={<CommunityPostPage />} />
               <Route path="/agent/register" element={<AgentRegisterPage />} />
+              <Route path="/partner/register" element={<PartnerRegisterPage />} />
+              <Route path="/partner" element={<PartnerDashboard />} />
               <Route path="/universities" element={<UniversitiesListPage />} />
               <Route path="/universities/:id" element={<UniversityDetailPage />} />
               <Route path="/about" element={<AboutPage />} />

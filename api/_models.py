@@ -537,6 +537,19 @@ class CommunityReplyCreate(BaseModel):
     content: str
 
 
+# ============= PARTNER MODELS =============
+
+class PartnerRegister(BaseModel):
+    email: EmailStr
+    password: str
+    firstName: str
+    lastName: str
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    website: Optional[str] = None
+    activationCode: str
+
+
 # ============= AGENT MODELS =============
 
 class AgentRegister(BaseModel):

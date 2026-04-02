@@ -27,6 +27,7 @@ import CommunitySection from './admin/CommunitySection';
 import PaymentSettingsSection from './admin/PaymentSettingsSection';
 import TermsSection from './admin/TermsSection';
 import PagesSection from './admin/PagesSection';
+import PartnersSection from './admin/PartnersSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -78,6 +79,8 @@ const AdminCMS = ({ onClose }) => {
         return isPrincipalAdmin ? <UsersSection /> : null;
       case 'agents':
         return isPrincipalAdmin ? <AgentsSection onBadgeUpdate={handleBadgeUpdate} /> : null;
+      case 'partners':
+        return isPrincipalAdmin ? <PartnersSection onBadgeUpdate={handleBadgeUpdate} /> : null;
       case 'applications':
         return <ApplicationsSection />;
       case 'housing':

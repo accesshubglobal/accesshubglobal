@@ -11,6 +11,15 @@
 - Rôle: user
 - Email vérifié: oui (emailVerified=true)
 
+## Partenaire de test
+- Email: partner@test.com
+- Mot de passe: Partner2025!
+- Rôle: partenaire
+- Statut: approuvé (isApproved=true)
+- Code d'activation utilisé: PA-MSSCGLU8
+
 ## Notes
 - Le compte admin garde l'ancien email malgré le rebranding (ne pas changer)
 - Le domaine email Resend: auth.accesshubglobal.com
+- Les partenaires accèdent à leur espace via /partner
+- La page d'inscription partenaire est à /partner/register

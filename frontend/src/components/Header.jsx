@@ -10,7 +10,7 @@ const Header = ({ onOpenAuth }) => {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   
-  const { user, isAuthenticated, isAdmin, isAgent, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isAgent, isPartner, logout } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
@@ -110,12 +110,12 @@ const Header = ({ onOpenAuth }) => {
                       </div>
                       
                       <button 
-                        onClick={() => { navigate(isAgent ? '/agent' : '/dashboard'); setShowUserDropdown(false); }}
+                        onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : '/dashboard'); setShowUserDropdown(false); }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
                         data-testid="dashboard-link"
                       >
                         <User size={16} />
-                        {isAgent ? 'Espace Agent' : t('header.dashboard')}
+                        {isAgent ? 'Espace Agent' : isPartner ? 'Espace Partenaire' : t('header.dashboard')}
                       </button>
                       
                       {isAdmin && (
@@ -169,7 +169,7 @@ const Header = ({ onOpenAuth }) => {
               <>
                 <NotificationBell />
                 <button
-                  onClick={() => { navigate(isAgent ? '/agent' : isAdmin ? '/admin' : '/dashboard'); }}
+                  onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : isAdmin ? '/admin' : '/dashboard'); }}
                   className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1a56db] text-white text-xs font-bold"
                   data-testid="mobile-user-btn"
                 >
@@ -246,10 +246,10 @@ const Header = ({ onOpenAuth }) => {
                       {user?.firstName} {user?.lastName}
                     </div>
                     <button 
-                      onClick={() => { navigate(isAgent ? '/agent' : '/dashboard'); setMobileMenuOpen(false); }}
+                      onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : '/dashboard'); setMobileMenuOpen(false); }}
                       className="w-full text-left text-gray-700 font-medium"
                     >
-                      {isAgent ? 'Espace Agent' : t('header.dashboard')}
+                      {isAgent ? 'Espace Agent' : isPartner ? 'Espace Partenaire' : t('header.dashboard')}
                     </button>
                     {isAdmin && (
                       <button 

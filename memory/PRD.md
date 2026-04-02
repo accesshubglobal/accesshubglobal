@@ -37,6 +37,7 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] Système newsletter automatique Resend (offres + blog)
 - [x] Fix déploiement Vercel (package resend dans /api/requirements.txt)
 - [x] Traductions i18n complètes: ServicesSection, DestinationsSection, TestimonialsSection, Footer, ContactSection (FR/EN)
+- [x] Rôle Partenaire: inscription avec code d'activation (PA-XXXXXXXX), tableau de bord, soumission université/offres, validation admin
 
 ## Tâches À Venir
 ### P1 - Priorité haute

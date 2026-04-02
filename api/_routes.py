@@ -22,10 +22,11 @@ from _models import (
     BlogPostCreate, BlogPostUpdate,
     CommunityPostCreate, CommunityReplyCreate,
     AgentRegister, AgentStudentCreate, AgentStudentUpdate, AgentApplicationCreate,
+    PartnerRegister,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
-    get_current_user, get_admin_user, get_principal_admin, get_agent_user, serialize_doc, security,
+    get_current_user, get_admin_user, get_principal_admin, get_agent_user, get_partner_user, serialize_doc, security,
     send_notification, broadcast_to_admins,
     generate_verification_code, send_verification_email, send_password_reset_email,
     broadcast_newsletter_offer, broadcast_newsletter_blog,
@@ -321,7 +322,7 @@ async def get_offers(
     search: Optional[str] = None
 ):
     db = get_db()
-    query = {"isActive": True}
+    query = {"isActive": True, "$or": [{"partnerId": {"$exists": False}}, {"partnerId": None}, {"isApproved": True}]}
 
     if category:
         query["category"] = category
@@ -443,7 +444,7 @@ async def get_offer_rating(offer_id: str):
 @api_router.get("/universities")
 async def get_universities(country: Optional[str] = None):
     db = get_db()
-    query = {"isActive": True}
+    query = {"isActive": True, "$or": [{"partnerId": {"$exists": False}}, {"partnerId": None}, {"isApproved": True}]}
     if country:
         query["countryCode"] = country
 
@@ -2280,3 +2281,316 @@ async def admin_list_pages(admin: dict = Depends(get_principal_admin)):
             await db.pages.insert_one(default_copy)
             pages.append({k: v for k, v in default_copy.items() if k != "_id"})
     return pages
+
+
+# ============= PARTNER REGISTRATION =============
+
+@api_router.post("/auth/register-partner", response_model=TokenResponse)
+async def register_partner(partner_data: PartnerRegister):
+    db = get_db()
+    existing = await db.users.find_one({"email": partner_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    code_doc = await db.partner_codes.find_one({"code": partner_data.activationCode, "isUsed": False})
+    if not code_doc:
+        raise HTTPException(status_code=400, detail="Code d'activation invalide ou déjà utilisé")
+
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    user_doc = {
+        "id": user_id,
+        "email": partner_data.email,
+        "firstName": partner_data.firstName,
+        "lastName": partner_data.lastName,
+        "phone": partner_data.phone,
+        "company": partner_data.company or "",
+        "website": partner_data.website or "",
+        "role": "partenaire",
+        "isActive": True,
+        "isApproved": False,
+        "emailVerified": False,
+        "favorites": [],
+        "partnerCode": partner_data.activationCode,
+        "createdAt": now.isoformat(),
+    }
+    user_doc["password"] = hash_password(partner_data.password)
+    await db.users.insert_one(user_doc)
+
+    await db.partner_codes.update_one(
+        {"code": partner_data.activationCode},
+        {"$set": {"isUsed": True, "usedBy": user_id, "usedAt": now.isoformat()}}
+    )
+
+    v_code = generate_verification_code()
+    await db.email_verifications.insert_one({
+        "email": partner_data.email,
+        "code": v_code,
+        "createdAt": now.isoformat(),
+    })
+    await send_verification_email(partner_data.email, v_code)
+
+    token = create_access_token({"sub": user_id})
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user_id, email=partner_data.email,
+            firstName=partner_data.firstName, lastName=partner_data.lastName,
+            phone=partner_data.phone, role="partenaire", isActive=True, favorites=[],
+            isApproved=False, company=partner_data.company or "", emailVerified=False,
+        )
+    )
+
+
+# ============= ADMIN - PARTNER CODES =============
+
+@api_router.post("/admin/partner-codes")
+async def admin_create_partner_code(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    import random, string
+    code = "PA-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "code": code,
+        "createdBy": admin["id"],
+        "createdByName": f"{admin['firstName']} {admin['lastName']}",
+        "createdAt": now.isoformat(),
+        "expiresAt": (now + timedelta(days=30)).isoformat(),
+        "isUsed": False,
+        "usedBy": None,
+        "usedAt": None,
+    }
+    await db.partner_codes.insert_one(doc)
+    del doc["_id"]
+    return doc
+
+
+@api_router.get("/admin/partner-codes")
+async def admin_get_partner_codes(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    codes = await db.partner_codes.find({}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return codes
+
+
+@api_router.delete("/admin/partner-codes/{code_id}")
+async def admin_delete_partner_code(code_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    result = await db.partner_codes.delete_one({"id": code_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Code non trouvé")
+    return {"message": "Code supprimé"}
+
+
+# ============= ADMIN - PARTNERS MANAGEMENT =============
+
+@api_router.get("/admin/partners")
+async def admin_get_partners(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    partners = await db.users.find({"role": "partenaire"}, {"_id": 0, "password": 0}).sort("createdAt", -1).to_list(500)
+    for p in partners:
+        p["universitiesCount"] = await db.universities.count_documents({"partnerId": p["id"]})
+        p["offersCount"] = await db.offers.count_documents({"partnerId": p["id"]})
+    return partners
+
+
+@api_router.put("/admin/partners/{partner_id}/approve")
+async def admin_approve_partner(partner_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    user = await db.users.find_one({"id": partner_id, "role": "partenaire"})
+    if not user:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    await db.users.update_one({"id": partner_id}, {"$set": {"isApproved": True}})
+    return {"message": "Partenaire approuvé"}
+
+
+@api_router.put("/admin/partners/{partner_id}/reject")
+async def admin_reject_partner(partner_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    user = await db.users.find_one({"id": partner_id, "role": "partenaire"})
+    if not user:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    await db.users.update_one({"id": partner_id}, {"$set": {"isApproved": False, "isActive": False}})
+    return {"message": "Partenaire rejeté"}
+
+
+# ============= ADMIN - PARTNER CONTENT MODERATION =============
+
+@api_router.get("/admin/partner-universities")
+async def admin_get_partner_universities(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    unis = await db.universities.find(
+        {"partnerId": {"$exists": True, "$ne": None}}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(500)
+    for uni in unis:
+        partner = await db.users.find_one({"id": uni.get("partnerId")}, {"_id": 0, "password": 0})
+        uni["partnerName"] = f"{partner['firstName']} {partner['lastName']}" if partner else "Inconnu"
+        uni["partnerCompany"] = partner.get("company", "") if partner else ""
+    return unis
+
+
+@api_router.put("/admin/partner-universities/{uni_id}/approve")
+async def admin_approve_partner_university(uni_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    uni = await db.universities.find_one({"id": uni_id, "partnerId": {"$exists": True}})
+    if not uni:
+        raise HTTPException(status_code=404, detail="Université non trouvée")
+    await db.universities.update_one({"id": uni_id}, {"$set": {"isApproved": True}})
+    return {"message": "Université approuvée"}
+
+
+@api_router.put("/admin/partner-universities/{uni_id}/reject")
+async def admin_reject_partner_university(uni_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    uni = await db.universities.find_one({"id": uni_id, "partnerId": {"$exists": True}})
+    if not uni:
+        raise HTTPException(status_code=404, detail="Université non trouvée")
+    await db.universities.update_one({"id": uni_id}, {"$set": {"isApproved": False}})
+    return {"message": "Université rejetée"}
+
+
+@api_router.get("/admin/partner-offers")
+async def admin_get_partner_offers(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    offers = await db.offers.find(
+        {"partnerId": {"$exists": True, "$ne": None}}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(500)
+    for offer in offers:
+        partner = await db.users.find_one({"id": offer.get("partnerId")}, {"_id": 0, "password": 0})
+        offer["partnerName"] = f"{partner['firstName']} {partner['lastName']}" if partner else "Inconnu"
+        offer["partnerCompany"] = partner.get("company", "") if partner else ""
+    return offers
+
+
+@api_router.put("/admin/partner-offers/{offer_id}/approve")
+async def admin_approve_partner_offer(offer_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    offer = await db.offers.find_one({"id": offer_id, "partnerId": {"$exists": True}})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offre non trouvée")
+    await db.offers.update_one({"id": offer_id}, {"$set": {"isApproved": True}})
+    return {"message": "Offre approuvée"}
+
+
+@api_router.put("/admin/partner-offers/{offer_id}/reject")
+async def admin_reject_partner_offer(offer_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    offer = await db.offers.find_one({"id": offer_id, "partnerId": {"$exists": True}})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offre non trouvée")
+    await db.offers.update_one({"id": offer_id}, {"$set": {"isApproved": False}})
+    return {"message": "Offre rejetée"}
+
+
+# ============= PARTNER DASHBOARD ENDPOINTS =============
+
+@api_router.get("/partner/stats")
+async def partner_stats(partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    uni = await db.universities.find_one({"partnerId": partner["id"]}, {"_id": 0})
+    offers_count = await db.offers.count_documents({"partnerId": partner["id"]})
+    approved_offers = await db.offers.count_documents({"partnerId": partner["id"], "isApproved": True})
+    return {
+        "hasUniversity": uni is not None,
+        "universityApproved": uni.get("isApproved", False) if uni else False,
+        "universityName": uni.get("name", "") if uni else "",
+        "offersCount": offers_count,
+        "approvedOffersCount": approved_offers,
+    }
+
+
+@api_router.get("/partner/university")
+async def partner_get_university(partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    uni = await db.universities.find_one({"partnerId": partner["id"]}, {"_id": 0})
+    if not uni:
+        raise HTTPException(status_code=404, detail="Aucune université soumise")
+    return uni
+
+
+@api_router.post("/partner/university")
+async def partner_create_university(data: UniversityCreate, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    existing = await db.universities.find_one({"partnerId": partner["id"]})
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà soumis une université")
+
+    uni = University(**data.model_dump())
+    uni_doc = uni.model_dump()
+    uni_doc["createdAt"] = uni_doc["createdAt"].isoformat()
+    uni_doc["partnerId"] = partner["id"]
+    uni_doc["isApproved"] = False
+    await db.universities.insert_one(uni_doc)
+    del uni_doc["_id"]
+    await broadcast_to_admins({
+        "type": "partner_content",
+        "title": "Nouvelle université partenaire",
+        "message": f"{partner['firstName']} {partner['lastName']} a soumis une université: {data.name}",
+        "data": {}
+    })
+    return uni_doc
+
+
+@api_router.put("/partner/university/{uni_id}")
+async def partner_update_university(uni_id: str, data: UniversityCreate, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    uni = await db.universities.find_one({"id": uni_id, "partnerId": partner["id"]})
+    if not uni:
+        raise HTTPException(status_code=404, detail="Université non trouvée ou non autorisée")
+
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    update["isApproved"] = False  # Re-pending approval after edit
+    await db.universities.update_one({"id": uni_id}, {"$set": update})
+    updated = await db.universities.find_one({"id": uni_id}, {"_id": 0})
+    return updated
+
+
+@api_router.get("/partner/offers")
+async def partner_get_offers(partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    offers = await db.offers.find({"partnerId": partner["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return offers
+
+
+@api_router.post("/partner/offers")
+async def partner_create_offer(data: OfferCreate, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    offer = Offer(**data.model_dump())
+    offer_doc = offer.model_dump()
+    offer_doc["createdAt"] = offer_doc["createdAt"].isoformat()
+    offer_doc["partnerId"] = partner["id"]
+    offer_doc["isApproved"] = False
+    await db.offers.insert_one(offer_doc)
+    del offer_doc["_id"]
+    await broadcast_to_admins({
+        "type": "partner_content",
+        "title": "Nouvelle offre partenaire",
+        "message": f"{partner['firstName']} {partner['lastName']} a soumis une offre: {data.title}",
+        "data": {}
+    })
+    return offer_doc
+
+
+@api_router.put("/partner/offers/{offer_id}")
+async def partner_update_offer(offer_id: str, data: OfferCreate, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    offer = await db.offers.find_one({"id": offer_id, "partnerId": partner["id"]})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offre non trouvée ou non autorisée")
+
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    update["isApproved"] = False  # Re-pending approval after edit
+    await db.offers.update_one({"id": offer_id}, {"$set": update})
+    updated = await db.offers.find_one({"id": offer_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/partner/offers/{offer_id}")
+async def partner_delete_offer(offer_id: str, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    offer = await db.offers.find_one({"id": offer_id, "partnerId": partner["id"]})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offre non trouvée ou non autorisée")
+    await db.offers.delete_one({"id": offer_id})
+    return {"message": "Offre supprimée"}
+

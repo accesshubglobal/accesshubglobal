@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, MessageCircle, MapPin, Music2, Facebook, Instagram, Youtube, ArrowRight, Users, ArrowUp } from 'lucide-react';
+import { Mail, Phone, MessageCircle, MapPin, Music2, Facebook, Instagram, Youtube, ArrowRight, Users, ArrowUp, Handshake } from 'lucide-react';
 import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -254,6 +254,9 @@ const Footer = () => {
             <ul className="space-y-3 text-gray-400">
               <li><a href="/about" className="hover:text-white transition-colors">{t('footer.about')}</a></li>
               <li><a href="/company" className="hover:text-white transition-colors">{t('footer.companyInfo')}</a></li>
+              <li><a href="/partner/register" className="hover:text-white transition-colors flex items-center gap-1.5 text-emerald-400">
+                <Handshake size={14} /> Devenir Partenaire
+              </a></li>
             </ul>
           </div>
         </div>
