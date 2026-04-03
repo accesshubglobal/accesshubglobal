@@ -18,6 +18,9 @@
 - Email: agent@test.com
 - Mot de passe: Test2025!
 - Rôle: agent
+- Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
+- Nom: Jean Agent
+- Connexion: via la modale de connexion sur la page d'accueil → redirige vers /agent
 
 ## Utilisateur de test (UI)
 - Email: ui_test_user@test.com
