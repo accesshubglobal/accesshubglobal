@@ -49,7 +49,8 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
   - Vidéo YouTube obligatoire
   - Tous champs requis marqués *
 - [x] Blocage offres si aucune université soumise (frontend + backend) (P0 - FAIT)
-- [x] Messagerie Partner ↔ Admin dans tableau de bord partenaire (P0 - FAIT)
+- [x] Pièces jointes dans la messagerie Partner ↔ Admin (images inline, autres fichiers = lien téléchargement) (FAIT)
+- [x] Champs obligatoires supplémentaires UniversityFormModal partenaires : Photo de couverture, Logo, Image principale, Année de création, Président, min. 3 facultés, min. 6 conditions d'admission (FAIT)
 - [x] Correction bug OfferFormModal (contenu dupliqué supprimé) (P0 - FAIT)
 
 ## Tâches À Venir
