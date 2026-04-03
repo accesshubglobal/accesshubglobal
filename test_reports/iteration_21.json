@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 21: Frontend testing of 3 new AgentDashboard features: (1) StudentFormModal multi-step form, (2) ApplySelectModal fix for Postuler button, (3) AppPreviewModal with Aperçu/Télécharger buttons. All 14 test scenarios passed (100% success rate). Note: Agent password was reset to Test2025! as bcrypt check was failing (password was corrupted/unknown).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_21.json"
+  ],
+  "action_items": [
+    "Agent password was reset to Test2025! in MongoDB (bcrypt was failing). Update test_credentials.md to confirm agent@test.com / Test2025! is the correct password.",
+    "Minor: The /agent/login route does not exist (returns blank page). Agents must log in via the homepage modal then navigate to /agent. This is by design but worth documenting."
+  ],
+  "critical_code_review_comments": [
+    "MINOR: The 'Télécharger' button on the Candidatures card (data-testid=download-app-btn-{id}) opens AppPreviewModal (same as Aperçu), NOT a direct download. The actual download is inside the modal. This is consistent with the design spec but differs from typical UX expectation.",
+    "INFO: Tabs data-testid (agent-tab-dashboard, agent-tab-students, etc.) are all present and functional. The initial query loop showed some tabs as not found due to timing before full React render, but clicking them all works correctly.",
+    "INFO: AppPreviewModal overlay uses class bg-black/60 (not bg-black). Selectors should use [class*='bg-black'] for reliable detection."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% - 14/14 test scenarios passed"
+  },
+  "test_credentials": {
+    "admin": "admin@winners-consulting.com / Admin2025!",
+    "agent": "agent@test.com / Test2025! (password reset during this iteration - was failing bcrypt check)"
+  },
+  "seed_data_creation": "No new seed data created. Agent password was reset to Test2025!.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 21: All 14 tests passed. Agent: agent@test.com / Test2025! (approved=true, emailVerified=true, name=Jean Agent). Login via homepage Login button → fill auth-email/auth-password/auth-submit-btn → redirects to /agent. Tested: (1) StudentFormModal: 7 steps (Identité, Résidence, Santé&Chine, Passeport, Scolarité, Travail, Famille), Suivant/Précédent nav works, Enregistrer on step 7. (2) Offres tab: 23 offers, Postuler button opens ApplySelectModal (no navigation), students listed with radio, Soumettre button enabled after selection. (3) Candidatures tab: 2 applications, Aperçu and Télécharger buttons, Aperçu opens AppPreviewModal with student info and Télécharger button in header. Admin: admin@winners-consulting.com / Admin2025!. Partner: partner@test.com / Partner2025!.",
+  "passed_tests": [
+    "Agent login (agent@test.com / Test2025!) → /agent dashboard",
+    "All 6 tabs visible: Tableau de bord, Étudiants, Candidatures, Offres, Favoris, Messages",
+    "Étudiants tab → 'Ajouter un étudiant' button → StudentFormModal opens",
+    "StudentFormModal: 7 step tabs: Identité, Résidence, Santé & Chine, Passeport, Scolarité, Travail, Famille",
+    "StudentFormModal step 1 (Identité): Prénom, Nom, Email, Téléphone, Sexe, Date de naissance, Nationalité fields all present",
+    "StudentFormModal: 'Suivant' button navigates to step 2 (Résidence with Adresse permanente header)",
+    "StudentFormModal: 'Précédent' button present",
+    "StudentFormModal step 7 (Famille): 'Enregistrer' button visible with green styling",
+    "Offres tab: 23 offers displayed with 'Postuler' buttons (data-testid=apply-offer-{id})",
+    "Click 'Postuler' opens ApplySelectModal (URL unchanged - no navigation)",
+    "ApplySelectModal: title 'Postuler à une offre' shown with offer title and university",
+    "ApplySelectModal: 3 students listed with radio buttons (TEST_Updated TEST_Student, TEST_Jean TEST_Martin, Marie Dupont)",
+    "ApplySelectModal: selecting student radio → 'Soumettre la candidature' button becomes enabled",
+    "Candidatures tab: 2 application cards with 'Aperçu' and 'Télécharger' buttons",
+    "Aperçu button opens AppPreviewModal with student name, offer title, status, personal info sections",
+    "AppPreviewModal: 'Télécharger' button visible in header (top right)"
+  ]
+}

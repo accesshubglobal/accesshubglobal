@@ -563,15 +563,62 @@ class AgentRegister(BaseModel):
 
 
 class AgentStudentCreate(BaseModel):
+    # Core
     firstName: str
     lastName: str
     email: EmailStr
     phone: Optional[str] = None
-    dateOfBirth: Optional[str] = None
-    nationality: Optional[str] = None
-    sex: Optional[str] = None
-    passportNumber: Optional[str] = None
-    address: Optional[str] = None
+    # Personal
+    sex: Optional[str] = ""
+    dateOfBirth: Optional[str] = ""
+    nationality: Optional[str] = ""
+    countryOfBirth: Optional[str] = ""
+    placeOfBirth: Optional[str] = ""
+    nativeLanguage: Optional[str] = ""
+    religion: Optional[str] = ""
+    maritalStatus: Optional[str] = ""
+    occupation: Optional[str] = ""
+    hobby: Optional[str] = ""
+    highestEducation: Optional[str] = ""
+    majorInChina: Optional[str] = ""
+    currentEmployer: Optional[str] = ""
+    personalEmail: Optional[str] = ""
+    # Address
+    address: Optional[str] = ""
+    addressDetailed: Optional[str] = ""
+    addressPhone: Optional[str] = ""
+    zipCode: Optional[str] = ""
+    currentAddress: Optional[str] = ""
+    currentAddressDetailed: Optional[str] = ""
+    currentAddressPhone: Optional[str] = ""
+    currentAddressZipCode: Optional[str] = ""
+    # Health
+    bloodGroup: Optional[str] = ""
+    height: Optional[str] = ""
+    weight: Optional[str] = ""
+    # China
+    inChinaNow: Optional[bool] = False
+    chinaSchool: Optional[str] = ""
+    chinaLearningPeriodStart: Optional[str] = ""
+    chinaLearningPeriodEnd: Optional[str] = ""
+    chinaVisaType: Optional[str] = ""
+    chinaVisaNo: Optional[str] = ""
+    chinaVisaExpiry: Optional[str] = ""
+    # Passport
+    passportNumber: Optional[str] = ""
+    passportIssuedDate: Optional[str] = ""
+    passportExpiryDate: Optional[str] = ""
+    oldPassportNo: Optional[str] = ""
+    oldPassportIssuedDate: Optional[str] = ""
+    oldPassportExpiryDate: Optional[str] = ""
+    # Education / Work / Family
+    educationalBackground: Optional[List[dict]] = []
+    workExperience: Optional[List[dict]] = []
+    fatherInfo: Optional[dict] = {}
+    motherInfo: Optional[dict] = {}
+    spouseInfo: Optional[dict] = {}
+    financialSponsor: Optional[dict] = {}
+    emergencyContact: Optional[dict] = {}
 
 
 class AgentStudentUpdate(BaseModel):
@@ -579,11 +626,51 @@ class AgentStudentUpdate(BaseModel):
     lastName: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    sex: Optional[str] = None
     dateOfBirth: Optional[str] = None
     nationality: Optional[str] = None
-    sex: Optional[str] = None
-    passportNumber: Optional[str] = None
+    countryOfBirth: Optional[str] = None
+    placeOfBirth: Optional[str] = None
+    nativeLanguage: Optional[str] = None
+    religion: Optional[str] = None
+    maritalStatus: Optional[str] = None
+    occupation: Optional[str] = None
+    hobby: Optional[str] = None
+    highestEducation: Optional[str] = None
+    majorInChina: Optional[str] = None
+    currentEmployer: Optional[str] = None
+    personalEmail: Optional[str] = None
     address: Optional[str] = None
+    addressDetailed: Optional[str] = None
+    addressPhone: Optional[str] = None
+    zipCode: Optional[str] = None
+    currentAddress: Optional[str] = None
+    currentAddressDetailed: Optional[str] = None
+    currentAddressPhone: Optional[str] = None
+    currentAddressZipCode: Optional[str] = None
+    bloodGroup: Optional[str] = None
+    height: Optional[str] = None
+    weight: Optional[str] = None
+    inChinaNow: Optional[bool] = None
+    chinaSchool: Optional[str] = None
+    chinaLearningPeriodStart: Optional[str] = None
+    chinaLearningPeriodEnd: Optional[str] = None
+    chinaVisaType: Optional[str] = None
+    chinaVisaNo: Optional[str] = None
+    chinaVisaExpiry: Optional[str] = None
+    passportNumber: Optional[str] = None
+    passportIssuedDate: Optional[str] = None
+    passportExpiryDate: Optional[str] = None
+    oldPassportNo: Optional[str] = None
+    oldPassportIssuedDate: Optional[str] = None
+    oldPassportExpiryDate: Optional[str] = None
+    educationalBackground: Optional[List[dict]] = None
+    workExperience: Optional[List[dict]] = None
+    fatherInfo: Optional[dict] = None
+    motherInfo: Optional[dict] = None
+    spouseInfo: Optional[dict] = None
+    financialSponsor: Optional[dict] = None
+    emergencyContact: Optional[dict] = None
 
 
 class AgentApplicationCreate(BaseModel):
