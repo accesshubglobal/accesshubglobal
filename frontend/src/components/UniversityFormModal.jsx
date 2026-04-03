@@ -117,16 +117,44 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
         setLocalError('Le nom et la ville sont obligatoires.');
         return;
       }
+      if (!formData.coverImage) {
+        setLocalError('La photo de couverture est obligatoire.');
+        return;
+      }
+      if (!formData.logo) {
+        setLocalError('Le logo est obligatoire.');
+        return;
+      }
+      if (!formData.image) {
+        setLocalError("L'image principale est obligatoire.");
+        return;
+      }
       if (!formData.description) {
-        setLocalError('La description est obligatoire pour les partenaires.');
+        setLocalError('La description est obligatoire.');
+        return;
+      }
+      if (!formData.foundedYear) {
+        setLocalError("L'année de création est obligatoire.");
+        return;
+      }
+      if (!formData.president) {
+        setLocalError('Le nom du président / recteur est obligatoire.');
         return;
       }
       if (!formData.youtubeUrl) {
         setLocalError('La vidéo YouTube est obligatoire (au moins 1 vidéo requise).');
         return;
       }
+      if ((formData.faculties || []).length < 3) {
+        setLocalError(`Minimum 3 facultés requises. Vous en avez ${(formData.faculties || []).length}.`);
+        return;
+      }
+      if ((formData.conditions || []).length < 6) {
+        setLocalError(`Minimum 6 conditions d'admission requises. Vous en avez ${(formData.conditions || []).length}.`);
+        return;
+      }
       if ((formData.photos || []).length < 5) {
-        setLocalError(`Au minimum 5 photos sont requises. Vous en avez ${(formData.photos || []).length}.`);
+        setLocalError(`Minimum 5 photos requises. Vous en avez ${(formData.photos || []).length}.`);
         return;
       }
     }
@@ -149,7 +177,7 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
             </h3>
             {isPartner && (
               <p className="text-xs text-amber-600 mt-0.5">
-                Requis : tous les champs marqués *, min. 5 photos et 1 vidéo YouTube
+                Requis * : tous les champs marqués, min. 3 facultés, 6 conditions d'admission, 5 photos et 1 vidéo YouTube
               </p>
             )}
           </div>
@@ -198,7 +226,9 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Statut</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Statut {isPartner && <span className="text-red-500">*</span>}
+              </label>
               <select value={formData.status || 'public'} onChange={(e) => setFormData(f => ({ ...f, status: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
                 <option value="public">Publique</option>
@@ -222,7 +252,9 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
                 { label: 'Image principale (liste)', field: 'image' }
               ].map(({ label, field }) => (
                 <div key={field}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {label} {isPartner && <span className="text-red-500">*</span>}
+                  </label>
                   <div className="flex items-center gap-2">
                     {formData[field] && <img src={formData[field]} alt="" className="w-12 h-12 rounded-lg object-cover border border-gray-100" />}
                     <label className="flex-1 relative cursor-pointer">
@@ -280,14 +312,19 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Année de création</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Année de création {isPartner && <span className="text-red-500">*</span>}
+                </label>
                 <input type="text" value={formData.foundedYear || ''} onChange={(e) => setFormData(f => ({ ...f, foundedYear: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="1956" />
+                  className={`w-full px-3 py-2 border rounded-lg text-sm ${isPartner && !formData.foundedYear ? 'border-amber-300' : 'border-gray-200'}`}
+                  placeholder="1956" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Président / Recteur</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Président / Recteur {isPartner && <span className="text-red-500">*</span>}
+                </label>
                 <input type="text" value={formData.president || ''} onChange={(e) => setFormData(f => ({ ...f, president: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  className={`w-full px-3 py-2 border rounded-lg text-sm ${isPartner && !formData.president ? 'border-amber-300' : 'border-gray-200'}`} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nombre d'étudiants total</label>
@@ -324,7 +361,16 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
 
           {/* Faculties */}
           <div className="border-t pt-4">
-            <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Facultés</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Facultés {isPartner && <span className="text-red-500">*</span>}
+              </p>
+              {isPartner && (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${(formData.faculties || []).length >= 3 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {(formData.faculties || []).length}/3 minimum
+                </span>
+              )}
+            </div>
             <div className="flex gap-2 mb-2">
               <input type="text" value={newFaculty} onChange={e => setNewFaculty(e.target.value)} placeholder="Ex: Faculté des Sciences"
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
@@ -344,7 +390,16 @@ const UniversityFormModal = ({ university, onClose, onSave, loading = false, err
 
           {/* Conditions */}
           <div className="border-t pt-4">
-            <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Conditions d'admission</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Conditions d'admission {isPartner && <span className="text-red-500">*</span>}
+              </p>
+              {isPartner && (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${(formData.conditions || []).length >= 6 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {(formData.conditions || []).length}/6 minimum
+                </span>
+              )}
+            </div>
             <div className="flex gap-2 mb-2">
               <input type="text" value={newCondition} onChange={e => setNewCondition(e.target.value)} placeholder="Ex: Bac + 2 minimum"
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"

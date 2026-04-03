@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2, MessageSquare, Paperclip, Download, FileText, Loader2, Send } from 'lucide-react';
 import axios, { API } from './adminApi';
 import OfferFormModal from '../OfferFormModal';
 
@@ -136,10 +136,15 @@ const PartnersSection = ({ onBadgeUpdate }) => {
   const [messageText, setMessageText] = useState('');
   const [messages, setMessages] = useState([]);
   const [msgLoading, setMsgLoading] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null); // { url, name, type }
+  const [fileUploading, setFileUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const openMessages = async (partnerId, partnerName, offerId = null, offerTitle = null) => {
     setMessageModal({ partnerId, partnerName, offerId, offerTitle });
     setMessageText('');
+    setAttachedFile(null);
     try {
       const res = await axios.get(`${API}/admin/partner-messages/${partnerId}`);
       setMessages(res.data);
@@ -147,7 +152,7 @@ const PartnersSection = ({ onBadgeUpdate }) => {
   };
 
   const sendMessage = async () => {
-    if (!messageText.trim() || !messageModal) return;
+    if (!messageText.trim() && !attachedFile || !messageModal) return;
     setMsgLoading(true);
     try {
       await axios.post(`${API}/admin/partner-messages`, {
@@ -155,12 +160,42 @@ const PartnersSection = ({ onBadgeUpdate }) => {
         message: messageText.trim(),
         offerId: messageModal.offerId,
         offerTitle: messageModal.offerTitle,
+        fileUrl: attachedFile?.url || null,
+        fileName: attachedFile?.name || null,
+        fileType: attachedFile?.type || null,
       });
       const res = await axios.get(`${API}/admin/partner-messages/${messageModal.partnerId}`);
       setMessages(res.data);
       setMessageText('');
+      setAttachedFile(null);
     } catch (e) { alert("Erreur lors de l'envoi"); }
     setMsgLoading(false);
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileUploading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (data?.url) {
+        setAttachedFile({ url: data.url, name: file.name, type: file.type });
+      } else {
+        alert("Erreur lors de l'upload du fichier");
+      }
+    } catch {
+      alert("Erreur lors de l'upload du fichier");
+    }
+    setFileUploading(false);
+    e.target.value = '';
   };
 
 
@@ -450,8 +485,8 @@ const PartnersSection = ({ onBadgeUpdate }) => {
       {messageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMessageModal(null)} />
-          <div className="relative bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white flex items-center justify-between">
+          <div className="relative bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }}>
+            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white flex items-center justify-between flex-shrink-0">
               <div>
                 <h3 className="font-semibold">Message au partenaire</h3>
                 <p className="text-blue-100 text-sm">{messageModal.partnerName}</p>
@@ -459,36 +494,77 @@ const PartnersSection = ({ onBadgeUpdate }) => {
               </div>
               <button onClick={() => setMessageModal(null)} className="text-white/70 hover:text-white"><X size={20} /></button>
             </div>
-            <div className="p-4 max-h-60 overflow-y-auto space-y-3">
+
+            {/* Messages list */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" style={{ minHeight: '200px', maxHeight: '300px' }}>
               {messages.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-4">Aucun message pour l'instant</p>
               ) : messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.fromRole === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${msg.fromRole === 'admin' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
-                    <p>{msg.message}</p>
-                    {msg.offerTitle && <p className={`text-[10px] mt-0.5 ${msg.fromRole === 'admin' ? 'text-blue-200' : 'text-gray-400'}`}>Re: {msg.offerTitle}</p>}
+                  <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${msg.fromRole === 'admin' ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border border-gray-200'}`}>
+                    {msg.offerTitle && (
+                      <p className={`text-[10px] mb-0.5 ${msg.fromRole === 'admin' ? 'text-blue-200' : 'text-gray-400'}`}>Re: {msg.offerTitle}</p>
+                    )}
+                    {msg.message && <p>{msg.message}</p>}
+                    {msg.fileUrl && (
+                      msg.fileType?.startsWith('image/') ? (
+                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                          <img src={msg.fileUrl} alt={msg.fileName} className="max-w-full max-h-36 rounded-lg object-cover" />
+                        </a>
+                      ) : (
+                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer"
+                          className={`flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition-opacity ${msg.fromRole === 'admin' ? 'bg-blue-700/50 text-blue-100' : 'bg-gray-100 text-gray-700'}`}>
+                          <FileText size={12} className="flex-shrink-0" />
+                          <span className="truncate max-w-[140px]">{msg.fileName || 'Fichier joint'}</span>
+                          <Download size={11} className="flex-shrink-0 ml-auto" />
+                        </a>
+                      )
+                    )}
                     <p className={`text-[10px] mt-0.5 ${msg.fromRole === 'admin' ? 'text-blue-200' : 'text-gray-400'}`}>
                       {new Date(msg.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 border-t flex gap-2">
-              <textarea
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Votre message pour le partenaire..."
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
-                rows={2}
-                data-testid="admin-message-input"
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              />
-              <button onClick={sendMessage} disabled={msgLoading || !messageText.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm self-end"
-                data-testid="admin-message-send">
-                Envoyer
-              </button>
+
+            {/* Input area */}
+            <div className="p-3 border-t bg-white space-y-2 flex-shrink-0">
+              {attachedFile && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                  <FileText size={12} className="text-blue-600 flex-shrink-0" />
+                  <span className="text-blue-800 truncate flex-1">{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="text-blue-400 hover:text-red-500">
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+              <div className="flex gap-2 items-end">
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={fileUploading}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0 disabled:opacity-40"
+                  title="Joindre un fichier"
+                  data-testid="admin-attach-file">
+                  {fileUploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
+                </button>
+                <textarea
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Votre message pour le partenaire..."
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
+                  rows={2}
+                  data-testid="admin-message-input"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                />
+                <button onClick={sendMessage} disabled={msgLoading || fileUploading || (!messageText.trim() && !attachedFile)}
+                  className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 self-end flex-shrink-0"
+                  data-testid="admin-message-send">
+                  {msgLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>

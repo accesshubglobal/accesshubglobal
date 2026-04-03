@@ -1,0 +1,60 @@
+{
+  "summary": "Iteration 20: Testing new features - (1) File attachments in messaging for both partner and admin, (2) Extended mandatory fields validation in UniversityFormModal. All 19 test scenarios passed (100% success rate). Uploads tested via mocked /api/upload endpoint.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Admin messaging modal",
+        "issues": ["Modal shows pre-existing test data (message '22' and 'klkl') from previous test sessions. Not a bug, just test data artifact."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/playwright_iteration_20.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "MINOR: In UniversityFormModal validation order (lines 115-160), description is validated BEFORE foundedYear and president, but the test list doesn't explicitly test the description validation. This is consistent with the code - just noting the order for future test coverage.",
+    "MINOR: Admin PartnersSection.jsx - The 'Message' button text match `button:has-text('Message')` finds 2 results (sidebar 'Messages' link and actual button). The correct selector to use is `data-testid^='msg-partner-offer-'`. Tests should use this specific testid.",
+    "INFO: Upload mocking approach: /api/upload/signature returns 400 to trigger fallback to /api/upload (which returns fake URL). This successfully simulates file upload for testing image field validations in UniversityFormModal without actual Cloudinary access."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% - 19/19 test scenarios passed"
+  },
+  "test_credentials": {
+    "partner": "partner@test.com / Partner2025! (role: partenaire, isApproved=true, emailVerified=true)",
+    "admin": "admin@winners-consulting.com / Admin2025! (role: admin_principal)"
+  },
+  "seed_data_creation": "No new seed data created. Test form data was only filled in UI, not persisted (upload was mocked with fake URL).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 20: All 19 tests passed. Partner: partner@test.com/Partner2025!. Admin: admin@winners-consulting.com/Admin2025!. Tested features: (1) Partner /partner → Messages tab → paperclip (data-testid=partner-attach-file) visible, send button enabled with attachment and no text, attachment preview shown. (2) Admin /admin → Gestion → Partenaires → Offres (1) tab [data-testid=partner-admin-tab-offers] → Message button [data-testid^=msg-partner-offer-] → modal with admin-attach-file, admin-message-input, admin-message-send. (3) UniversityFormModal (isPartner=true): header 'Requis * : tous les champs marqués, min. 3 facultés, 6 conditions d admission, 5 photos et 1 vidéo YouTube'. Counters 0/3, 0/6, 0/5 all amber. Sequential validations tested: coverImage, logo, image, foundedYear, president, faculties<3, conditions<6 - all show correct error messages. Upload mocking: /api/upload/signature → 400, /api/upload → {url: fake URL}. Admin Message button is at data-testid='msg-partner-offer-{offer_id}' (not generic 'Message' button which conflicts with sidebar).",
+  "passed_tests": [
+    "Partner login (partner@test.com) → /partner dashboard accessible",
+    "Partner Messages: paperclip button (partner-attach-file) visible",
+    "Partner Messages: send button ENABLED when attachment selected (no text)",
+    "Partner Messages: attachment preview shown after file selection (mocked upload)",
+    "UniversityFormModal: header shows 'min. 3 facultés, 6 conditions, 5 photos et 1 vidéo YouTube'",
+    "UniversityFormModal: faculties counter '0/3 minimum' visible in amber",
+    "UniversityFormModal: conditions counter '0/6 minimum' visible in amber",
+    "UniversityFormModal: submit without coverImage → error 'La photo de couverture est obligatoire.'",
+    "UniversityFormModal: submit without logo → error 'Le logo est obligatoire.'",
+    "UniversityFormModal: submit without image principale → error 'L'image principale est obligatoire.'",
+    "UniversityFormModal: submit without foundedYear → error 'L'année de création est obligatoire.'",
+    "UniversityFormModal: submit without président → error 'Le nom du président / recteur est obligatoire.'",
+    "UniversityFormModal: submit with 1 faculty (< 3) → error 'Minimum 3 facultés requises. Vous en avez 1.'",
+    "UniversityFormModal: submit with 3 conditions (< 6) → error 'Minimum 6 conditions d'admission requises. Vous en avez 3.'",
+    "Admin messaging modal (Offres tab → Message button): admin-attach-file visible",
+    "Admin messaging modal: message input (admin-message-input) present",
+    "Admin messaging modal: send button (admin-message-send) present",
+    "Admin messaging: attachment preview shown after file selection (mocked upload)",
+    "Admin messaging: send button ENABLED with attachment (no text)"
+  ]
+}

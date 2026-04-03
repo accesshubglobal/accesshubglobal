@@ -2624,6 +2624,9 @@ async def admin_send_message(data: dict, admin: dict = Depends(get_admin_user)):
         "message": data.get("message", ""),
         "offerId": data.get("offerId"),
         "offerTitle": data.get("offerTitle"),
+        "fileUrl": data.get("fileUrl"),
+        "fileName": data.get("fileName"),
+        "fileType": data.get("fileType"),
         "isRead": False,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
@@ -2670,6 +2673,9 @@ async def partner_send_message(data: dict, partner: dict = Depends(get_partner_u
         "message": data.get("message", ""),
         "offerId": data.get("offerId"),
         "offerTitle": data.get("offerTitle"),
+        "fileUrl": data.get("fileUrl"),
+        "fileName": data.get("fileName"),
+        "fileType": data.get("fileType"),
         "isRead": False,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }

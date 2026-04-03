@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft } from 'lucide-react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +54,9 @@ const PartnerDashboard = () => {
   const [msgLoading, setMsgLoading] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [attachedFile, setAttachedFile] = useState(null); // { url, name, type }
+  const [fileUploading, setFileUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const ax = useCallback(() => axiosAuth(token), [token]);
 
@@ -171,14 +174,46 @@ const PartnerDashboard = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && !attachedFile) return;
     try {
-      await ax().post(`${API}/partner/messages`, { message: messageText.trim() });
+      await ax().post(`${API}/partner/messages`, {
+        message: messageText.trim(),
+        fileUrl: attachedFile?.url || null,
+        fileName: attachedFile?.name || null,
+        fileType: attachedFile?.type || null,
+      });
       setMessageText('');
+      setAttachedFile(null);
       await loadMessages();
     } catch (e) {
       alert("Erreur lors de l'envoi du message");
     }
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileUploading(true);
+    try {
+      const authToken = token || localStorage.getItem('token');
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (data?.url) {
+        setAttachedFile({ url: data.url, name: file.name, type: file.type });
+      } else {
+        alert('Erreur lors de l\'upload du fichier');
+      }
+    } catch {
+      alert('Erreur lors de l\'upload du fichier');
+    }
+    setFileUploading(false);
+    e.target.value = '';
   };
 
   const handleLogout = () => { logout(); navigate('/'); };
@@ -474,7 +509,21 @@ const PartnerDashboard = () => {
                           Re: {msg.offerTitle}
                         </p>
                       )}
-                      <p>{msg.message}</p>
+                      {msg.message && <p>{msg.message}</p>}
+                      {msg.fileUrl && (
+                        msg.fileType?.startsWith('image/') ? (
+                          <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                            <img src={msg.fileUrl} alt={msg.fileName} className="max-w-full max-h-48 rounded-lg object-cover border border-white/20" />
+                          </a>
+                        ) : (
+                          <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer"
+                            className={`flex items-center gap-2 mt-2 px-3 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80 ${msg.fromRole === 'partenaire' ? 'bg-emerald-700/60 text-emerald-100' : 'bg-gray-100 text-gray-700'}`}>
+                            <FileText size={14} className="flex-shrink-0" />
+                            <span className="truncate max-w-[160px]">{msg.fileName || 'Fichier joint'}</span>
+                            <Download size={12} className="flex-shrink-0 ml-auto" />
+                          </a>
+                        )
+                      )}
                       <p className={`text-[10px] mt-1 ${msg.fromRole === 'partenaire' ? 'text-emerald-200' : 'text-gray-400'}`}>
                         {new Date(msg.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </p>
@@ -486,23 +535,44 @@ const PartnerDashboard = () => {
             </div>
 
             {/* Message input */}
-            <div className="p-4 border-t border-gray-100 bg-white flex gap-3 items-end">
-              <textarea
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Écrivez votre message à l'équipe AccessHub..."
-                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
-                rows={2}
-                data-testid="partner-message-input"
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!messageText.trim()}
-                className="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-                data-testid="partner-message-send">
-                <Send size={16} />
-              </button>
+            <div className="p-4 border-t border-gray-100 bg-white space-y-2">
+              {/* Attachment preview */}
+              {attachedFile && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-sm">
+                  <FileText size={14} className="text-emerald-600 flex-shrink-0" />
+                  <span className="text-emerald-800 truncate flex-1">{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="text-emerald-600 hover:text-red-500 flex-shrink-0">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              <div className="flex gap-2 items-end">
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={fileUploading}
+                  className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors flex-shrink-0 disabled:opacity-40"
+                  title="Joindre un fichier"
+                  data-testid="partner-attach-file">
+                  {fileUploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                </button>
+                <textarea
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Écrivez votre message à l'équipe AccessHub..."
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  rows={2}
+                  data-testid="partner-message-input"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!messageText.trim() && !attachedFile}
+                  className="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                  data-testid="partner-message-send">
+                  <Send size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}
