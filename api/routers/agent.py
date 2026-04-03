@@ -1,0 +1,214 @@
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
+from fastapi.security import HTTPAuthorizationCredentials
+from typing import Optional
+from datetime import datetime, timezone, timedelta
+import uuid
+import os
+import logging
+
+from _models import (
+    UserCreate, UserLogin, User, UserResponse, TokenResponse,
+    OfferCreate, Offer, UniversityCreate, University,
+    HousingCreate, Housing, MessageCreate, Message, MessageReply,
+    Application, ApplicationCreate, FullApplicationCreate,
+    PaymentSettings, ChatMessage, NewsletterSubscribe,
+    PasswordResetRequest, PasswordResetConfirm,
+    BannerSlidesUpdate,
+    TestimonialCreate, Testimonial,
+    ContactFormCreate,
+    FAQItem, FAQListUpdate,
+    DocumentUpdate,
+    BlogPostCreate, BlogPostUpdate,
+    CommunityPostCreate, CommunityReplyCreate,
+    AgentRegister, AgentStudentCreate, AgentStudentUpdate, AgentApplicationCreate,
+    PartnerRegister,
+)
+from _helpers import (
+    get_db, hash_password, verify_password, create_access_token,
+    get_current_user, get_admin_user, get_principal_admin, get_agent_user, get_partner_user, serialize_doc, security,
+    send_notification, broadcast_to_admins,
+    generate_verification_code, send_verification_email, send_password_reset_email,
+    broadcast_newsletter_offer, broadcast_newsletter_blog,
+)
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+# ============= AGENT DASHBOARD =============
+
+@router.get("/agent/dashboard-stats")
+async def agent_dashboard_stats(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    students = await db.agent_students.count_documents({"agentId": agent["id"]})
+    applications = await db.applications.count_documents({"agentId": agent["id"]})
+    pending = await db.applications.count_documents({"agentId": agent["id"], "status": "pending"})
+    approved = await db.applications.count_documents({"agentId": agent["id"], "status": "approved"})
+    rejected = await db.applications.count_documents({"agentId": agent["id"], "status": "rejected"})
+    messages = await db.messages.count_documents({"senderId": agent["id"]})
+    return {
+        "students": students,
+        "totalApplications": applications,
+        "pendingApplications": pending,
+        "approvedApplications": approved,
+        "rejectedApplications": rejected,
+        "messages": messages,
+    }
+
+
+# ============= AGENT STUDENTS =============
+
+@router.get("/agent/students")
+async def agent_get_students(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    students = await db.agent_students.find({"agentId": agent["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return students
+
+
+@router.post("/agent/students")
+async def agent_create_student(data: AgentStudentCreate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    student = {
+        "id": str(uuid.uuid4()),
+        "agentId": agent["id"],
+        "firstName": data.firstName,
+        "lastName": data.lastName,
+        "email": data.email,
+        "phone": data.phone or "",
+        "dateOfBirth": data.dateOfBirth or "",
+        "nationality": data.nationality or "",
+        "sex": data.sex or "",
+        "passportNumber": data.passportNumber or "",
+        "address": data.address or "",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.agent_students.insert_one(student)
+    del student["_id"]
+    return student
+
+
+@router.put("/agent/students/{student_id}")
+async def agent_update_student(student_id: str, data: AgentStudentUpdate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    student = await db.agent_students.find_one({"id": student_id, "agentId": agent["id"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Etudiant non trouve")
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    if update:
+        await db.agent_students.update_one({"id": student_id}, {"$set": update})
+    updated = await db.agent_students.find_one({"id": student_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/agent/students/{student_id}")
+async def agent_delete_student(student_id: str, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    result = await db.agent_students.delete_one({"id": student_id, "agentId": agent["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Etudiant non trouve")
+    return {"message": "Etudiant supprime"}
+
+
+# ============= AGENT APPLICATIONS =============
+
+@router.post("/agent/applications")
+async def agent_create_application(data: AgentApplicationCreate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    student = await db.agent_students.find_one({"id": data.studentId, "agentId": agent["id"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Etudiant non trouve")
+
+    existing = await db.applications.find_one({
+        "agentId": agent["id"], "agentStudentId": data.studentId, "offerId": data.offerId
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Cet etudiant a deja postule a cette offre")
+
+    app_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    application = {
+        "id": app_id,
+        "userId": agent["id"],
+        "agentId": agent["id"],
+        "agentStudentId": data.studentId,
+        "userName": f"{student['firstName']} {student['lastName']}",
+        "userEmail": student.get("email", ""),
+        "offerId": data.offerId,
+        "offerTitle": data.offerTitle,
+        "firstName": student.get("firstName", ""),
+        "lastName": student.get("lastName", ""),
+        "nationality": student.get("nationality", ""),
+        "sex": student.get("sex", ""),
+        "passportNumber": student.get("passportNumber", ""),
+        "dateOfBirth": student.get("dateOfBirth", ""),
+        "phoneNumber": student.get("phone", ""),
+        "address": student.get("address", ""),
+        "additionalPrograms": data.additionalPrograms,
+        "documents": data.documents,
+        "termsAccepted": data.termsAccepted,
+        "paymentMethod": data.paymentMethod,
+        "paymentProof": data.paymentProof,
+        "paymentAmount": data.paymentAmount,
+        "paymentStatus": "submitted" if data.paymentProof else "pending",
+        "status": "pending",
+        "createdAt": now,
+    }
+    await db.applications.insert_one(application)
+
+    await broadcast_to_admins({
+        "type": "new_application",
+        "title": "Nouvelle candidature (Agent)",
+        "message": f"Agent {agent['firstName']} {agent['lastName']} a postule pour {student['firstName']} {student['lastName']} a {data.offerTitle}",
+        "data": {"applicationId": app_id}
+    })
+
+    del application["_id"]
+    return application
+
+
+@router.get("/agent/applications")
+async def agent_get_applications(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    applications = await db.applications.find({"agentId": agent["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return applications
+
+
+@router.get("/agent/applications/{app_id}")
+async def agent_get_application_detail(app_id: str, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    app = await db.applications.find_one({"id": app_id, "agentId": agent["id"]}, {"_id": 0})
+    if not app:
+        raise HTTPException(status_code=404, detail="Candidature non trouvee")
+    return app
+
+
+# ============= AGENT MESSAGES =============
+
+@router.get("/agent/messages")
+async def agent_get_messages(agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    msgs = await db.messages.find({"senderId": agent["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(200)
+    return msgs
+
+
+@router.post("/agent/messages")
+async def agent_send_message(msg: MessageCreate, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    message = {
+        "id": str(uuid.uuid4()),
+        "senderId": agent["id"],
+        "senderName": f"{agent['firstName']} {agent['lastName']}",
+        "senderEmail": agent["email"],
+        "senderRole": "agent",
+        "subject": msg.subject,
+        "content": msg.content,
+        "offerId": msg.offerId,
+        "attachments": msg.attachments or [],
+        "isRead": False,
+        "replies": [],
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.messages.insert_one(message)
+    del message["_id"]
+    return message
+
+

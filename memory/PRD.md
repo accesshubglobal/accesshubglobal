@@ -64,7 +64,7 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [ ] Recherche globale dans la navbar
 - [ ] Mode sombre CMS admin
 - [ ] Badges/réputation forum communautaire
-- [ ] Refactoring _routes.py en modules séparés (2685+ lignes actuellement)
+- [x] Refactoring _routes.py → 5 modules séparés dans `api/routers/` (auth, public, admin, agent, partner) — `_routes.py` réduit à 27 lignes
 
 ## Credentials
 - Admin Principal: admin@winners-consulting.com / Admin2025!
