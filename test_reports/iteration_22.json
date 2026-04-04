@@ -1,0 +1,78 @@
+{
+  "summary": "Iteration 22: Frontend-only testing of StudentFormModal validation. 16/17 test scenarios passed (94%). One confirmed BUG found: Step 6 (Travail, optional) Suivant click correctly advances to Step 7 but INCORRECTLY displays validation errors for Step 7 fields (18 manquants banner + red fields). All other validations working correctly: red banner + red fields appear on Suivant/Enregistrer for required fields, optional fields (currentEmployer, Conjoint(e)) are NOT red, and all step-specific validations pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "StudentFormModal - Step 6 (Travail) → Step 7 (Famille) transition",
+        "issue": "CONFIRMED BUG: Clicking 'Suivant' on Step 6 (Travail, optional - no required fields) correctly advances to Step 7 (Famille, step indicator 7/7) BUT simultaneously shows error banner 'Veuillez remplir tous les champs obligatoires (18 manquants).' and turns Père/Mère/Emergency fields red. Expected: no error, no red fields when navigating from optional Step 6 to Step 7.",
+        "selector": "button[type='button']:has-text('Suivant') on Step 6",
+        "priority": "HIGH",
+        "reproduced": "3 times (main run + 2 focused tests)",
+        "root_cause_hypothesis": "The goNext() function calls validateStep(step) where 'step' appears to be 7 instead of 6 at the moment of the call. Possible causes: (1) React concurrent mode / batching issue causing stale closure where step=7 in goNext closure when Suivant is clicked, OR (2) A double-trigger of goNext/handleSubmit - first call advances step 6→7, second call runs validateStep(7). Investigation needed by main agent: add console.log(step) inside goNext() to see actual step value when called from Step 6."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results_detail": {
+    "T1": "PASS - Agent login (agent@test.com / Test2025!) → /agent",
+    "T2": "PASS - StudentFormModal opens via Étudiants tab → Ajouter un étudiant",
+    "T3": "PASS - Step 1 (Identité): Suivant without filling → banner 'Veuillez remplir tous les champs obligatoires (17 manquants).'",
+    "T3b": "PASS - Banner contains field counter with 'manquant(s)' text",
+    "T4": "PASS - Step 1: 17 required fields turn red (border-red-400 bg-red-50)",
+    "T5": "PASS - Step 1: currentEmployer (placeholder 'Optionnel') is NOT red (optional field correctly excluded)",
+    "T6": "PASS (focused test) - Step 1: Fill all 17 required fields → Suivant advances to Step 2, no banner",
+    "T7": "PASS - Step 2 (Résidence): Suivant without filling → banner + all 8 address fields red",
+    "T8": "PASS - Step 3 (Santé): Suivant without bloodGroup/height/weight → banner '3 manquants' + 3 red fields",
+    "T9": "PASS - Step 4 (Passeport): Suivant without passportNumber/issuedDate/expiryDate → banner '3 manquants' + red fields",
+    "T10": "PASS - Step 5 (Scolarité): Suivant without 3 schools → banner '15 manquants' (3×5 fields) + red fields",
+    "T11": "FAIL - Step 6 (Travail): Suivant → advances to Step 7 (correct) BUT banner '18 manquants' shown + Père/Mère/Emergency red (BUG)",
+    "T12": "PASS - Step 7 (Famille): Enregistrer without Père → banner '18 manquants' + Père/Mère/Emergency red",
+    "T13": "PASS - Step 7: Conjoint(e) section labeled '(optionnel)' in UI",
+    "T13b": "PASS - Step 7: Conjoint(e) fields are NOT red (0 red fields in Conjoint section)",
+    "T14": "PASS - Step 7: Contact d'urgence has * marker (required indicator)",
+    "T14b": "PASS - Step 7: Contact d'urgence 6 fields are red (required, empty)"
+  },
+  "test_report_links": [
+    "/app/test_reports/playwright_iteration_22.py",
+    "/app/test_reports/iteration_22.json"
+  ],
+  "action_items": [
+    "CRITICAL BUG FIX: In StudentFormModal goNext() function, when clicking Suivant on Step 6 (Travail), validateStep() is being called with step=7 instead of step=6. Add console.log(step) at the start of goNext() to diagnose, then fix. Possible fixes: (1) Ensure goNext uses the correct step value via functional update pattern, (2) Add explicit check: if (step >= STEPS.length) return; at start of goNext(), (3) Investigate if there's a double-trigger issue where the button click fires twice - once advancing 6→7, then again running validation on step 7."
+  ],
+  "critical_code_review_comments": [
+    "BUG in goNext() [line ~141-151]: When called from Step 6 (Travail), validateStep(step) receives step=7 instead of step=6, causing incorrect Step 7 validation to run despite only advancing from Step 6. This is reproducible even with a freshly opened modal with no prior form interactions - confirmed 3 times. Root cause likely: stale closure where React has already batched setStep(7) from a prior render and goNext captures the updated step=7 value, OR double-trigger of event handler.",
+    "POSSIBLE FIX: Change goNext to capture step snapshot before async operations: const currentStep = step; const m = validateStep(currentStep); ... setStep(s => Math.min(STEPS.length, s + 1));",
+    "DESIGN OBSERVATION: Step 6 (Travail) labels are 'EXPÉRIENCE 1 (optionnelle)' - the optional indicator is shown correctly in the UI. Validation code for step 6 is correctly absent from validateStep(). The bug is in the goNext execution, not in the validateStep logic."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "94% - 16/17 scenarios passed (T6 passed on focused retest with correct selectors)"
+  },
+  "test_credentials": {
+    "agent": "agent@test.com / Test2025! (approved, emailVerified=true)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 22: 16/17 tests passed. ONE CONFIRMED BUG: Step 6 (Travail) Suivant incorrectly shows 18-field validation error for Step 7 (Famille) when advancing. All other validations work correctly. Login: agent@test.com / Test2025! via homepage modal → /agent → Étudiants tab → Ajouter un étudiant. Main test file: /app/test_reports/playwright_iteration_22.py. After main agent fixes the goNext() bug, retest T11 specifically by: (1) Open fresh modal, (2) Click Travail tab, (3) Click Suivant, (4) Verify NO banner and NO red fields on Step 7.",
+  "rca_of_issue": {
+    "bug": "Step 6 (Travail) Suivant triggers Step 7 validation error",
+    "reproduction_steps": [
+      "1. Login as agent@test.com / Test2025!",
+      "2. Go to Étudiants tab → Ajouter un étudiant",
+      "3. In fresh modal (step 1/7), click 'Travail' tab directly",
+      "4. Verify step indicator shows '6 / 7' and 'Expérience 1 (optionnelle)' is visible",
+      "5. Click 'Suivant' button",
+      "6. OBSERVED: Step advances to 7/7 (correct) BUT banner 'Veuillez remplir tous les champs obligatoires (18 manquants).' appears AND Père/Mère/Emergency fields turn red",
+      "7. EXPECTED: No banner, no red fields, clean transition to Step 7"
+    ],
+    "hypothesis": "The goNext() function is called with step=6 in the React state, but validateStep() receives step=7. This could be: (1) A stale closure where goNext was recreated when step was still being updated by a prior setStep(7) call, OR (2) The Playwright click triggers goNext() twice - once correctly advancing 6→7 with no errors, then a second call with step=7 sets the errors. The net result of both calls: step=7 + errors visible.",
+    "mitigation": "In goNext(), capture step in a local variable before any state updates: const currentStep = step; const m = validateStep(currentStep); This ensures validateStep always receives the step at the time of the click, not after any React batched updates."
+  }
+}

@@ -70,6 +70,9 @@ const statusConfig = {
 const StudentFormModal = ({ student, onClose, onSave, loading }) => {
   const [form, setForm] = useState(student ? { ...EMPTY_STUDENT, ...student } : { ...EMPTY_STUDENT });
   const [step, setStep] = useState(1);
+  const [missing, setMissing] = useState(new Set()); // tracks missing required fields
+  const [stepErr, setStepErr] = useState('');
+
   const STEPS = [
     { id: 1, label: 'Identité', icon: User },
     { id: 2, label: 'Résidence', icon: MapPin },
@@ -86,7 +89,93 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
     const arr = [...f[key]]; arr[idx] = { ...arr[idx], [field]: val }; return { ...f, [key]: arr };
   });
 
-  const handleSubmit = (e) => { e.preventDefault(); onSave(form); };
+  // ── Per-step validation ────────────────────────────────────────────────────
+  const validateStep = (s) => {
+    const m = new Set();
+
+    if (s === 1) {
+      ['firstName','lastName','email','phone','sex','dateOfBirth','nationality',
+       'countryOfBirth','placeOfBirth','nativeLanguage','religion','maritalStatus',
+       'highestEducation','occupation','personalEmail','majorInChina','hobby'
+      ].forEach(k => { if (!form[k]?.toString().trim()) m.add(k); });
+    }
+
+    if (s === 2) {
+      ['address','addressDetailed','addressPhone','zipCode',
+       'currentAddress','currentAddressDetailed','currentAddressPhone','currentAddressZipCode'
+      ].forEach(k => { if (!form[k]?.toString().trim()) m.add(k); });
+    }
+
+    if (s === 3) {
+      ['bloodGroup','height','weight'
+      ].forEach(k => { if (!form[k]?.toString().trim()) m.add(k); });
+    }
+
+    if (s === 4) {
+      ['passportNumber','passportIssuedDate','passportExpiryDate'
+      ].forEach(k => { if (!form[k]?.toString().trim()) m.add(k); });
+    }
+
+    if (s === 5) {
+      (form.educationalBackground || []).forEach((edu, i) => {
+        ['instituteName','fieldOfStudy','educationLevel','yearsFrom','yearsTo'].forEach(f => {
+          if (!edu[f]?.toString().trim()) m.add(`edu_${i}_${f}`);
+        });
+      });
+    }
+
+    if (s === 7) {
+      ['fatherInfo','motherInfo'].forEach(parent => {
+        ['name','nationality','dob','idNo','mobile','occupation'].forEach(f => {
+          if (!form[parent]?.[f]?.toString().trim()) m.add(`${parent}_${f}`);
+        });
+      });
+      ['name','relationship','nationality','phone','email','addressChina'].forEach(f => {
+        if (!form.emergencyContact?.[f]?.toString().trim()) m.add(`emergency_${f}`);
+      });
+    }
+
+    return m;
+  };
+
+  const goNext = () => {
+    const m = validateStep(step);
+    if (m.size > 0) {
+      setMissing(m);
+      setStepErr(`Veuillez remplir tous les champs obligatoires (${m.size} manquant${m.size > 1 ? 's' : ''}).`);
+      return;
+    }
+    setMissing(new Set());
+    setStepErr('');
+    setStep(s => Math.min(STEPS.length, s + 1));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const m = validateStep(step);
+    if (m.size > 0) {
+      setMissing(m);
+      setStepErr(`Veuillez remplir tous les champs obligatoires (${m.size} manquant${m.size > 1 ? 's' : ''}).`);
+      return;
+    }
+    onSave(form);
+  };
+
+  // Helper: border turns red if the field is missing
+  const fi = (key) => `${inp} ${missing.has(key) ? 'border-red-400 bg-red-50 focus:border-red-500' : ''}`;
+  const si = (key) => `${sel} ${missing.has(key) ? 'border-red-400 bg-red-50 focus:border-red-500' : ''}`;
+  const fiArr = (arrKey, i, f) => {
+    const key = `${arrKey}_${i}_${f}`;
+    return `${inp} ${missing.has(key) ? 'border-red-400 bg-red-50 focus:border-red-500' : ''}`;
+  };
+  const siArr = (arrKey, i, f) => {
+    const key = `${arrKey}_${i}_${f}`;
+    return `${sel} ${missing.has(key) ? 'border-red-400 bg-red-50 focus:border-red-500' : ''}`;
+  };
+  const fiNested = (parent, f) => {
+    const key = `${parent}_${f}`;
+    return `${inp} ${missing.has(key) ? 'border-red-400 bg-red-50 focus:border-red-500' : ''}`;
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -117,44 +206,52 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="px-6 py-4 space-y-4">
 
+            {/* Error banner */}
+            {stepErr && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                <AlertCircle size={15} className="flex-shrink-0" />
+                {stepErr}
+              </div>
+            )}
+
             {/* Step 1 — Identité */}
             {step === 1 && (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Prénom" required><input value={form.firstName} onChange={e => set('firstName', e.target.value)} className={inp} required /></Field>
-                  <Field label="Nom" required><input value={form.lastName} onChange={e => set('lastName', e.target.value)} className={inp} required /></Field>
-                  <Field label="Email" required><input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inp} required /></Field>
-                  <Field label="Téléphone"><input value={form.phone} onChange={e => set('phone', e.target.value)} className={inp} /></Field>
-                  <Field label="Sexe">
-                    <select value={form.sex} onChange={e => set('sex', e.target.value)} className={sel}>
+                  <Field label="Prénom" required><input value={form.firstName} onChange={e => set('firstName', e.target.value)} className={fi('firstName')} /></Field>
+                  <Field label="Nom" required><input value={form.lastName} onChange={e => set('lastName', e.target.value)} className={fi('lastName')} /></Field>
+                  <Field label="Email" required><input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={fi('email')} /></Field>
+                  <Field label="Téléphone" required><input value={form.phone} onChange={e => set('phone', e.target.value)} className={fi('phone')} /></Field>
+                  <Field label="Sexe" required>
+                    <select value={form.sex} onChange={e => set('sex', e.target.value)} className={si('sex')}>
                       <option value="">--</option>
                       <option value="M">Masculin</option>
                       <option value="F">Féminin</option>
                     </select>
                   </Field>
-                  <Field label="Date de naissance"><input type="date" value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} className={inp} /></Field>
-                  <Field label="Nationalité"><input value={form.nationality} onChange={e => set('nationality', e.target.value)} className={inp} /></Field>
-                  <Field label="Pays de naissance"><input value={form.countryOfBirth} onChange={e => set('countryOfBirth', e.target.value)} className={inp} /></Field>
-                  <Field label="Lieu de naissance"><input value={form.placeOfBirth} onChange={e => set('placeOfBirth', e.target.value)} className={inp} /></Field>
-                  <Field label="Langue maternelle"><input value={form.nativeLanguage} onChange={e => set('nativeLanguage', e.target.value)} className={inp} /></Field>
-                  <Field label="Religion"><input value={form.religion} onChange={e => set('religion', e.target.value)} className={inp} /></Field>
-                  <Field label="Situation matrimoniale">
-                    <select value={form.maritalStatus} onChange={e => set('maritalStatus', e.target.value)} className={sel}>
+                  <Field label="Date de naissance" required><input type="date" value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} className={fi('dateOfBirth')} /></Field>
+                  <Field label="Nationalité" required><input value={form.nationality} onChange={e => set('nationality', e.target.value)} className={fi('nationality')} /></Field>
+                  <Field label="Pays de naissance" required><input value={form.countryOfBirth} onChange={e => set('countryOfBirth', e.target.value)} className={fi('countryOfBirth')} /></Field>
+                  <Field label="Lieu de naissance" required><input value={form.placeOfBirth} onChange={e => set('placeOfBirth', e.target.value)} className={fi('placeOfBirth')} /></Field>
+                  <Field label="Langue maternelle" required><input value={form.nativeLanguage} onChange={e => set('nativeLanguage', e.target.value)} className={fi('nativeLanguage')} /></Field>
+                  <Field label="Religion" required><input value={form.religion} onChange={e => set('religion', e.target.value)} className={fi('religion')} /></Field>
+                  <Field label="Situation matrimoniale" required>
+                    <select value={form.maritalStatus} onChange={e => set('maritalStatus', e.target.value)} className={si('maritalStatus')}>
                       <option value="">--</option>
                       <option>Célibataire</option><option>Marié(e)</option><option>Divorcé(e)</option><option>Veuf/Veuve</option>
                     </select>
                   </Field>
-                  <Field label="Niveau d'études le plus élevé">
-                    <select value={form.highestEducation} onChange={e => set('highestEducation', e.target.value)} className={sel}>
+                  <Field label="Niveau d'études le plus élevé" required>
+                    <select value={form.highestEducation} onChange={e => set('highestEducation', e.target.value)} className={si('highestEducation')}>
                       <option value="">--</option>
                       <option>Baccalauréat</option><option>Licence</option><option>Master</option><option>Doctorat</option><option>Autre</option>
                     </select>
                   </Field>
-                  <Field label="Profession actuelle"><input value={form.occupation} onChange={e => set('occupation', e.target.value)} className={inp} /></Field>
-                  <Field label="Employeur actuel"><input value={form.currentEmployer} onChange={e => set('currentEmployer', e.target.value)} className={inp} /></Field>
-                  <Field label="Email personnel"><input type="email" value={form.personalEmail} onChange={e => set('personalEmail', e.target.value)} className={inp} /></Field>
-                  <Field label="Domaine souhaité en Chine"><input value={form.majorInChina} onChange={e => set('majorInChina', e.target.value)} className={inp} /></Field>
-                  <Field label="Hobbies / Loisirs"><input value={form.hobby} onChange={e => set('hobby', e.target.value)} className={inp} /></Field>
+                  <Field label="Profession actuelle" required><input value={form.occupation} onChange={e => set('occupation', e.target.value)} className={fi('occupation')} /></Field>
+                  <Field label="Employeur actuel"><input value={form.currentEmployer} onChange={e => set('currentEmployer', e.target.value)} className={inp} placeholder="Optionnel" /></Field>
+                  <Field label="Email personnel" required><input type="email" value={form.personalEmail} onChange={e => set('personalEmail', e.target.value)} className={fi('personalEmail')} /></Field>
+                  <Field label="Domaine souhaité en Chine" required><input value={form.majorInChina} onChange={e => set('majorInChina', e.target.value)} className={fi('majorInChina')} /></Field>
+                  <Field label="Hobbies / Loisirs" required><input value={form.hobby} onChange={e => set('hobby', e.target.value)} className={fi('hobby')} /></Field>
                 </div>
               </>
             )}
@@ -164,17 +261,17 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
               <>
                 <SectionHeader icon={MapPin} title="Adresse permanente" color="bg-blue-700" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Pays / Ville"><input value={form.address} onChange={e => set('address', e.target.value)} className={inp} /></Field>
-                  <Field label="Rue / Quartier"><input value={form.addressDetailed} onChange={e => set('addressDetailed', e.target.value)} className={inp} /></Field>
-                  <Field label="Téléphone domicile"><input value={form.addressPhone} onChange={e => set('addressPhone', e.target.value)} className={inp} /></Field>
-                  <Field label="Code postal"><input value={form.zipCode} onChange={e => set('zipCode', e.target.value)} className={inp} /></Field>
+                  <Field label="Pays / Ville" required><input value={form.address} onChange={e => set('address', e.target.value)} className={fi('address')} /></Field>
+                  <Field label="Rue / Quartier" required><input value={form.addressDetailed} onChange={e => set('addressDetailed', e.target.value)} className={fi('addressDetailed')} /></Field>
+                  <Field label="Téléphone domicile" required><input value={form.addressPhone} onChange={e => set('addressPhone', e.target.value)} className={fi('addressPhone')} /></Field>
+                  <Field label="Code postal" required><input value={form.zipCode} onChange={e => set('zipCode', e.target.value)} className={fi('zipCode')} /></Field>
                 </div>
                 <SectionHeader icon={MapPin} title="Adresse actuelle (si différente)" color="bg-indigo-700" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Pays / Ville"><input value={form.currentAddress} onChange={e => set('currentAddress', e.target.value)} className={inp} /></Field>
-                  <Field label="Rue / Quartier"><input value={form.currentAddressDetailed} onChange={e => set('currentAddressDetailed', e.target.value)} className={inp} /></Field>
-                  <Field label="Téléphone"><input value={form.currentAddressPhone} onChange={e => set('currentAddressPhone', e.target.value)} className={inp} /></Field>
-                  <Field label="Code postal"><input value={form.currentAddressZipCode} onChange={e => set('currentAddressZipCode', e.target.value)} className={inp} /></Field>
+                  <Field label="Pays / Ville" required><input value={form.currentAddress} onChange={e => set('currentAddress', e.target.value)} className={fi('currentAddress')} /></Field>
+                  <Field label="Rue / Quartier" required><input value={form.currentAddressDetailed} onChange={e => set('currentAddressDetailed', e.target.value)} className={fi('currentAddressDetailed')} /></Field>
+                  <Field label="Téléphone" required><input value={form.currentAddressPhone} onChange={e => set('currentAddressPhone', e.target.value)} className={fi('currentAddressPhone')} /></Field>
+                  <Field label="Code postal" required><input value={form.currentAddressZipCode} onChange={e => set('currentAddressZipCode', e.target.value)} className={fi('currentAddressZipCode')} /></Field>
                 </div>
               </>
             )}
@@ -184,12 +281,12 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
               <>
                 <SectionHeader icon={Activity} title="État de santé" color="bg-green-700" />
                 <div className="grid grid-cols-3 gap-3">
-                  <Field label="Groupe sanguin"><select value={form.bloodGroup} onChange={e => set('bloodGroup', e.target.value)} className={sel}>
+                  <Field label="Groupe sanguin" required><select value={form.bloodGroup} onChange={e => set('bloodGroup', e.target.value)} className={si('bloodGroup')}>
                     <option value="">--</option>
                     {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g => <option key={g}>{g}</option>)}
                   </select></Field>
-                  <Field label="Taille (cm)"><input type="number" value={form.height} onChange={e => set('height', e.target.value)} className={inp} placeholder="170" /></Field>
-                  <Field label="Poids (kg)"><input type="number" value={form.weight} onChange={e => set('weight', e.target.value)} className={inp} placeholder="65" /></Field>
+                  <Field label="Taille (cm)" required><input type="number" value={form.height} onChange={e => set('height', e.target.value)} className={fi('height')} placeholder="170" /></Field>
+                  <Field label="Poids (kg)" required><input type="number" value={form.weight} onChange={e => set('weight', e.target.value)} className={fi('weight')} placeholder="65" /></Field>
                 </div>
                 <SectionHeader icon={Globe} title="Séjour en Chine" color="bg-red-700" />
                 <label className="flex items-center gap-2 mb-3 cursor-pointer">
@@ -214,9 +311,9 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
               <>
                 <SectionHeader icon={Shield} title="Passeport actuel" color="bg-purple-700" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Numéro *" required><input value={form.passportNumber} onChange={e => set('passportNumber', e.target.value)} className={inp} /></Field>
-                  <Field label="Date d'émission"><input type="date" value={form.passportIssuedDate} onChange={e => set('passportIssuedDate', e.target.value)} className={inp} /></Field>
-                  <Field label="Date d'expiration"><input type="date" value={form.passportExpiryDate} onChange={e => set('passportExpiryDate', e.target.value)} className={inp} /></Field>
+                  <Field label="Numéro" required><input value={form.passportNumber} onChange={e => set('passportNumber', e.target.value)} className={fi('passportNumber')} /></Field>
+                  <Field label="Date d'émission" required><input type="date" value={form.passportIssuedDate} onChange={e => set('passportIssuedDate', e.target.value)} className={fi('passportIssuedDate')} /></Field>
+                  <Field label="Date d'expiration" required><input type="date" value={form.passportExpiryDate} onChange={e => set('passportExpiryDate', e.target.value)} className={fi('passportExpiryDate')} /></Field>
                 </div>
                 <SectionHeader icon={Shield} title="Ancien passeport (si applicable)" color="bg-gray-600" />
                 <div className="grid grid-cols-2 gap-3">
@@ -232,18 +329,21 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
               <>
                 {(form.educationalBackground || []).map((edu, i) => (
                   <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
-                    <p className="text-xs font-semibold text-gray-500 uppercase">École {i + 1}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                      École {i + 1} <span className="text-red-500 font-bold">*</span>
+                      <span className="text-gray-400 font-normal normal-case">— tous les champs obligatoires</span>
+                    </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Établissement"><input value={edu.instituteName} onChange={e => setArray('educationalBackground', i, 'instituteName', e.target.value)} className={inp} /></Field>
-                      <Field label="Domaine d'études"><input value={edu.fieldOfStudy} onChange={e => setArray('educationalBackground', i, 'fieldOfStudy', e.target.value)} className={inp} /></Field>
-                      <Field label="Niveau">
-                        <select value={edu.educationLevel} onChange={e => setArray('educationalBackground', i, 'educationLevel', e.target.value)} className={sel}>
+                      <Field label="Établissement" required><input value={edu.instituteName} onChange={e => setArray('educationalBackground', i, 'instituteName', e.target.value)} className={fiArr('edu', i, 'instituteName')} /></Field>
+                      <Field label="Domaine d'études" required><input value={edu.fieldOfStudy} onChange={e => setArray('educationalBackground', i, 'fieldOfStudy', e.target.value)} className={fiArr('edu', i, 'fieldOfStudy')} /></Field>
+                      <Field label="Niveau" required>
+                        <select value={edu.educationLevel} onChange={e => setArray('educationalBackground', i, 'educationLevel', e.target.value)} className={siArr('edu', i, 'educationLevel')}>
                           <option value="">--</option>
                           <option>Lycée</option><option>Licence</option><option>Master</option><option>Doctorat</option>
                         </select>
                       </Field>
-                      <Field label="De (année)"><input value={edu.yearsFrom} onChange={e => setArray('educationalBackground', i, 'yearsFrom', e.target.value)} className={inp} placeholder="2018" /></Field>
-                      <Field label="À (année)"><input value={edu.yearsTo} onChange={e => setArray('educationalBackground', i, 'yearsTo', e.target.value)} className={inp} placeholder="2022" /></Field>
+                      <Field label="De (année)" required><input value={edu.yearsFrom} onChange={e => setArray('educationalBackground', i, 'yearsFrom', e.target.value)} className={fiArr('edu', i, 'yearsFrom')} placeholder="2018" /></Field>
+                      <Field label="À (année)" required><input value={edu.yearsTo} onChange={e => setArray('educationalBackground', i, 'yearsTo', e.target.value)} className={fiArr('edu', i, 'yearsTo')} placeholder="2022" /></Field>
                     </div>
                   </div>
                 ))}
@@ -255,7 +355,7 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
               <>
                 {(form.workExperience || []).map((w, i) => (
                   <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
-                    <p className="text-xs font-semibold text-gray-500 uppercase">Expérience {i + 1}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase">Expérience {i + 1} <span className="font-normal text-gray-400 normal-case">(optionnelle)</span></p>
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="Entreprise"><input value={w.companyName} onChange={e => setArray('workExperience', i, 'companyName', e.target.value)} className={inp} /></Field>
                       <Field label="Poste"><input value={w.position} onChange={e => setArray('workExperience', i, 'position', e.target.value)} className={inp} /></Field>
@@ -274,31 +374,40 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
             {step === 7 && (
               <>
                 {[
-                  { key: 'fatherInfo', label: "Père" },
-                  { key: 'motherInfo', label: "Mère" },
-                  { key: 'spouseInfo', label: "Conjoint(e)" },
-                ].map(({ key, label }) => (
+                  { key: 'fatherInfo', label: 'Père', required: true },
+                  { key: 'motherInfo', label: 'Mère', required: true },
+                  { key: 'spouseInfo', label: 'Conjoint(e)', required: false },
+                ].map(({ key, label, required: isReq }) => (
                   <div key={key} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
-                    <p className="text-xs font-semibold text-gray-500 uppercase">{label}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                      {label}
+                      {isReq
+                        ? <span className="text-red-500 font-bold">*</span>
+                        : <span className="text-gray-400 font-normal normal-case">(optionnel)</span>
+                      }
+                    </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Nom complet"><input value={form[key]?.name || ''} onChange={e => setNested(key, 'name', e.target.value)} className={inp} /></Field>
-                      <Field label="Nationalité"><input value={form[key]?.nationality || ''} onChange={e => setNested(key, 'nationality', e.target.value)} className={inp} /></Field>
-                      <Field label="Date de naissance"><input type="date" value={form[key]?.dob || ''} onChange={e => setNested(key, 'dob', e.target.value)} className={inp} /></Field>
-                      <Field label="N° pièce d'identité"><input value={form[key]?.idNo || ''} onChange={e => setNested(key, 'idNo', e.target.value)} className={inp} /></Field>
-                      <Field label="Mobile"><input value={form[key]?.mobile || ''} onChange={e => setNested(key, 'mobile', e.target.value)} className={inp} /></Field>
-                      <Field label="Profession"><input value={form[key]?.occupation || ''} onChange={e => setNested(key, 'occupation', e.target.value)} className={inp} /></Field>
+                      <Field label="Nom complet" required={isReq}><input value={form[key]?.name || ''} onChange={e => setNested(key, 'name', e.target.value)} className={isReq ? fiNested(key, 'name') : inp} /></Field>
+                      <Field label="Nationalité" required={isReq}><input value={form[key]?.nationality || ''} onChange={e => setNested(key, 'nationality', e.target.value)} className={isReq ? fiNested(key, 'nationality') : inp} /></Field>
+                      <Field label="Date de naissance" required={isReq}><input type="date" value={form[key]?.dob || ''} onChange={e => setNested(key, 'dob', e.target.value)} className={isReq ? fiNested(key, 'dob') : inp} /></Field>
+                      <Field label="N° pièce d'identité" required={isReq}><input value={form[key]?.idNo || ''} onChange={e => setNested(key, 'idNo', e.target.value)} className={isReq ? fiNested(key, 'idNo') : inp} /></Field>
+                      <Field label="Mobile" required={isReq}><input value={form[key]?.mobile || ''} onChange={e => setNested(key, 'mobile', e.target.value)} className={isReq ? fiNested(key, 'mobile') : inp} /></Field>
+                      <Field label="Profession" required={isReq}><input value={form[key]?.occupation || ''} onChange={e => setNested(key, 'occupation', e.target.value)} className={isReq ? fiNested(key, 'occupation') : inp} /></Field>
                     </div>
                   </div>
                 ))}
-                <div className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Contact d'urgence en Chine</p>
+
+                <div className="border border-red-100 rounded-xl p-4 space-y-3 bg-red-50/30">
+                  <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                    Contact d'urgence en Chine <span className="text-red-500 font-bold">*</span>
+                  </p>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Nom"><input value={form.emergencyContact?.name || ''} onChange={e => setNested('emergencyContact', 'name', e.target.value)} className={inp} /></Field>
-                    <Field label="Lien de parenté"><input value={form.emergencyContact?.relationship || ''} onChange={e => setNested('emergencyContact', 'relationship', e.target.value)} className={inp} /></Field>
-                    <Field label="Nationalité"><input value={form.emergencyContact?.nationality || ''} onChange={e => setNested('emergencyContact', 'nationality', e.target.value)} className={inp} /></Field>
-                    <Field label="Téléphone"><input value={form.emergencyContact?.phone || ''} onChange={e => setNested('emergencyContact', 'phone', e.target.value)} className={inp} /></Field>
-                    <Field label="Email"><input value={form.emergencyContact?.email || ''} onChange={e => setNested('emergencyContact', 'email', e.target.value)} className={inp} /></Field>
-                    <Field label="Adresse en Chine"><input value={form.emergencyContact?.addressChina || ''} onChange={e => setNested('emergencyContact', 'addressChina', e.target.value)} className={inp} /></Field>
+                    <Field label="Nom" required><input value={form.emergencyContact?.name || ''} onChange={e => setNested('emergencyContact', 'name', e.target.value)} className={fiNested('emergency', 'name')} /></Field>
+                    <Field label="Lien de parenté" required><input value={form.emergencyContact?.relationship || ''} onChange={e => setNested('emergencyContact', 'relationship', e.target.value)} className={fiNested('emergency', 'relationship')} /></Field>
+                    <Field label="Nationalité" required><input value={form.emergencyContact?.nationality || ''} onChange={e => setNested('emergencyContact', 'nationality', e.target.value)} className={fiNested('emergency', 'nationality')} /></Field>
+                    <Field label="Téléphone" required><input value={form.emergencyContact?.phone || ''} onChange={e => setNested('emergencyContact', 'phone', e.target.value)} className={fiNested('emergency', 'phone')} /></Field>
+                    <Field label="Email" required><input value={form.emergencyContact?.email || ''} onChange={e => setNested('emergencyContact', 'email', e.target.value)} className={fiNested('emergency', 'email')} /></Field>
+                    <Field label="Adresse en Chine" required><input value={form.emergencyContact?.addressChina || ''} onChange={e => setNested('emergencyContact', 'addressChina', e.target.value)} className={fiNested('emergency', 'addressChina')} /></Field>
                   </div>
                 </div>
               </>
@@ -307,13 +416,14 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
 
           {/* Footer nav */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white flex-shrink-0 sticky bottom-0">
-            <button type="button" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}
+            <button type="button" onClick={() => { setStep(s => Math.max(1, s - 1)); setStepErr(''); setMissing(new Set()); }}
+              disabled={step === 1}
               className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-30">
               <ChevronLeft size={15} /> Précédent
             </button>
             <span className="text-xs text-gray-400">{step} / {STEPS.length}</span>
             {step < STEPS.length ? (
-              <button type="button" onClick={() => setStep(s => Math.min(STEPS.length, s + 1))}
+              <button type="button" onClick={goNext}
                 className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90">
                 Suivant <ChevronRight size={15} />
               </button>
