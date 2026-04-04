@@ -28,6 +28,8 @@ const EDU_LEVELS = ['Aucun requis', 'Bac', 'Bac+2 (BTS/DUT)', 'Bac+3 (Licence)',
 const EXP_LEVELS = ['Sans expérience', 'Junior (< 2 ans)', 'Intermédiaire (2–5 ans)', 'Senior (5+ ans)', 'Expert (10+ ans)'];
 const REMOTE_OPTIONS = ['Non', 'Hybride', 'Télétravail total'];
 const CURRENCIES = ['EUR', 'USD', 'CNY', 'XAF', 'MAD'];
+const POSITION_TYPES = ['Temps plein', 'Temps partiel', 'Freelance/Mission', 'Alternance'];
+const WORK_MODES = ['Présentiel', 'Télétravail', 'Hybride'];
 
 // ── Employer Dashboard ─────────────────────────────────────────────────────────
 const EmployerDashboard = () => {
@@ -150,13 +152,16 @@ const EmployerDashboard = () => {
           }} />
       )}
       {showOfferForm && (
-        <JobOfferFormModal offer={editingOffer} onClose={() => { setShowOfferForm(false); setEditingOffer(null); }}
+        <JobOfferFormModal key={editingOffer?.id || 'new'} offer={editingOffer} onClose={() => { setShowOfferForm(false); setEditingOffer(null); }}
           onSave={async (data) => {
             try {
-              if (editingOffer) await axios.put(`${API}/employer/job-offers/${editingOffer.id}`, data);
-              else await axios.post(`${API}/employer/job-offers`, data);
+              if (editingOffer) {
+                await axios.put(`${API}/employer/job-offers/${editingOffer.id}`, data);
+              } else {
+                await axios.post(`${API}/employer/job-offers`, data);
+              }
               setShowOfferForm(false); setEditingOffer(null); loadOffers(); loadStats();
-            } catch (err) { alert(err.response?.data?.detail || 'Erreur'); }
+            } catch (err) { alert(err.response?.data?.detail || 'Erreur lors de l\'enregistrement'); }
           }} />
       )}
       {selectedApplication && (
@@ -577,29 +582,24 @@ const UploadField = ({ label, field, value, onUpload, uploading, accept, isDoc }
 
 // ── Job Offer Form Modal ───────────────────────────────────────────────────────
 const JobOfferFormModal = ({ offer, onClose, onSave }) => {
-  const [form, setForm] = useState({
-    title: offer?.title || '',
-    sector: offer?.sector || '',
-    contractType: offer?.contractType || '',
-    location: offer?.location || '',
-    country: offer?.country || '',
-    salary: offer?.salary || '',
-    salaryMin: offer?.salaryMin || '',
-    salaryMax: offer?.salaryMax || '',
-    currency: offer?.currency || 'EUR',
-    description: offer?.description || '',
-    missions: offer?.missions || [''],
-    requiredProfile: offer?.requiredProfile || '',
-    requiredSkills: offer?.requiredSkills || [''],
-    educationLevel: offer?.educationLevel || '',
-    experienceRequired: offer?.experienceRequired || '',
-    benefits: offer?.benefits || [''],
-    deadline: offer?.deadline || '',
-    startDate: offer?.startDate || '',
-    numberOfPositions: offer?.numberOfPositions || 1,
-    languages: offer?.languages || [''],
-    remote: offer?.remote || 'Non',
-  });
+  const defaultForm = {
+    title: '', sector: '', contractType: '', location: '', country: '',
+    salary: '', salaryMin: '', salaryMax: '', currency: 'EUR',
+    description: '', missions: [''], requiredProfile: '',
+    requiredSkills: [''], educationLevel: '', experienceRequired: '',
+    benefits: [''], deadline: '', startDate: '', numberOfPositions: 1,
+    languages: [''], remote: 'Non',
+    whyJoinUs: '', workMode: 'Présentiel', workHours: '',
+    workDays: '', contractDuration: '', conditions: '', positionType: 'Temps plein',
+  };
+  const [form, setForm] = useState(() => offer ? {
+    ...defaultForm,
+    ...offer,
+    missions: offer.missions?.length ? offer.missions : [''],
+    requiredSkills: offer.requiredSkills?.length ? offer.requiredSkills : [''],
+    benefits: offer.benefits?.length ? offer.benefits : [''],
+    languages: offer.languages?.length ? offer.languages : [''],
+  } : defaultForm);
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setArr = (k, i, v) => setForm(f => { const a = [...f[k]]; a[i] = v; return { ...f, [k]: a }; });
@@ -608,7 +608,16 @@ const JobOfferFormModal = ({ offer, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const clean = { ...form, missions: form.missions.filter(Boolean), requiredSkills: form.requiredSkills.filter(Boolean), benefits: form.benefits.filter(Boolean), languages: form.languages.filter(Boolean) };
+    const clean = {
+      ...form,
+      missions: form.missions.filter(Boolean),
+      requiredSkills: form.requiredSkills.filter(Boolean),
+      benefits: form.benefits.filter(Boolean),
+      languages: form.languages.filter(Boolean),
+      salaryMin: form.salaryMin ? parseFloat(form.salaryMin) : null,
+      salaryMax: form.salaryMax ? parseFloat(form.salaryMax) : null,
+      numberOfPositions: parseInt(form.numberOfPositions) || 1,
+    };
     setLoading(true);
     await onSave(clean);
     setLoading(false);
@@ -694,6 +703,34 @@ const JobOfferFormModal = ({ offer, onClose, onSave }) => {
           <ArrayField label="Compétences requises" k="requiredSkills" placeholder="Ex: React, Python, Excel..." />
           <ArrayField label="Avantages / Bénéfices" k="benefits" placeholder="Ex: Mutuelle, RTT, télétravail..." />
           <ArrayField label="Langues requises" k="languages" placeholder="Ex: Français (courant), Anglais (B2)..." />
+
+          {/* Section conditions de travail */}
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-sm font-bold text-gray-700 mb-3">Conditions de travail</p>
+            <div className="grid grid-cols-2 gap-3">
+              <F label="Type de poste">
+                <select value={form.positionType} onChange={e => set('positionType', e.target.value)} className={sel}>
+                  {POSITION_TYPES.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </F>
+              <F label="Mode de travail">
+                <select value={form.workMode} onChange={e => set('workMode', e.target.value)} className={sel}>
+                  {WORK_MODES.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </F>
+              <F label="Heures de travail"><input value={form.workHours} onChange={e => set('workHours', e.target.value)} className={inp} placeholder="Ex: 9h–18h (lundi–vendredi)" /></F>
+              <F label="Jours de travail"><input value={form.workDays} onChange={e => set('workDays', e.target.value)} className={inp} placeholder="Ex: Lundi au vendredi" /></F>
+              <F label="Durée du contrat"><input value={form.contractDuration} onChange={e => set('contractDuration', e.target.value)} className={inp} placeholder="Ex: 6 mois, 1 an, Indéterminé..." /></F>
+            </div>
+          </div>
+
+          <F label="Pourquoi nous rejoindre ?">
+            <textarea value={form.whyJoinUs} onChange={e => set('whyJoinUs', e.target.value)} rows={3} className={inp} placeholder="Décrivez l'ambiance d'équipe, les avantages uniques, la culture d'entreprise..." />
+          </F>
+
+          <F label="Conditions et exigences particulières">
+            <textarea value={form.conditions} onChange={e => set('conditions', e.target.value)} rows={2} className={inp} placeholder="Ex: Permis de conduire requis, disponibilité immédiate, astreintes..." />
+          </F>
         </form>
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Annuler</button>

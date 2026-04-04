@@ -84,7 +84,6 @@ const Home = () => {
       <ProgramsSection onOpenAuth={openAuth} />
       <ServicesSection />
       <DestinationsSection />
-      <ScholarshipsSection />
       <JobOffersSection />
       <HousingSection />
       <TestimonialsSection onOpenAuth={openAuth} />

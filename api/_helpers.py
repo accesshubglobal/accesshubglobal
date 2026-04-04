@@ -414,6 +414,57 @@ async def broadcast_newsletter_blog(post: dict):
         logger.error(f"Newsletter blog broadcast failed: {e}")
 
 
+async def broadcast_newsletter_job(offer: dict):
+    """Send newsletter to all subscribers when a new job offer is approved."""
+    try:
+        db = get_db()
+        subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(10000)
+        if not subscribers:
+            logger.info("Newsletter job: no subscribers found")
+            return
+        company_name = offer.get('companyName', 'AccessHub Global')
+        title = offer.get('title', 'Nouvelle offre')
+        location = offer.get('location', '')
+        contract = offer.get('contractType', '')
+        salary = offer.get('salary', '')
+        description = offer.get('description', '')[:300] + '...' if offer.get('description', '') else ''
+        html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc;">
+            <div style="background: linear-gradient(135deg, #1a56db 0%, #2a5298 100%); padding: 40px 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 26px;">💼 Nouvelle offre d'emploi</h1>
+                <p style="color: rgba(255,255,255,0.85); margin-top: 8px;">{company_name} recrute !</p>
+            </div>
+            <div style="padding: 30px; background: white; border-radius: 0 0 12px 12px;">
+                <h2 style="color: #1a56db; font-size: 22px; margin-top: 0;">{title}</h2>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <span style="background: #eff6ff; color: #1a56db; padding: 4px 12px; border-radius: 20px; font-size: 13px;">{contract}</span>
+                    <span style="background: #f0fdf4; color: #16a34a; padding: 4px 12px; border-radius: 20px; font-size: 13px;">📍 {location}</span>
+                    {"<span style='background: #fefce8; color: #ca8a04; padding: 4px 12px; border-radius: 20px; font-size: 13px;'>" + salary + "</span>" if salary else ""}
+                </div>
+                <p style="color: #374151; line-height: 1.7; margin-bottom: 24px;">{description}</p>
+                <div style="text-align: center;">
+                    <a href="{os.environ.get('FRONTEND_URL', 'https://accesshub-cms.preview.emergentagent.com')}/emploi"
+                       style="background: #1a56db; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px;">
+                        Voir l'offre
+                    </a>
+                </div>
+            </div>
+            <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 16px;">AccessHub Global · Vous recevez cet email car vous êtes abonné à nos notifications.</p>
+        </div>"""
+        subject = f"Nouvelle offre d'emploi : {title} chez {company_name} 💼"
+        sent = 0
+        for sub in subscribers:
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda email=sub["email"]: _send_email_sync(email, subject, html)
+            )
+            if result:
+                sent += 1
+        logger.info(f"Newsletter job sent to {sent}/{len(subscribers)} subscribers")
+    except Exception as e:
+        logger.error(f"Newsletter job broadcast failed: {e}")
+
+
 # ============= DATABASE =============
 
 _client = None

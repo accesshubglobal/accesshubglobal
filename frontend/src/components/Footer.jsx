@@ -193,14 +193,6 @@ const Footer = () => {
                 </li>
               ))}
               <li className="pt-2 border-t border-gray-800">
-                <button
-                  onClick={() => navigate('/agent/register')}
-                  data-testid="footer-become-partner"
-                  className="hover:text-white transition-colors flex items-center gap-2 text-[#1a56db]"
-                >
-                  <Users size={16} />
-                  {t('footer.becomePartner')}
-                </button>
               </li>
             </ul>
           </div>

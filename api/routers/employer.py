@@ -9,7 +9,7 @@ from _models import (
 )
 from _helpers import (
     get_db, get_current_user, get_admin_user, get_principal_admin,
-    get_employer_user, broadcast_to_admins,
+    get_employer_user, broadcast_to_admins, broadcast_newsletter_job,
 )
 
 router = APIRouter()
@@ -110,6 +110,10 @@ async def admin_approve_job_offer(offer_id: str, admin: dict = Depends(get_admin
     if not offer:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     await db.job_offers.update_one({"id": offer_id}, {"$set": {"isApproved": True, "approvedAt": datetime.now(timezone.utc).isoformat()}})
+    # Send newsletter
+    updated = await db.job_offers.find_one({"id": offer_id}, {"_id": 0})
+    import asyncio
+    asyncio.create_task(broadcast_newsletter_job(updated))
     return {"message": "Offre approuvée"}
 
 
@@ -130,6 +134,33 @@ async def admin_delete_job_offer(offer_id: str, admin: dict = Depends(get_admin_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     return {"message": "Offre supprimée"}
+
+
+@router.post("/admin/job-offers")
+async def admin_create_job_offer(data: JobOfferCreate, admin: dict = Depends(get_admin_user)):
+    """Admin publishes a job offer directly (on behalf of a company)."""
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    offer_id = str(uuid.uuid4())
+    offer = {
+        **data.model_dump(),
+        "id": offer_id,
+        "employerId": admin["id"],
+        "employerName": f"{admin['firstName']} {admin['lastName']}",
+        "companyName": data.companyName if hasattr(data, 'companyName') else "AccessHub Global",
+        "companyLogoUrl": "",
+        "isApproved": True,
+        "isAdminOffer": True,
+        "views": 0,
+        "createdAt": now,
+        "updatedAt": now,
+        "approvedAt": now,
+    }
+    await db.job_offers.insert_one(offer)
+    del offer["_id"]
+    import asyncio
+    asyncio.create_task(broadcast_newsletter_job(offer))
+    return offer
 
 
 # ============= ADMIN - JOB APPLICATIONS =============
@@ -356,3 +387,48 @@ async def user_get_job_applications(current_user: dict = Depends(get_current_use
     db = get_db()
     apps = await db.job_applications.find({"applicantId": current_user["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(100)
     return apps
+
+
+# ============= JOB FAVORITES =============
+
+@router.post("/user/job-favorites/{offer_id}")
+async def toggle_job_favorite(offer_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    user = await db.users.find_one({"id": current_user["id"]})
+    job_favorites = user.get("jobFavorites", [])
+    if offer_id in job_favorites:
+        job_favorites.remove(offer_id)
+        action = "removed"
+    else:
+        job_favorites.append(offer_id)
+        action = "added"
+    await db.users.update_one({"id": current_user["id"]}, {"$set": {"jobFavorites": job_favorites}})
+    return {"action": action, "jobFavorites": job_favorites}
+
+
+@router.get("/user/job-favorites")
+async def get_job_favorites(current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    user = await db.users.find_one({"id": current_user["id"]})
+    job_favorites = user.get("jobFavorites", [])
+    if not job_favorites:
+        return []
+    offers = await db.job_offers.find({"id": {"$in": job_favorites}, "isApproved": True}, {"_id": 0}).to_list(100)
+    return offers
+
+
+# ============= PUBLIC COMPANY PROFILE =============
+
+@router.get("/companies/{employer_id}")
+async def get_company_profile(employer_id: str):
+    db = get_db()
+    company = await db.employer_companies.find_one({"employerId": employer_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Profil entreprise non trouvé")
+    offers = await db.job_offers.find({"employerId": employer_id, "isApproved": True}, {"_id": 0}).sort("createdAt", -1).to_list(50)
+    employer = await db.users.find_one({"id": employer_id}, {"_id": 0, "password": 0})
+    return {
+        "company": company,
+        "offers": offers,
+        "memberSince": employer.get("createdAt", "") if employer else "",
+    }

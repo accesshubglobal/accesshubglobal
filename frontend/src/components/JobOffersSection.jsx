@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Briefcase, MapPin, Clock, ChevronRight, TrendingUp, Award, Users,
   Search, Filter, X, Loader2, Building2, Globe, Calendar, Star,
-  ArrowRight, Sparkles, Target, CheckCircle
+  ArrowRight, Sparkles, Target, CheckCircle, Share2, Heart, Copy, ExternalLink
 } from 'lucide-react';
 import axios from 'axios';
 import JobApplyModal from './JobApplyModal';
+import { useAuth } from '../context/AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -22,19 +23,26 @@ const contractColors = {
 
 const JobOffersSection = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [applyOffer, setApplyOffer] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [jobFavorites, setJobFavorites] = useState([]);
 
   useEffect(() => {
     axios.get(`${API}/job-offers`)
       .then(r => setOffers(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+    if (user) {
+      axios.get(`${API}/user/job-favorites`)
+        .then(r => setJobFavorites(r.data.map(o => o.id)))
+        .catch(() => {});
+    }
+  }, [user]);
 
   const contractTypes = ['all', ...new Set(offers.map(o => o.contractType))];
   const filtered = activeFilter === 'all' ? offers : offers.filter(o => o.contractType === activeFilter);
@@ -105,6 +113,11 @@ const JobOffersSection = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {displayed.map((offer, i) => (
                 <JobOfferCard key={offer.id} offer={offer} index={i}
+                  isFavorite={jobFavorites.includes(offer.id)}
+                  onToggleFavorite={async () => {
+                    if (!user) return;
+                    try { const r = await axios.post(`${API}/user/job-favorites/${offer.id}`); setJobFavorites(r.data.jobFavorites); } catch {}
+                  }}
                   onView={() => setSelectedOffer(offer)}
                   onApply={() => { setApplyOffer(offer); setShowApplyModal(true); }} />
               ))}
@@ -136,11 +149,25 @@ const JobOffersSection = () => {
   );
 };
 
-export const JobOfferCard = ({ offer, index, onView, onApply, light }) => {
+export const JobOfferCard = ({ offer, index, onView, onApply, light, isFavorite, onToggleFavorite }) => {
+  const navigate = useNavigate();
   const cc = contractColors[offer.contractType] || contractColors.default;
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = (e) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/emploi#${offer.id}`;
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const handleFavorite = (e) => {
+    e.stopPropagation();
+    if (onToggleFavorite) onToggleFavorite();
+  };
+
   return (
     <div
-      className={`group relative rounded-2xl p-5 cursor-pointer transition-all duration-300 ${
+      className={`group relative rounded-2xl p-5 transition-all duration-300 ${
         light
           ? 'bg-white border border-gray-100 hover:border-[#1a56db]/30 hover:shadow-lg'
           : 'bg-white/5 border border-white/8 hover:border-blue-500/40 hover:bg-white/8 backdrop-blur-sm'
@@ -159,13 +186,34 @@ export const JobOfferCard = ({ offer, index, onView, onApply, light }) => {
             </div>
           )}
           <div className="min-w-0">
-            <p className={`text-xs truncate ${light ? 'text-gray-500' : 'text-gray-400'}`}>{offer.companyName}</p>
+            {offer.companyName && offer.employerId ? (
+              <button
+                onClick={e => { e.stopPropagation(); navigate(`/companies/${offer.employerId}`); }}
+                className={`text-xs truncate hover:underline text-left ${light ? 'text-[#1a56db]' : 'text-blue-400'}`}>
+                {offer.companyName}
+              </button>
+            ) : (
+              <p className={`text-xs truncate ${light ? 'text-gray-500' : 'text-gray-400'}`}>{offer.companyName}</p>
+            )}
           </div>
         </div>
-        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex-shrink-0 ${cc}`}>
-          {offer.contractType}
-        </span>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={handleFavorite}
+            className={`p-1.5 rounded-lg transition-colors ${isFavorite ? 'text-red-500 bg-red-50' : light ? 'text-gray-300 hover:text-red-400 hover:bg-red-50' : 'text-white/20 hover:text-red-400 hover:bg-red-500/10'}`}
+            title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+            <Heart size={14} fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
+          <button onClick={handleShare}
+            className={`p-1.5 rounded-lg transition-colors relative ${copied ? 'text-green-500 bg-green-50' : light ? 'text-gray-300 hover:text-blue-500 hover:bg-blue-50' : 'text-white/20 hover:text-blue-400 hover:bg-blue-500/10'}`}
+            title="Copier le lien">
+            {copied ? <Copy size={14} /> : <Share2 size={14} />}
+          </button>
+        </div>
       </div>
+
+      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border inline-block mb-3 ${cc}`}>
+        {offer.contractType}
+      </span>
 
       <h3 className={`font-bold text-base mb-2 line-clamp-2 group-hover:text-[#1a56db] transition-colors ${light ? 'text-gray-900' : 'text-white'}`}>
         {offer.title}
@@ -179,9 +227,9 @@ export const JobOfferCard = ({ offer, index, onView, onApply, light }) => {
         <span className={`flex items-center gap-1 text-xs ${light ? 'text-gray-500' : 'text-gray-400'}`}>
           <MapPin size={12} /> {offer.location}
         </span>
-        {offer.remote && offer.remote !== 'Non' && (
+        {offer.workMode && offer.workMode !== 'Présentiel' && (
           <span className="flex items-center gap-1 text-xs text-blue-400">
-            <Globe size={12} /> {offer.remote}
+            <Globe size={12} /> {offer.workMode}
           </span>
         )}
         {offer.salary && (
@@ -211,6 +259,7 @@ export const JobOfferCard = ({ offer, index, onView, onApply, light }) => {
 };
 
 export const JobDetailModal = ({ offer, onClose, onApply }) => {
+  const navigate = useNavigate();
   const cc = contractColors[offer.contractType] || contractColors.default;
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
@@ -226,11 +275,21 @@ export const JobDetailModal = ({ offer, onClose, onApply }) => {
             )}
             <div>
               <h3 className="text-xl font-bold text-gray-900 leading-tight">{offer.title}</h3>
-              <p className="text-gray-500 text-sm mt-1">{offer.companyName}</p>
+              {offer.companyName && offer.employerId ? (
+                <button onClick={() => { onClose(); navigate(`/companies/${offer.employerId}`); }}
+                  className="text-[#1a56db] text-sm mt-1 hover:underline flex items-center gap-1">
+                  {offer.companyName} <ExternalLink size={12} />
+                </button>
+              ) : (
+                <p className="text-gray-500 text-sm mt-1">{offer.companyName}</p>
+              )}
               <div className="flex gap-2 mt-2 flex-wrap">
                 <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${cc}`}>{offer.contractType}</span>
-                {offer.remote && offer.remote !== 'Non' && (
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{offer.remote}</span>
+                {offer.workMode && offer.workMode !== 'Présentiel' && (
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{offer.workMode}</span>
+                )}
+                {offer.positionType && (
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">{offer.positionType}</span>
                 )}
               </div>
             </div>
@@ -244,9 +303,13 @@ export const JobDetailModal = ({ offer, onClose, onApply }) => {
               { icon: MapPin, label: 'Localisation', value: `${offer.location}, ${offer.country}` },
               { icon: Briefcase, label: 'Expérience', value: offer.experienceRequired },
               { icon: Award, label: 'Niveau d\'études', value: offer.educationLevel },
-              { icon: Users, label: 'Postes', value: `${offer.numberOfPositions} poste(s)` },
+              { icon: Users, label: 'Postes', value: `${offer.numberOfPositions || 1} poste(s)` },
               ...(offer.salary ? [{ icon: TrendingUp, label: 'Rémunération', value: offer.salary }] : []),
               ...(offer.deadline ? [{ icon: Calendar, label: 'Date limite', value: offer.deadline }] : []),
+              ...(offer.startDate ? [{ icon: Calendar, label: 'Début', value: offer.startDate }] : []),
+              ...(offer.workHours ? [{ icon: Clock, label: 'Horaires', value: offer.workHours }] : []),
+              ...(offer.workDays ? [{ icon: Calendar, label: 'Jours', value: offer.workDays }] : []),
+              ...(offer.contractDuration ? [{ icon: Briefcase, label: 'Durée', value: offer.contractDuration }] : []),
             ].map(item => (
               <div key={item.label} className="flex items-start gap-2 p-3 bg-gray-50 rounded-xl">
                 <item.icon size={15} className="text-[#1a56db] mt-0.5 flex-shrink-0" />
@@ -258,8 +321,25 @@ export const JobDetailModal = ({ offer, onClose, onApply }) => {
             ))}
           </div>
 
+          {/* Company description */}
+          {offer.companyDescription && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                {offer.companyLogoUrl && <img src={offer.companyLogoUrl} alt="" className="w-6 h-6 rounded object-cover" />}
+                <h4 className="font-bold text-gray-900 text-sm">{offer.companyName}</h4>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">{offer.companyDescription}</p>
+              {offer.employerId && (
+                <button onClick={() => { onClose(); navigate(`/companies/${offer.employerId}`); }}
+                  className="text-xs text-[#1a56db] hover:underline mt-2 flex items-center gap-1">
+                  En savoir plus sur l'entreprise <ExternalLink size={11} />
+                </button>
+              )}
+            </div>
+          )}
+
           <div>
-            <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2"><Target size={16} className="text-[#1a56db]" /> Description</h4>
+            <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2"><Target size={16} className="text-[#1a56db]" /> Description du poste</h4>
             <p className="text-sm text-gray-600 leading-relaxed">{offer.description}</p>
           </div>
 
@@ -292,6 +372,15 @@ export const JobDetailModal = ({ offer, onClose, onApply }) => {
             </div>
           )}
 
+          {offer.whyJoinUs && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+              <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <Star size={15} className="text-emerald-600" /> Pourquoi nous rejoindre ?
+              </h4>
+              <p className="text-sm text-gray-600 leading-relaxed">{offer.whyJoinUs}</p>
+            </div>
+          )}
+
           {(offer.benefits || []).filter(Boolean).length > 0 && (
             <div>
               <h4 className="font-bold text-gray-900 mb-2">Avantages</h4>
@@ -300,6 +389,13 @@ export const JobDetailModal = ({ offer, onClose, onApply }) => {
                   <span key={i} className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium border border-emerald-200">{b}</span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {offer.conditions && (
+            <div>
+              <h4 className="font-bold text-gray-900 mb-1">Conditions & exigences</h4>
+              <p className="text-sm text-gray-600">{offer.conditions}</p>
             </div>
           )}
         </div>

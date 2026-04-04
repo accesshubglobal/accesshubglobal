@@ -7,6 +7,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { JobOfferCard, JobDetailModal } from '../components/JobOffersSection';
 import JobApplyModal from '../components/JobApplyModal';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -46,6 +48,7 @@ const JobOffersPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#060c1a] to-[#0d1a33]">
+      <Header />
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5357824/pexels-photo-5357824.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')] bg-cover bg-center opacity-10"></div>
@@ -54,10 +57,7 @@ const JobOffersPage = () => {
           <div className="absolute top-16 left-16 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
           <div className="absolute top-8 right-16 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl"></div>
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-16">
-          <button onClick={() => navigate('/')} className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 text-sm">
-            <ArrowLeft size={16} /> Retour au site
-          </button>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16">
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-sm text-blue-400 mb-5">
               <Sparkles size={14} /> Emplois internationaux
@@ -185,6 +185,7 @@ const JobOffersPage = () => {
       {applyOffer && (
         <JobApplyModal offer={applyOffer} onClose={() => setApplyOffer(null)} />
       )}
+      <Footer />
     </div>
   );
 };

@@ -723,6 +723,7 @@ class JobOfferCreate(BaseModel):
     contractType: str
     location: str
     country: str
+    companyName: Optional[str] = None
     salary: Optional[str] = None
     salaryMin: Optional[float] = None
     salaryMax: Optional[float] = None
@@ -739,6 +740,14 @@ class JobOfferCreate(BaseModel):
     numberOfPositions: int = 1
     languages: List[str] = []
     remote: str = "Non"
+    # New enriched fields
+    whyJoinUs: Optional[str] = None
+    workMode: str = "Présentiel"
+    workHours: Optional[str] = None
+    workDays: Optional[str] = None
+    contractDuration: Optional[str] = None
+    conditions: Optional[str] = None
+    positionType: str = "Temps plein"
 
 
 class JobApplicationCreate(BaseModel):

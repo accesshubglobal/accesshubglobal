@@ -43,12 +43,10 @@ const Header = ({ onOpenAuth }) => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
-            <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.services')}</a>
-            <a href="#destinations" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.destinations')}</a>
-            <a href="#scholarships" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.scholarships')}</a>
-            <a href="/emploi" className="text-amber-600 hover:text-amber-700 font-medium transition-colors">Emploi</a>
+            <a href="#programs" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Bourse</a>
+            <a href="#emploi" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Emploi</a>
             <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.housing')}</a>
-            <a href="#contact" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.contact')}</a>
+            <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.services')}</a>
             <a href="/blog" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Blog</a>
             <a href="/community" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Communauté</a>
             
@@ -229,12 +227,10 @@ const Header = ({ onOpenAuth }) => {
         {mobileMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t border-gray-100 pt-4">
             <nav className="flex flex-col gap-3">
-              <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.services')}</a>
-              <a href="#destinations" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.destinations')}</a>
-              <a href="#scholarships" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.scholarships')}</a>
-              <a href="/emploi" className="text-amber-600 hover:text-amber-700 font-medium">Emploi</a>
+              <a href="#programs" className="text-gray-700 hover:text-[#1a56db] font-medium">Bourse</a>
+              <a href="#emploi" className="text-gray-700 hover:text-[#1a56db] font-medium">Emploi</a>
               <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.housing')}</a>
-              <a href="#contact" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.contact')}</a>
+              <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.services')}</a>
               <a href="/blog" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-[#1a56db] font-medium">Blog</a>
               <a href="/community" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-[#1a56db] font-medium">Communauté</a>
               
