@@ -48,7 +48,7 @@ const JobOffersSection = () => {
   const filtered = activeFilter === 'all' ? offers : offers.filter(o => o.contractType === activeFilter);
   const displayed = filtered.slice(0, 6);
 
-  if (!loading && offers.length === 0) return null;
+  if (offers.length === 0) return null;
 
   return (
     <section id="emploi" className="py-20 bg-gradient-to-b from-[#0a0f1e] to-[#0f1a30] relative overflow-hidden">

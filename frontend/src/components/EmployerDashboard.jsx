@@ -211,7 +211,7 @@ const EmployerDashboard = () => {
               ))}
             </div>
 
-            {!stats?.hasCompany && (
+            {stats !== null && !stats?.hasCompany && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-center gap-4">
                 <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
                   <AlertCircle className="w-5 h-5 text-amber-600" />
