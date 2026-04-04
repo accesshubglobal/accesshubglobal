@@ -10,6 +10,7 @@ import ProgramsSection from "./components/ProgramsSection";
 import ServicesSection from "./components/ServicesSection";
 import DestinationsSection from "./components/DestinationsSection";
 import ScholarshipsSection from "./components/ScholarshipsSection";
+import JobOffersSection from "./components/JobOffersSection";
 import HousingSection from "./components/HousingSection";
 import TestimonialsSection from "./components/TestimonialsSection";
 import ContactSection from "./components/ContactSection";
@@ -24,17 +25,20 @@ import CommunityPage from "./components/CommunityPage";
 import CommunityPostPage from "./components/CommunityPostPage";
 import AgentRegisterPage from "./components/AgentRegisterPage";
 import PartnerRegisterPage from "./components/PartnerRegisterPage";
+import EmployerRegisterPage from "./components/EmployerRegisterPage";
 import PartnerDashboard from "./components/PartnerDashboard";
 import AgentDashboard from "./components/AgentDashboard";
+import EmployerDashboard from "./components/EmployerDashboard";
 import UniversityDetailPage from "./components/UniversityDetailPage";
 import UniversitiesListPage from "./components/UniversitiesListPage";
+import JobOffersPage from "./pages/JobOffersPage";
 import AboutPage from "./pages/AboutPage";
 import CompanyInfoPage from "./pages/CompanyInfoPage";
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from "./pages/LegalPages";
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false }) => {
-  const { isAuthenticated, isAdmin, isAgent, loading } = useAuth();
+const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false, requireEmployer = false }) => {
+  const { isAuthenticated, isAdmin, isAgent, user, loading } = useAuth();
   
   if (loading) {
     return (
@@ -53,6 +57,10 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false }
   }
 
   if (requireAgent && !isAgent) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireEmployer && user?.role !== 'employeur') {
     return <Navigate to="/" replace />;
   }
   
@@ -77,6 +85,7 @@ const Home = () => {
       <ServicesSection />
       <DestinationsSection />
       <ScholarshipsSection />
+      <JobOffersSection />
       <HousingSection />
       <TestimonialsSection onOpenAuth={openAuth} />
       <ContactSection />
@@ -111,6 +120,10 @@ const AgentPage = () => {
   return <AgentDashboard />;
 };
 
+const EmployerPage = () => {
+  return <EmployerDashboard />;
+};
+
 function App() {
   return (
     <div className="App">
@@ -125,7 +138,9 @@ function App() {
               <Route path="/community/:id" element={<CommunityPostPage />} />
               <Route path="/agent/register" element={<AgentRegisterPage />} />
               <Route path="/partner/register" element={<PartnerRegisterPage />} />
+              <Route path="/employer/register" element={<EmployerRegisterPage />} />
               <Route path="/partner" element={<PartnerDashboard />} />
+              <Route path="/emploi" element={<JobOffersPage />} />
               <Route path="/universities" element={<UniversitiesListPage />} />
               <Route path="/universities/:id" element={<UniversityDetailPage />} />
               <Route path="/about" element={<AboutPage />} />
@@ -150,6 +165,14 @@ function App() {
                 } 
               />
               <Route 
+                path="/employer" 
+                element={
+                  <ProtectedRoute requireEmployer>
+                    <EmployerPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/admin" 
                 element={
                   <ProtectedRoute requireAdmin>
@@ -166,3 +189,4 @@ function App() {
 }
 
 export default App;
+

@@ -10,7 +10,7 @@ const Header = ({ onOpenAuth }) => {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   
-  const { user, isAuthenticated, isAdmin, isAgent, isPartner, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isAgent, isPartner, isEmployer, logout } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
@@ -46,6 +46,7 @@ const Header = ({ onOpenAuth }) => {
             <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.services')}</a>
             <a href="#destinations" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.destinations')}</a>
             <a href="#scholarships" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.scholarships')}</a>
+            <a href="/emploi" className="text-amber-600 hover:text-amber-700 font-medium transition-colors">Emploi</a>
             <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.housing')}</a>
             <a href="#contact" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.contact')}</a>
             <a href="/blog" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Blog</a>
@@ -110,12 +111,12 @@ const Header = ({ onOpenAuth }) => {
                       </div>
                       
                       <button 
-                        onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : '/dashboard'); setShowUserDropdown(false); }}
+                        onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : isEmployer ? '/employer' : '/dashboard'); setShowUserDropdown(false); }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
                         data-testid="dashboard-link"
                       >
                         <User size={16} />
-                        {isAgent ? 'Espace Agent' : isPartner ? 'Espace Partenaire' : t('header.dashboard')}
+                        {isAgent ? 'Espace Agent' : isPartner ? 'Espace Partenaire' : isEmployer ? 'Espace Employeur' : t('header.dashboard')}
                       </button>
                       
                       {isAdmin && (
@@ -169,7 +170,7 @@ const Header = ({ onOpenAuth }) => {
               <>
                 <NotificationBell />
                 <button
-                  onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : isAdmin ? '/admin' : '/dashboard'); }}
+                  onClick={() => { navigate(isAgent ? '/agent' : isPartner ? '/partner' : isEmployer ? '/employer' : isAdmin ? '/admin' : '/dashboard'); }}
                   className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1a56db] text-white text-xs font-bold"
                   data-testid="mobile-user-btn"
                 >
@@ -231,6 +232,7 @@ const Header = ({ onOpenAuth }) => {
               <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.services')}</a>
               <a href="#destinations" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.destinations')}</a>
               <a href="#scholarships" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.scholarships')}</a>
+              <a href="/emploi" className="text-amber-600 hover:text-amber-700 font-medium">Emploi</a>
               <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.housing')}</a>
               <a href="#contact" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.contact')}</a>
               <a href="/blog" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-[#1a56db] font-medium">Blog</a>

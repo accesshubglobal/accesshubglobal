@@ -21,7 +21,7 @@ from _models import (
     BlogPostCreate, BlogPostUpdate,
     CommunityPostCreate, CommunityReplyCreate,
     AgentRegister, AgentStudentCreate, AgentStudentUpdate, AgentApplicationCreate,
-    PartnerRegister,
+    PartnerRegister, EmployerRegister,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
@@ -397,3 +397,61 @@ async def register_partner(partner_data: PartnerRegister):
 
 
 # ============= ADMIN - PARTNER CODES =============
+
+
+# ============= EMPLOYER AUTH =============
+
+@router.post("/auth/register-employer", response_model=TokenResponse)
+async def register_employer(employer_data: EmployerRegister):
+    db = get_db()
+    existing = await db.users.find_one({"email": employer_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    code_doc = await db.employer_codes.find_one({"code": employer_data.activationCode, "isUsed": False})
+    if not code_doc:
+        raise HTTPException(status_code=400, detail="Code d'activation invalide ou déjà utilisé")
+
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    user_doc = {
+        "id": user_id,
+        "email": employer_data.email,
+        "firstName": employer_data.firstName,
+        "lastName": employer_data.lastName,
+        "phone": employer_data.phone or "",
+        "company": employer_data.company,
+        "role": "employeur",
+        "isActive": True,
+        "isApproved": False,
+        "emailVerified": False,
+        "favorites": [],
+        "employerCode": employer_data.activationCode,
+        "createdAt": now.isoformat(),
+    }
+    user_doc["password"] = hash_password(employer_data.password)
+    await db.users.insert_one(user_doc)
+
+    await db.employer_codes.update_one(
+        {"code": employer_data.activationCode},
+        {"$set": {"isUsed": True, "usedBy": user_id, "usedAt": now.isoformat()}}
+    )
+
+    v_code = generate_verification_code()
+    await db.email_verifications.insert_one({
+        "email": employer_data.email,
+        "code": v_code,
+        "createdAt": now.isoformat(),
+    })
+    await send_verification_email(employer_data.email, v_code)
+
+    token = create_access_token({"sub": user_id})
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user_id, email=employer_data.email,
+            firstName=employer_data.firstName, lastName=employer_data.lastName,
+            phone=employer_data.phone, role="employeur", isActive=True, favorites=[],
+            isApproved=False, company=employer_data.company, emailVerified=False,
+        )
+    )

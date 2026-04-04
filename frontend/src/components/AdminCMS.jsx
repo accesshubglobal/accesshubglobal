@@ -28,6 +28,8 @@ import PaymentSettingsSection from './admin/PaymentSettingsSection';
 import TermsSection from './admin/TermsSection';
 import PagesSection from './admin/PagesSection';
 import PartnersSection from './admin/PartnersSection';
+import EmployersSection from './admin/EmployersSection';
+import JobOffersAdminSection from './admin/JobOffersAdminSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -81,6 +83,10 @@ const AdminCMS = ({ onClose }) => {
         return isPrincipalAdmin ? <AgentsSection onBadgeUpdate={handleBadgeUpdate} /> : null;
       case 'partners':
         return isPrincipalAdmin ? <PartnersSection onBadgeUpdate={handleBadgeUpdate} /> : null;
+      case 'employers':
+        return isPrincipalAdmin ? <EmployersSection /> : null;
+      case 'job-offers-admin':
+        return isPrincipalAdmin ? <JobOffersAdminSection /> : null;
       case 'applications':
         return <ApplicationsSection />;
       case 'housing':

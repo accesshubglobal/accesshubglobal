@@ -683,3 +683,69 @@ class AgentApplicationCreate(BaseModel):
     paymentProof: str = ""
     paymentAmount: float = 0
     termsAccepted: bool = False
+
+
+
+# ============= EMPLOYER MODELS =============
+
+class EmployerRegister(BaseModel):
+    email: EmailStr
+    password: str
+    firstName: str
+    lastName: str
+    phone: Optional[str] = None
+    company: str
+    activationCode: str
+
+
+class EmployerCompanyUpdate(BaseModel):
+    companyName: str
+    sector: str
+    description: str
+    website: Optional[str] = None
+    address: str
+    city: str
+    country: str
+    phone: str
+    email: str
+    logoUrl: Optional[str] = None
+    coverUrl: Optional[str] = None
+    officialDocumentUrl: Optional[str] = None
+    foundedYear: Optional[str] = None
+    employeeCount: Optional[str] = None
+    socialLinkedIn: Optional[str] = None
+    socialTwitter: Optional[str] = None
+
+
+class JobOfferCreate(BaseModel):
+    title: str
+    sector: str
+    contractType: str
+    location: str
+    country: str
+    salary: Optional[str] = None
+    salaryMin: Optional[float] = None
+    salaryMax: Optional[float] = None
+    currency: str = "EUR"
+    description: str
+    missions: List[str] = []
+    requiredProfile: str
+    requiredSkills: List[str] = []
+    educationLevel: str
+    experienceRequired: str
+    benefits: List[str] = []
+    deadline: Optional[str] = None
+    startDate: Optional[str] = None
+    numberOfPositions: int = 1
+    languages: List[str] = []
+    remote: str = "Non"
+
+
+class JobApplicationCreate(BaseModel):
+    jobOfferId: str
+    coverLetter: str
+    cvUrl: str
+    portfolioUrl: Optional[str] = None
+    linkedinUrl: Optional[str] = None
+    availableFrom: Optional[str] = None
+    expectedSalary: Optional[str] = None

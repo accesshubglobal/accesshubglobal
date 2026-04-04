@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, GraduationCap, Building, Home, MessageCircle, FileText,
   LogOut, Award, Mail, Image, Star, MessageSquare, HelpCircle, PhoneCall,
   CreditCard, ChevronLeft, ChevronRight, ChevronDown,
-  Layers, Megaphone, Wrench, FolderOpen, BookOpen, MessageSquarePlus, UserCheck, Headphones, Handshake
+  Layers, Megaphone, Wrench, FolderOpen, BookOpen, MessageSquarePlus, UserCheck, Headphones, Handshake, Briefcase
 } from 'lucide-react';
 
 const AdminSidebar = ({
@@ -35,7 +35,9 @@ const AdminSidebar = ({
       items: [
         ...(isPrincipalAdmin ? [{ id: 'users', label: 'Utilisateurs', icon: Users, badge: stats?.users }] : []),
         ...(isPrincipalAdmin ? [{ id: 'agents', label: 'Agents', icon: UserCheck, badge: badges?.pendingAgents || null }] : []),
-        ...(isPrincipalAdmin ? [{ id: 'partners', label: 'Partenaires', icon: Handshake, badge: (badges?.pendingPartners || 0) + (badges?.pendingPartnerUnis || 0) + (badges?.pendingPartnerOffers || 0) || null }] : []),
+        ...(isPrincipalAdmin ? [{ id: 'partners', label: 'Partenaires Univ.', icon: Handshake, badge: (badges?.pendingPartners || 0) + (badges?.pendingPartnerUnis || 0) + (badges?.pendingPartnerOffers || 0) || null }] : []),
+        ...(isPrincipalAdmin ? [{ id: 'employers', label: 'Partenaires d\'emploi', icon: Briefcase, badge: badges?.pendingEmployers || null }] : []),
+        ...(isPrincipalAdmin ? [{ id: 'job-offers-admin', label: 'Offres d\'emploi', icon: Briefcase, badge: badges?.pendingJobOffers || null }] : []),
         { id: 'applications', label: 'Candidatures', icon: FileText, badge: stats?.pendingApplications },
         { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
       ],

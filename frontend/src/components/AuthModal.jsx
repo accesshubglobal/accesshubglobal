@@ -60,6 +60,8 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         onClose();
         setFormData({ email: '', password: '', firstName: '', lastName: '', phone: '' });
         if (result.user?.role === 'agent') navigate('/agent');
+        else if (result.user?.role === 'partenaire') navigate('/partner');
+        else if (result.user?.role === 'employeur') navigate('/employer');
       } else {
         setError(result.error);
       }
@@ -92,6 +94,8 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
       setFormData({ email: '', password: '', firstName: '', lastName: '', phone: '' });
       setVerificationCode('');
       if (loginResult.user?.role === 'agent') navigate('/agent');
+      else if (loginResult.user?.role === 'partenaire') navigate('/partner');
+      else if (loginResult.user?.role === 'employeur') navigate('/employer');
     } catch (err) {
       setVerificationError(err.response?.data?.detail || 'Code invalide');
     }

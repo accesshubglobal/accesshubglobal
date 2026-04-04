@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }) => {
     isPrincipalAdmin: user?.role === 'admin' || user?.role === 'admin_principal',
     isAgent: user?.role === 'agent',
     isPartner: user?.role === 'partenaire',
+    isEmployer: user?.role === 'employeur',
     login,
     register,
     logout,
