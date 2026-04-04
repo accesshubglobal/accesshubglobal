@@ -139,7 +139,8 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
   };
 
   const goNext = () => {
-    const m = validateStep(step);
+    const currentStep = step;
+    const m = validateStep(currentStep);
     if (m.size > 0) {
       setMissing(m);
       setStepErr(`Veuillez remplir tous les champs obligatoires (${m.size} manquant${m.size > 1 ? 's' : ''}).`);
@@ -147,11 +148,18 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
     }
     setMissing(new Set());
     setStepErr('');
-    setStep(s => Math.min(STEPS.length, s + 1));
+    if (currentStep >= STEPS.length) {
+      // Final step: save directly to avoid browser auto-submitting form
+      // when button type dynamically changes from "button" to "submit"
+      onSave(form);
+    } else {
+      setStep(s => Math.min(STEPS.length, s + 1));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Defensive: validate final step if form is submitted via native form submit
     const m = validateStep(step);
     if (m.size > 0) {
       setMissing(m);
@@ -428,7 +436,7 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
                 Suivant <ChevronRight size={15} />
               </button>
             ) : (
-              <button type="submit" disabled={loading}
+              <button type="button" onClick={goNext} disabled={loading}
                 className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                 data-testid="student-submit-btn">
                 {loading ? <><Loader2 size={14} className="animate-spin" /> Enregistrement...</> : <><CheckCircle size={14} /> Enregistrer</>}
@@ -512,191 +520,385 @@ const ApplySelectModal = ({ offer, students, onClose, onSubmit, loading }) => {
 // ── Application Preview Modal ──────────────────────────────────────────────────
 const AppPreviewModal = ({ app, onClose }) => {
   const printRef = useRef(null);
+  const [offerDetails, setOfferDetails] = useState(null);
+  const [loadingOffer, setLoadingOffer] = useState(false);
 
-  const handleDownload = () => {
-    const el = printRef.current;
-    if (!el) return;
-    const win = window.open('', '_blank');
-    win.document.write(`
-      <!DOCTYPE html><html><head>
-      <meta charset="utf-8">
-      <title>Candidature — ${app.firstName} ${app.lastName} — ${app.offerTitle}</title>
-      <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a1a; padding: 20px; }
-        h1 { font-size: 18px; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; }
-        h2 { font-size: 13px; background: #1e3a5f; color: white; padding: 6px 12px; margin-top: 16px; border-radius: 4px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-        .field { margin-bottom: 6px; }
-        .label { font-size: 10px; color: #666; text-transform: uppercase; }
-        .value { font-weight: 600; color: #1a1a1a; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
-        .pending { background: #fef3c7; color: #92400e; }
-        .approved { background: #d1fae5; color: #065f46; }
-        .rejected { background: #fee2e2; color: #991b1b; }
-        @media print { body { padding: 0; } }
-      </style>
-      </head><body>
-      ${el.innerHTML}
-      </body></html>
-    `);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); }, 500);
+  useEffect(() => {
+    if (!app?.offerId) return;
+    setLoadingOffer(true);
+    axios.get(`${API}/offers/${app.offerId}`)
+      .then(r => setOfferDetails(r.data))
+      .catch(() => {})
+      .finally(() => setLoadingOffer(false));
+  }, [app?.offerId]);
+
+  const handleDownloadPDF = async () => {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const element = printRef.current;
+    if (!element) return;
+    const opt = {
+      margin: 8,
+      filename: `candidature-${app.firstName}-${app.lastName}-${app.id?.substring(0, 8)}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
   };
-
-  const Row = ({ label, value }) => value ? (
-    <div className="field">
-      <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{label}</div>
-      <div className="text-sm font-medium text-gray-900">{value}</div>
-    </div>
-  ) : null;
 
   const sc = statusConfig[app.status] || statusConfig.pending;
   const StatusIcon = sc.icon;
 
+  // Helper components for the preview
+  const Section = ({ icon: Icon, title, color = 'bg-[#1e3a5f]', children }) => (
+    <div className="mb-5">
+      <h2 className={`flex items-center gap-2 px-4 py-2.5 ${color} text-white rounded-xl mb-3 text-sm font-semibold`}>
+        {Icon && <Icon size={14} />} {title}
+      </h2>
+      {children}
+    </div>
+  );
+
+  const Field = ({ label, value }) => {
+    if (!value && value !== 0) return null;
+    return (
+      <div>
+        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
+        <div className="text-sm font-medium text-gray-900">{value}</div>
+      </div>
+    );
+  };
+
+  const FamilyCard = ({ title, data, required }) => {
+    if (!data || (!data.name && !data.nationality)) return null;
+    return (
+      <div className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-100">
+        <p className="text-xs font-semibold text-gray-500 uppercase">{title}{!required && <span className="ml-1 text-gray-400 font-normal normal-case">(optionnel)</span>}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <Field label="Nom complet" value={data.name} />
+          <Field label="Nationalité" value={data.nationality} />
+          <Field label="Date de naissance" value={data.dob} />
+          <Field label="N° pièce d'identité" value={data.idNo} />
+          <Field label="Mobile" value={data.mobile} />
+          <Field label="Email" value={data.email} />
+          <Field label="Profession" value={data.occupation} />
+          <Field label="Employeur" value={data.employer} />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: '92vh' }}>
-        {/* Header */}
+      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col" style={{ maxHeight: '93vh' }}>
+
+        {/* ── Modal Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] rounded-t-2xl">
-          <div className="text-white">
-            <h3 className="font-bold text-lg">{app.firstName} {app.lastName}</h3>
-            <p className="text-blue-200 text-sm">{app.offerTitle}</p>
+          <div className="text-white min-w-0 flex-1">
+            <h3 className="font-bold text-lg leading-tight">{app.firstName} {app.lastName}</h3>
+            <p className="text-blue-200 text-sm truncate">{app.offerTitle}</p>
+            <p className="text-blue-300 text-xs mt-0.5">Réf : #{app.id?.substring(0, 8)}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleDownload}
-              className="flex items-center gap-2 px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-sm transition-colors"
+          <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+            <button onClick={() => window.print()}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-sm transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Imprimer
+            </button>
+            <button onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-sm transition-colors"
               data-testid={`download-app-${app.id}`}>
-              <Download size={15} /> Télécharger
+              <Download size={15} /> PDF
             </button>
             <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl"><X size={18} /></button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4" ref={printRef}>
-          <h1 style={{ display: 'none' }}>Candidature — {app.firstName} {app.lastName} — {app.offerTitle}</h1>
+        {/* ── Scrollable Content ── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5" ref={printRef}>
 
           {/* Status banner */}
           <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border mb-5 ${sc.color}`}>
             <StatusIcon size={16} />
             <span className="font-semibold text-sm">Statut : {sc.label}</span>
-            <span className="text-xs ml-auto opacity-70">{new Date(app.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+            <span className="text-xs ml-auto opacity-70">
+              {new Date(app.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+            </span>
           </div>
 
-          {/* Programme */}
-          <div className="bg-[#1e3a5f]/5 border border-[#1e3a5f]/20 rounded-xl p-4 mb-5">
-            <h2 className="hidden">Programme</h2>
-            <p className="text-xs font-medium text-[#1e3a5f] uppercase tracking-wide mb-1">Programme</p>
-            <p className="font-bold text-gray-900">{app.offerTitle}</p>
-            {app.university && <p className="text-sm text-gray-600">{app.university}</p>}
-          </div>
+          {/* ── Programme (Offer Details) ── */}
+          <Section icon={GraduationCap} title="Programme" color="bg-[#1e3a5f]">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+              <p className="font-bold text-gray-900 mb-1">{app.offerTitle}</p>
+              {loadingOffer ? (
+                <p className="text-xs text-gray-400">Chargement des détails...</p>
+              ) : offerDetails ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+                  <Field label="Université" value={offerDetails.university} />
+                  <Field label="Ville / Pays" value={offerDetails.city && offerDetails.country ? `${offerDetails.city}, ${offerDetails.country}` : offerDetails.city || offerDetails.country} />
+                  <Field label="Diplôme" value={offerDetails.degree} />
+                  <Field label="Durée" value={offerDetails.duration} />
+                  <Field label="Langue d'enseignement" value={offerDetails.teachingLanguage} />
+                  <Field label="Rentrée" value={offerDetails.intake} />
+                  <Field label="Date limite" value={offerDetails.deadline || 'Ouvert'} />
+                  {offerDetails.hasScholarship && <Field label="Type de bourse" value={offerDetails.scholarshipType} />}
+                  <Field label="Catégorie" value={offerDetails.categoryLabel || offerDetails.category} />
+                </div>
+              ) : (
+                app.university && <p className="text-sm text-gray-600 mt-1">{app.university}</p>
+              )}
+            </div>
+          </Section>
 
-          {/* Personal info */}
-          <h2 className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-xl mb-3 text-sm font-semibold">
-            <User size={14} /> Informations personnelles
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-            <Row label="Prénom" value={app.firstName} />
-            <Row label="Nom" value={app.lastName} />
-            <Row label="Sexe" value={app.sex} />
-            <Row label="Date de naissance" value={app.dateOfBirth} />
-            <Row label="Nationalité" value={app.nationality} />
-            <Row label="Pays de naissance" value={app.countryOfBirth} />
-            <Row label="Lieu de naissance" value={app.placeOfBirth} />
-            <Row label="Langue maternelle" value={app.nativeLanguage} />
-            <Row label="Religion" value={app.religion} />
-            <Row label="Situation matrimoniale" value={app.maritalStatus} />
-            <Row label="Profession" value={app.occupation} />
-            <Row label="Téléphone" value={app.phoneNumber} />
-            <Row label="Email" value={app.userEmail || app.personalEmail} />
-          </div>
-
-          {/* Passport */}
-          <h2 className="flex items-center gap-2 px-4 py-2 bg-purple-700 text-white rounded-xl mb-3 text-sm font-semibold">
-            <Shield size={14} /> Passeport
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-            <Row label="N° passeport" value={app.passportNumber} />
-            <Row label="Date d'émission" value={app.passportIssuedDate} />
-            <Row label="Date d'expiration" value={app.passportExpiryDate} />
-          </div>
-
-          {/* Address */}
-          {(app.address || app.addressDetailed) && (
-            <>
-              <h2 className="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-xl mb-3 text-sm font-semibold">
-                <MapPin size={14} /> Résidence
-              </h2>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <Row label="Adresse" value={app.address} />
-                <Row label="Détails" value={app.addressDetailed} />
-                <Row label="Téléphone" value={app.addressPhone} />
-                <Row label="Code postal" value={app.zipCode} />
+          {/* ── Frais ── */}
+          {offerDetails?.fees && Object.values(offerDetails.fees).some(v => v > 0) && (
+            <Section title="Frais et Tarifs" color="bg-amber-700">
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 grid grid-cols-2 gap-3">
+                {offerDetails.fees.originalTuition > 0 && <Field label="Frais de scolarité" value={`${Number(offerDetails.fees.originalTuition).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {offerDetails.fees.scholarshipTuition > 0 && <Field label="Scolarité après bourse" value={`${Number(offerDetails.fees.scholarshipTuition).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {offerDetails.fees.accommodationDouble > 0 && <Field label="Hébergement (double)" value={`${Number(offerDetails.fees.accommodationDouble).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {offerDetails.fees.accommodationSingle > 0 && <Field label="Hébergement (single)" value={`${Number(offerDetails.fees.accommodationSingle).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {offerDetails.fees.registrationFee > 0 && <Field label="Frais d'inscription" value={`${Number(offerDetails.fees.registrationFee).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {offerDetails.fees.insuranceFee > 0 && <Field label="Assurance" value={`${Number(offerDetails.fees.insuranceFee).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {offerDetails.fees.applicationFee > 0 && <Field label="Frais de dossier" value={`${Number(offerDetails.fees.applicationFee).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />}
+                {(offerDetails.fees.otherFees || []).map((fee, idx) => (
+                  <Field key={idx} label={fee.name || fee.label} value={`${Number(fee.amount).toLocaleString()} ${offerDetails.currency || 'CNY'}`} />
+                ))}
               </div>
-            </>
+              {offerDetails.serviceFee > 0 && (
+                <div className="mt-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Frais de service AccessHub Global</span>
+                  <span className="font-bold text-[#1e3a5f]">{Number(offerDetails.serviceFee).toLocaleString()} {offerDetails.currency || 'CNY'}</span>
+                </div>
+              )}
+            </Section>
           )}
 
-          {/* Education */}
+          {/* ── Informations Personnelles ── */}
+          <Section icon={User} title="Informations personnelles" color="bg-[#1e3a5f]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <Field label="Prénom" value={app.firstName} />
+              <Field label="Nom" value={app.lastName} />
+              <Field label="Sexe" value={app.sex} />
+              <Field label="Date de naissance" value={app.dateOfBirth} />
+              <Field label="Nationalité" value={app.nationality} />
+              <Field label="Pays de naissance" value={app.countryOfBirth} />
+              <Field label="Lieu de naissance" value={app.placeOfBirth} />
+              <Field label="Langue maternelle" value={app.nativeLanguage} />
+              <Field label="Religion" value={app.religion} />
+              <Field label="Situation matrimoniale" value={app.maritalStatus} />
+              <Field label="Profession" value={app.occupation} />
+              <Field label="Niveau d'études" value={app.highestEducation} />
+              <Field label="Domaine souhaité (Chine)" value={app.majorInChina} />
+              <Field label="Hobbies / Loisirs" value={app.hobby} />
+              <Field label="Téléphone" value={app.phoneNumber} />
+              <Field label="Email principal" value={app.userEmail || app.personalEmail} />
+              <Field label="Email personnel" value={app.personalEmail !== app.userEmail ? app.personalEmail : null} />
+            </div>
+          </Section>
+
+          {/* ── Santé & Séjour en Chine ── */}
+          {(app.bloodGroup || app.height || app.weight || app.inChinaNow) && (
+            <Section icon={Activity} title="Santé & Séjour en Chine" color="bg-green-700">
+              <div className="space-y-3">
+                {(app.bloodGroup || app.height || app.weight) && (
+                  <div className="grid grid-cols-3 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <Field label="Groupe sanguin" value={app.bloodGroup} />
+                    <Field label="Taille" value={app.height ? `${app.height} cm` : null} />
+                    <Field label="Poids" value={app.weight ? `${app.weight} kg` : null} />
+                  </div>
+                )}
+                {app.inChinaNow && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-red-50 rounded-xl p-4 border border-red-100">
+                    <p className="col-span-full text-xs font-semibold text-red-700 uppercase mb-1">Actuellement en Chine</p>
+                    <Field label="Établissement" value={app.chinaSchool} />
+                    <Field label="Type de visa" value={app.chinaVisaType} />
+                    <Field label="N° de visa" value={app.chinaVisaNo} />
+                    <Field label="Expiration visa" value={app.chinaVisaExpiry} />
+                    <Field label="Période début" value={app.chinaLearningPeriodStart} />
+                    <Field label="Période fin" value={app.chinaLearningPeriodEnd} />
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* ── Passeport ── */}
+          <Section icon={Shield} title="Passeport" color="bg-purple-700">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p className="col-span-full text-xs font-semibold text-gray-500 uppercase mb-1">Passeport actuel</p>
+                <Field label="Numéro" value={app.passportNumber} />
+                <Field label="Date d'émission" value={app.passportIssuedDate} />
+                <Field label="Date d'expiration" value={app.passportExpiryDate} />
+              </div>
+              {app.oldPassportNo && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="col-span-full text-xs font-semibold text-gray-500 uppercase mb-1">Ancien passeport</p>
+                  <Field label="Numéro" value={app.oldPassportNo} />
+                  <Field label="Date d'émission" value={app.oldPassportIssuedDate} />
+                  <Field label="Date d'expiration" value={app.oldPassportExpiryDate} />
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* ── Résidence ── */}
+          {(app.address || app.currentAddress) && (
+            <Section icon={MapPin} title="Résidence" color="bg-blue-700">
+              <div className="space-y-3">
+                {app.address && (
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p className="col-span-full text-xs font-semibold text-gray-500 uppercase mb-1">Adresse permanente</p>
+                    <Field label="Pays / Ville" value={app.address} />
+                    <Field label="Rue / Quartier" value={app.addressDetailed} />
+                    <Field label="Téléphone" value={app.addressPhone} />
+                    <Field label="Code postal" value={app.zipCode} />
+                  </div>
+                )}
+                {app.currentAddress && (
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p className="col-span-full text-xs font-semibold text-gray-500 uppercase mb-1">Adresse actuelle</p>
+                    <Field label="Pays / Ville" value={app.currentAddress} />
+                    <Field label="Rue / Quartier" value={app.currentAddressDetailed} />
+                    <Field label="Téléphone" value={app.currentAddressPhone} />
+                    <Field label="Code postal" value={app.currentAddressZipCode} />
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* ── Parcours Académique ── */}
           {(app.educationalBackground || []).some(e => e.instituteName) && (
-            <>
-              <h2 className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-xl mb-3 text-sm font-semibold">
-                <BookOpen size={14} /> Parcours académique
-              </h2>
-              <div className="space-y-2 mb-4">
+            <Section icon={BookOpen} title="Parcours académique" color="bg-teal-700">
+              <div className="space-y-2">
                 {(app.educationalBackground || []).filter(e => e.instituteName).map((e, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <Row label="Établissement" value={e.instituteName} />
-                    <Row label="Domaine" value={e.fieldOfStudy} />
-                    <Row label="Niveau" value={e.educationLevel} />
-                    <Row label="Période" value={e.yearsFrom && e.yearsTo ? `${e.yearsFrom} → ${e.yearsTo}` : e.yearsFrom || e.yearsTo} />
+                  <div key={i} className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 border border-gray-100">
+                    <Field label="Établissement" value={e.instituteName} />
+                    <Field label="Domaine d'études" value={e.fieldOfStudy} />
+                    <Field label="Niveau" value={e.educationLevel} />
+                    <Field label="Période" value={e.yearsFrom && e.yearsTo ? `${e.yearsFrom} → ${e.yearsTo}` : e.yearsFrom || e.yearsTo} />
                   </div>
                 ))}
               </div>
-            </>
+            </Section>
           )}
 
-          {/* Work */}
+          {/* ── Expérience Professionnelle ── */}
           {(app.workExperience || []).some(w => w.companyName) && (
-            <>
-              <h2 className="flex items-center gap-2 px-4 py-2 bg-amber-700 text-white rounded-xl mb-3 text-sm font-semibold">
-                <Briefcase size={14} /> Expérience professionnelle
-              </h2>
-              <div className="space-y-2 mb-4">
+            <Section icon={Briefcase} title="Expérience professionnelle" color="bg-amber-700">
+              <div className="space-y-2">
                 {(app.workExperience || []).filter(w => w.companyName).map((w, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <Row label="Entreprise" value={w.companyName} />
-                    <Row label="Poste" value={w.position} />
-                    <Row label="Secteur" value={w.industryType} />
-                    <Row label="Période" value={w.yearsFrom && w.yearsTo ? `${w.yearsFrom} → ${w.yearsTo}` : w.yearsFrom || w.yearsTo} />
+                  <div key={i} className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 border border-gray-100">
+                    <Field label="Entreprise" value={w.companyName} />
+                    <Field label="Poste" value={w.position} />
+                    <Field label="Secteur" value={w.industryType} />
+                    <Field label="Période" value={w.yearsFrom && w.yearsTo ? `${w.yearsFrom} → ${w.yearsTo}` : w.yearsFrom || w.yearsTo} />
+                    <Field label="Contact" value={w.contactPerson} />
+                    <Field label="Tél. contact" value={w.contactPhone} />
                   </div>
                 ))}
               </div>
-            </>
+            </Section>
           )}
 
-          {/* Documents */}
-          {(app.documents || []).length > 0 && (
-            <>
-              <h2 className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-xl mb-3 text-sm font-semibold">
-                <FileText size={14} /> Documents soumis
-              </h2>
-              <div className="space-y-1.5 mb-4">
-                {app.documents.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 bg-teal-50 rounded-lg border border-teal-100">
-                    <FileText size={13} className="text-teal-600 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 flex-1">{d.name}</span>
-                    {d.url && (
-                      <a href={d.url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-teal-600 hover:underline flex items-center gap-1">
-                        <Download size={11} /> Voir
-                      </a>
-                    )}
+          {/* ── Famille ── */}
+          {(app.fatherInfo?.name || app.motherInfo?.name || app.emergencyContact?.name) && (
+            <Section icon={Users} title="Informations familiales" color="bg-indigo-700">
+              <div className="space-y-3">
+                <FamilyCard title="Père" data={app.fatherInfo} required />
+                <FamilyCard title="Mère" data={app.motherInfo} required />
+                <FamilyCard title="Conjoint(e)" data={app.spouseInfo} required={false} />
+                {app.emergencyContact?.name && (
+                  <div className="bg-red-50 rounded-xl p-4 space-y-2 border border-red-100">
+                    <p className="text-xs font-semibold text-red-700 uppercase">Contact d'urgence en Chine</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <Field label="Nom" value={app.emergencyContact.name} />
+                      <Field label="Lien de parenté" value={app.emergencyContact.relationship} />
+                      <Field label="Nationalité" value={app.emergencyContact.nationality} />
+                      <Field label="Téléphone" value={app.emergencyContact.phone} />
+                      <Field label="Email" value={app.emergencyContact.email} />
+                      <Field label="Adresse en Chine" value={app.emergencyContact.addressChina} />
+                      <Field label="Profession" value={app.emergencyContact.occupation} />
+                      <Field label="Employeur" value={app.emergencyContact.employer} />
+                    </div>
                   </div>
-                ))}
+                )}
+                {app.financialSponsor?.relationship && (
+                  <div className="bg-green-50 rounded-xl p-4 space-y-2 border border-green-100">
+                    <p className="text-xs font-semibold text-green-700 uppercase">Sponsor financier</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Lien de parenté" value={app.financialSponsor.relationship} />
+                      <Field label="Adresse" value={app.financialSponsor.address} />
+                    </div>
+                  </div>
+                )}
               </div>
-            </>
+            </Section>
           )}
+
+          {/* ── Documents Soumis ── */}
+          {(app.documents || []).length > 0 && (
+            <Section icon={FileText} title={`Documents soumis (${app.documents.length})`} color="bg-teal-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {app.documents.map((d, i) => {
+                  const docUrl = typeof d === 'string' ? d : d?.url;
+                  const docName = typeof d === 'object' ? d?.name : `Document ${i + 1}`;
+                  return (
+                    <a key={i} href={docUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-teal-50 rounded-xl border border-teal-100 hover:bg-teal-100 transition-colors">
+                      <FileText size={16} className="text-teal-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{docName}</p>
+                        <p className="text-xs text-gray-500">Cliquez pour voir</p>
+                      </div>
+                      <Download size={13} className="text-teal-600 flex-shrink-0" />
+                    </a>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
+          {/* ── Suivi de Candidature ── */}
+          <Section title="Suivi de candidature" color="bg-gray-700">
+            <div className="space-y-3 pl-2">
+              <div className="flex gap-3">
+                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 flex-shrink-0"></div>
+                <div>
+                  <p className="font-medium text-sm text-gray-900">Candidature soumise</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(app.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+              {app.status !== 'pending' && (
+                <div className="flex gap-3">
+                  <div className={`w-3 h-3 rounded-full mt-1 flex-shrink-0 ${
+                    app.status === 'approved' ? 'bg-green-500' :
+                    app.status === 'rejected' ? 'bg-red-500' :
+                    app.status === 'modify' ? 'bg-orange-500' : 'bg-blue-500'
+                  }`}></div>
+                  <div>
+                    <p className="font-medium text-sm text-gray-900">
+                      {app.status === 'approved' && 'Candidature approuvée'}
+                      {app.status === 'rejected' && 'Candidature rejetée'}
+                      {app.status === 'modify' && 'Modification demandée'}
+                      {app.status === 'processing' && 'En cours de traitement'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* Footer */}
+          <div className="border-t border-gray-100 pt-4 text-center text-xs text-gray-400">
+            <p>Réf : #{app.id?.substring(0, 8)} · AccessHub Global</p>
+          </div>
         </div>
       </div>
     </div>
