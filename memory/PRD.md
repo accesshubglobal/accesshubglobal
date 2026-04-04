@@ -55,6 +55,13 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 
 - [x] Agent Dashboard : formulaire étudiant 7 étapes complet avec validations strictes (P0 bug fix : goNext cause racine = browser form submit sur changement type bouton → Enregistrer changé en type='button' + goNext gère l'étape finale) (FAIT)
 - [x] Agent AppPreviewModal : réécrit complet avec toutes les sections (programme, frais, données personnelles, santé, passeport, adresses, famille, contact urgence, timeline, PDF) (FAIT)
+- [x] Nouveau type utilisateur **Employeur** (Partenaires d'emploi) : inscription code EM-, approbation admin, dashboard complet (FAIT - 04/2026)
+- [x] Dashboard employeur : infos entreprise (logo, couverture, doc officiel upload), gestion offres d'emploi, gestion candidatures (FAIT - 04/2026)
+- [x] Offres d'emploi : champs complets, validation admin avant publication, candidature directe CV+lettre (FAIT - 04/2026)
+- [x] Section "Offres d'emploi" sur homepage (dark theme dynamique), page publique /emploi avec filtres (FAIT - 04/2026)
+- [x] Footer : section "Nos Partenaires" avec 3 liens, Header : lien "Emploi" amber (FAIT - 04/2026)
+- [x] Admin CMS : sections Partenaires d'emploi + Offres d'emploi (modération) (FAIT - 04/2026)
+
 
 ### P1 - Priorité haute
 - [ ] Intégration paiement en ligne (Stripe ou autre)
