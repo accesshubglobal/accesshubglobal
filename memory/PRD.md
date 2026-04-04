@@ -24,7 +24,7 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - `OfferFormModal.jsx` — Utilisé par Admin ET Partenaire (props: isPartner, feesOnlyMode, submitLabel)
 - `UniversityFormModal.jsx` — Utilisé par Admin ET Partenaire (props: isPartner pour validation stricte)
 
-## Tâches Complétées
+## Tâches Complétées (mise à jour 04/2026)
 - [x] RBAC System
 - [x] Agent/Partner System
 - [x] Email verification + Forgot password (Resend)
@@ -53,7 +53,9 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] Champs obligatoires supplémentaires UniversityFormModal partenaires : Photo de couverture, Logo, Image principale, Année de création, Président, min. 3 facultés, min. 6 conditions d'admission (FAIT)
 - [x] Correction bug OfferFormModal (contenu dupliqué supprimé) (P0 - FAIT)
 
-## Tâches À Venir
+- [x] Agent Dashboard : formulaire étudiant 7 étapes complet avec validations strictes (P0 bug fix : goNext cause racine = browser form submit sur changement type bouton → Enregistrer changé en type='button' + goNext gère l'étape finale) (FAIT)
+- [x] Agent AppPreviewModal : réécrit complet avec toutes les sections (programme, frais, données personnelles, santé, passeport, adresses, famille, contact urgence, timeline, PDF) (FAIT)
+
 ### P1 - Priorité haute
 - [ ] Intégration paiement en ligne (Stripe ou autre)
 

@@ -726,6 +726,7 @@ const AppPreviewModal = ({ app, onClose }) => {
           )}
 
           {/* ── Passeport ── */}
+          {(app.passportNumber || app.passportIssuedDate || app.passportExpiryDate) && (
           <Section icon={Shield} title="Passeport" color="bg-purple-700">
             <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
@@ -744,6 +745,7 @@ const AppPreviewModal = ({ app, onClose }) => {
               )}
             </div>
           </Section>
+          )}
 
           {/* ── Résidence ── */}
           {(app.address || app.currentAddress) && (
