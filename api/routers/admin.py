@@ -22,6 +22,7 @@ from _models import (
     CommunityPostCreate, CommunityReplyCreate,
     AgentRegister, AgentStudentCreate, AgentStudentUpdate, AgentApplicationCreate,
     PartnerRegister,
+    FeaturedCompanyCreate,
 )
 from _helpers import (
     get_db, hash_password, verify_password, create_access_token,
@@ -861,3 +862,47 @@ async def admin_list_pages(admin: dict = Depends(get_principal_admin)):
     return pages
 
 
+# ============= FEATURED COMPANIES (Admin-managed) =============
+
+@router.get("/admin/featured-companies")
+async def admin_get_featured_companies(admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    companies = await db.featured_companies.find({}, {"_id": 0}).sort("createdAt", 1).to_list(100)
+    return companies
+
+
+@router.post("/admin/featured-companies")
+async def admin_create_featured_company(data: FeaturedCompanyCreate, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    if data.isMain:
+        await db.featured_companies.delete_many({"isMain": True})
+    doc = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdBy": admin["id"],
+    }
+    await db.featured_companies.insert_one(doc)
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+@router.put("/admin/featured-companies/{company_id}")
+async def admin_update_featured_company(company_id: str, data: FeaturedCompanyCreate, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    if data.isMain:
+        await db.featured_companies.update_many(
+            {"isMain": True, "id": {"$ne": company_id}},
+            {"$set": {"isMain": False}}
+        )
+    update = {**data.model_dump(), "updatedAt": datetime.now(timezone.utc).isoformat()}
+    result = await db.featured_companies.update_one({"id": company_id}, {"$set": update})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Entreprise non trouvée")
+    return {"success": True}
+
+
+@router.delete("/admin/featured-companies/{company_id}")
+async def admin_delete_featured_company(company_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    await db.featured_companies.delete_one({"id": company_id})
+    return {"success": True}

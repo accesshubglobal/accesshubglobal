@@ -432,3 +432,50 @@ async def get_company_profile(employer_id: str):
         "offers": offers,
         "memberSince": employer.get("createdAt", "") if employer else "",
     }
+
+
+# ============= PUBLIC COMPANIES SHOWCASE =============
+
+@router.get("/companies-showcase")
+async def get_companies_showcase():
+    db = get_db()
+
+    # Admin-featured: main (AccessHub Global) first, then others
+    featured = await db.featured_companies.find(
+        {"isActive": True}, {"_id": 0}
+    ).sort("isMain", -1).to_list(50)
+    main_company = next((c for c in featured if c.get("isMain")), None)
+    other_featured = [c for c in featured if not c.get("isMain")]
+
+    # Approved employer companies with company info
+    employer_companies = await db.employer_companies.find({}, {"_id": 0}).to_list(100)
+    employers_data = []
+    for ec in employer_companies:
+        employer = await db.users.find_one(
+            {"id": ec["employerId"], "isApproved": True, "role": "employeur"},
+            {"_id": 0, "id": 1}
+        )
+        if not employer:
+            continue
+        active_offers = await db.job_offers.count_documents(
+            {"employerId": ec["employerId"], "isApproved": True}
+        )
+        employers_data.append({
+            "id": ec["employerId"],
+            "name": ec.get("companyName", ""),
+            "logo": ec.get("logoUrl", ""),
+            "coverUrl": ec.get("coverUrl", ""),
+            "description": ec.get("description", ""),
+            "sector": ec.get("sector", ""),
+            "city": ec.get("city", ""),
+            "country": ec.get("country", ""),
+            "website": ec.get("website", ""),
+            "activeOffers": active_offers,
+            "type": "employer",
+        })
+
+    return {
+        "main": main_company,
+        "others": other_featured,
+        "employers": employers_data,
+    }

@@ -38,6 +38,7 @@ const AdminSidebar = ({
         ...(isPrincipalAdmin ? [{ id: 'partners', label: 'Partenaires Univ.', icon: Handshake, badge: (badges?.pendingPartners || 0) + (badges?.pendingPartnerUnis || 0) + (badges?.pendingPartnerOffers || 0) || null }] : []),
         ...(isPrincipalAdmin ? [{ id: 'employers', label: 'Partenaires d\'emploi', icon: Briefcase, badge: badges?.pendingEmployers || null }] : []),
         ...(isPrincipalAdmin ? [{ id: 'job-offers-admin', label: 'Offres d\'emploi', icon: Briefcase, badge: badges?.pendingJobOffers || null }] : []),
+        ...(isPrincipalAdmin ? [{ id: 'companies-admin', label: 'Entreprises', icon: Building }] : []),
         { id: 'applications', label: 'Candidatures', icon: FileText, badge: stats?.pendingApplications },
         { id: 'housing', label: 'Logements', icon: Home, badge: stats?.housing },
       ],

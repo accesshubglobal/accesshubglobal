@@ -11,6 +11,7 @@ import ServicesSection from "./components/ServicesSection";
 import DestinationsSection from "./components/DestinationsSection";
 import ScholarshipsSection from "./components/ScholarshipsSection";
 import JobOffersSection from "./components/JobOffersSection";
+import CompaniesSection from "./components/CompaniesSection";
 import HousingSection from "./components/HousingSection";
 import TestimonialsSection from "./components/TestimonialsSection";
 import ContactSection from "./components/ContactSection";
@@ -86,6 +87,7 @@ const Home = () => {
       <ServicesSection />
       <DestinationsSection />
       <JobOffersSection />
+      <CompaniesSection />
       <HousingSection />
       <TestimonialsSection onOpenAuth={openAuth} />
       <ContactSection />

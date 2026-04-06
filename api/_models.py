@@ -758,3 +758,20 @@ class JobApplicationCreate(BaseModel):
     linkedinUrl: Optional[str] = None
     availableFrom: Optional[str] = None
     expectedSalary: Optional[str] = None
+
+
+# ============= FEATURED COMPANY MODELS =============
+
+class FeaturedCompanyCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    logo: Optional[str] = ""
+    coverUrl: Optional[str] = ""
+    website: Optional[str] = ""
+    sector: Optional[str] = ""
+    city: Optional[str] = ""
+    country: Optional[str] = ""
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+    isMain: bool = False
+    isActive: bool = True
