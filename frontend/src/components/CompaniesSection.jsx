@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2, MapPin, Globe, Briefcase, ArrowRight, ExternalLink,
-  Sparkles, Users
+  Sparkles, Users, ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -53,7 +53,7 @@ const CompaniesSection = () => {
         {/* Main company (AccessHub Global) — special card */}
         {main && (
           <div className="mb-10">
-            <MainCompanyCard company={main} />
+            <MainCompanyCard company={main} onClick={() => navigate(`/featured-companies/${main.id}`)} />
           </div>
         )}
 
@@ -74,55 +74,96 @@ const CompaniesSection = () => {
   );
 };
 
-const MainCompanyCard = ({ company }) => (
-  <div className="relative rounded-2xl overflow-hidden border border-[#1a56db]/20 shadow-lg" data-testid="main-company-card">
-    {/* Cover */}
+const MainCompanyCard = ({ company, onClick }) => (
+  <div
+    onClick={onClick}
+    className="relative rounded-3xl overflow-hidden cursor-pointer group"
+    style={{ minHeight: '280px' }}
+    data-testid="main-company-card"
+  >
+    {/* ── Background layer ── */}
     {company.coverUrl ? (
-      <div className="h-40 w-full">
-        <img src={company.coverUrl} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 h-40 bg-gradient-to-r from-[#1a56db]/60 to-transparent" />
-      </div>
+      <img src={company.coverUrl} alt=""
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
     ) : (
-      <div className="h-40 bg-gradient-to-r from-[#1a56db] to-[#2a5298]" />
+      <div className="absolute inset-0 bg-[#0a0f1e] overflow-hidden">
+        {/* Animated orbs */}
+        <div className="absolute -top-20 -left-20 w-72 h-72 bg-[#1a56db] rounded-full opacity-30 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-10 right-10 w-64 h-64 bg-violet-600 rounded-full opacity-20 blur-3xl"
+          style={{ animation: 'pulse 3.5s ease-in-out 1s infinite' }} />
+        <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-blue-400 rounded-full opacity-15 blur-2xl"
+          style={{ animation: 'pulse 4s ease-in-out 0.5s infinite' }} />
+        {/* Grid mesh */}
+        <div className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)`,
+            backgroundSize: '56px 56px'
+          }} />
+        {/* Floating dots */}
+        {[...Array(10)].map((_, i) => (
+          <div key={i}
+            className="absolute w-1 h-1 bg-blue-300 rounded-full opacity-50"
+            style={{ left: `${5 + i * 10}%`, top: `${15 + (i % 5) * 18}%`, animation: `pulse ${2 + (i % 3)}s ease-in-out ${i * 0.25}s infinite` }} />
+        ))}
+      </div>
     )}
 
-    <div className="bg-white px-6 pb-6">
-      <div className="flex items-start gap-5 -mt-8 mb-4">
-        {company.logo ? (
-          <img src={company.logo} alt={company.name}
-            className="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-md flex-shrink-0" />
-        ) : (
-          <div className="w-16 h-16 rounded-2xl bg-[#1a56db] flex items-center justify-center border-4 border-white shadow-md flex-shrink-0">
-            <Building2 size={28} className="text-white" />
-          </div>
-        )}
-        <div className="pt-8 flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-xl font-black text-gray-900">{company.name}</h3>
-            <span className="px-2.5 py-0.5 bg-[#1a56db] text-white text-[10px] font-bold rounded-full uppercase tracking-wide">
-              Fondateur
-            </span>
-          </div>
-          {company.sector && <p className="text-sm text-gray-500 mt-0.5">{company.sector}</p>}
-        </div>
-      </div>
+    {/* ── Overlay gradient ── */}
+    <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/10" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+    {/* ── Hover shimmer ── */}
+    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-500" />
+
+    {/* ── Content ── */}
+    <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end gap-6 p-8 h-full" style={{ minHeight: '280px' }}>
+      <div className="flex-1">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white text-xs font-medium mb-5">
+          <Sparkles size={12} className="text-blue-300" />
+          Fondateur de la plateforme
+        </div>
+
+        {/* Logo + Name */}
+        <div className="flex items-center gap-4 mb-4">
+          {company.logo ? (
+            <img src={company.logo} alt={company.name}
+              className="w-16 h-16 rounded-2xl object-cover border-2 border-white/25 shadow-2xl flex-shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center flex-shrink-0">
+              <Building2 size={28} className="text-white" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-3xl font-black text-white leading-tight drop-shadow-lg">{company.name}</h3>
+            {company.sector && <p className="text-white/60 text-sm mt-0.5">{company.sector}</p>}
+          </div>
+        </div>
+
         {company.description && (
-          <p className="text-gray-600 text-sm leading-relaxed flex-1 line-clamp-2">{company.description}</p>
+          <p className="text-white/70 text-sm leading-relaxed max-w-lg line-clamp-2">{company.description}</p>
         )}
-        <div className="flex gap-2 flex-wrap">
+
+        {/* Meta */}
+        <div className="flex flex-wrap gap-4 mt-4">
           {company.city && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5 text-white/60 text-xs">
               <MapPin size={12} /> {company.city}{company.country ? `, ${company.country}` : ''}
             </span>
           )}
           {company.website && (
-            <a href={company.website} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-[#1a56db] hover:underline">
-              <Globe size={12} /> Site web <ExternalLink size={10} />
-            </a>
+            <span className="flex items-center gap-1.5 text-blue-300 text-xs">
+              <Globe size={12} /> {company.website}
+            </span>
           )}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="flex-shrink-0">
+        <div className="flex items-center gap-2 px-5 py-3 bg-white text-[#1a56db] rounded-2xl font-semibold text-sm shadow-xl group-hover:shadow-blue-500/25 transition-all group-hover:gap-3">
+          En savoir plus
+          <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
         </div>
       </div>
     </div>

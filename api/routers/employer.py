@@ -436,6 +436,17 @@ async def get_company_profile(employer_id: str):
 
 # ============= PUBLIC COMPANIES SHOWCASE =============
 
+@router.get("/featured-companies/{company_id}")
+async def get_featured_company(company_id: str):
+    db = get_db()
+    company = await db.featured_companies.find_one(
+        {"id": company_id, "isActive": True}, {"_id": 0}
+    )
+    if not company:
+        raise HTTPException(status_code=404, detail="Entreprise non trouvée")
+    return company
+
+
 @router.get("/companies-showcase")
 async def get_companies_showcase():
     db = get_db()

@@ -34,6 +34,7 @@ import UniversityDetailPage from "./components/UniversityDetailPage";
 import UniversitiesListPage from "./components/UniversitiesListPage";
 import JobOffersPage from "./pages/JobOffersPage";
 import CompanyProfilePage from "./pages/CompanyProfilePage";
+import FeaturedCompanyPage from "./pages/FeaturedCompanyPage";
 import AboutPage from "./pages/AboutPage";
 import CompanyInfoPage from "./pages/CompanyInfoPage";
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from "./pages/LegalPages";
@@ -144,6 +145,7 @@ function App() {
               <Route path="/partner" element={<PartnerDashboard />} />
               <Route path="/emploi" element={<JobOffersPage />} />
               <Route path="/companies/:employerId" element={<CompanyProfilePage />} />
+              <Route path="/featured-companies/:companyId" element={<FeaturedCompanyPage />} />
               <Route path="/universities" element={<UniversitiesListPage />} />
               <Route path="/universities/:id" element={<UniversityDetailPage />} />
               <Route path="/about" element={<AboutPage />} />

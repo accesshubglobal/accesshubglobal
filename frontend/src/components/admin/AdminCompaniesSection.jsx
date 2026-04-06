@@ -21,11 +21,10 @@ const ImageUploadField = ({ label, value, onChange, placeholder }) => {
     if (!file) return;
     setUploading(true);
     try {
-      const token = localStorage.getItem('auth_token');
       const formData = new FormData();
       formData.append('file', file);
       const r = await axios.post(`${BACKEND_URL}/api/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       onChange(r.data.url);
     } catch { alert('Erreur upload'); }
