@@ -50,11 +50,18 @@ const CompanyProfilePage = () => {
         {company.coverUrl ? (
           <div className="h-56 md:h-72 w-full overflow-hidden">
             <img src={company.coverUrl} alt="Couverture" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           </div>
         ) : (
-          <div className="h-40 bg-gradient-to-r from-[#1a56db] to-[#2a5298]"></div>
+          <div className="h-40 bg-gradient-to-r from-[#1a56db] to-[#2a5298]" />
         )}
+        {/* Bouton retour */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-xl text-sm font-medium border border-white/20 hover:bg-white/20 transition-colors z-10"
+        >
+          <ArrowLeft size={16} /> Retour
+        </button>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 pb-20 -mt-8 relative">
