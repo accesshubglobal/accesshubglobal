@@ -57,16 +57,16 @@ const CompanyProfilePage = () => {
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 pb-20 -mt-16 relative">
+      <div className="max-w-4xl mx-auto px-4 pb-20 -mt-8 relative">
         {/* Company card */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex items-start gap-5 flex-wrap">
             {company.logoUrl ? (
               <img src={company.logoUrl} alt="Logo"
-                className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md flex-shrink-0 -mt-8" />
+                className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-md flex-shrink-0" />
             ) : (
-              <div className="w-24 h-24 rounded-2xl bg-[#1a56db]/10 flex items-center justify-center border-4 border-white shadow-md flex-shrink-0 -mt-8">
-                <Building2 size={40} className="text-[#1a56db]" />
+              <div className="w-20 h-20 rounded-2xl bg-[#1a56db]/10 flex items-center justify-center border-4 border-white shadow-md flex-shrink-0">
+                <Building2 size={36} className="text-[#1a56db]" />
               </div>
             )}
             <div className="flex-1 min-w-0">

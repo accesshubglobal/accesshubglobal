@@ -154,32 +154,20 @@ const ImmersiveHero = ({ company, onBack }) => {
         <ArrowLeft size={16} /> Retour
       </button>
 
-      {/* Company info overlay */}
-      <div className="absolute bottom-0 left-0 right-0 px-8 pb-8 z-10">
-        <div className="flex items-end gap-5 max-w-4xl mx-auto">
-          {company.logo ? (
-            <img src={company.logo} alt={company.name}
-              className="w-20 h-20 rounded-2xl object-cover border-4 border-white/30 shadow-2xl flex-shrink-0 backdrop-blur-sm" />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center flex-shrink-0">
-              <Building2 size={36} className="text-white" />
+      {/* Company info overlay — text only, no logo */}
+      <div className="absolute bottom-0 left-0 right-0 px-6 sm:px-8 pb-8 z-10">
+        <div className="max-w-4xl mx-auto">
+          {company.isMain && (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white text-xs font-medium mb-3">
+              <Sparkles size={11} /> Fondateur
             </div>
           )}
-          <div className="pb-1">
-            <div className="flex items-center gap-3 mb-1">
-              {company.isMain && (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm border border-white/25 rounded-full text-white text-xs font-medium">
-                  <Sparkles size={11} /> Fondateur
-                </span>
-              )}
-            </div>
-            <h1 className="text-3xl md:text-4xl font-black text-white leading-tight drop-shadow-lg">
-              {company.name}
-            </h1>
-            {company.sector && (
-              <p className="text-white/70 mt-1 text-sm font-medium">{company.sector}</p>
-            )}
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight drop-shadow-lg">
+            {company.name}
+          </h1>
+          {company.sector && (
+            <p className="text-white/70 mt-1 text-sm font-medium">{company.sector}</p>
+          )}
         </div>
       </div>
     </div>
