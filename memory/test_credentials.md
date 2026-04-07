@@ -44,6 +44,8 @@
 - Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
 - Entreprise: Résidence Test
 - Accès: /logement
+- Page inscription: /logement/register
+- Page landing: /rejoindre/logement
 
 ## Notes
 - Le compte admin garde l'ancien email malgré le rebranding (ne pas changer)

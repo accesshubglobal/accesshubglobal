@@ -60,7 +60,14 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] Offres d'emploi : champs complets, validation admin avant publication, candidature directe CV+lettre (FAIT - 04/2026)
 - [x] Section "Offres d'emploi" sur homepage (dark theme dynamique), page publique /emploi avec filtres (FAIT - 04/2026)
 - [x] Footer : section "Nos Partenaires" avec 3 liens, Header : lien "Emploi" amber (FAIT - 04/2026)
-- [x] Admin CMS : sections Partenaires d'emploi + Offres d'emploi (modération) (FAIT - 04/2026)
+- [x] Nouveau type utilisateur **Partenaire Logement** : inscription, tableau de bord, gestion propriétés, approbation admin (FAIT - 04/2026)
+- [x] Page landing /rejoindre/:type pour tous les rôles (agent, partenaire, employeur, logement) avec config dynamique (FAIT - 04/2026)
+- [x] Fix import EmployerRegisterPage manquant dans App.js (FAIT - 04/2026)
+- [x] Fix redirect partenaire_logement après login dans AuthModal.jsx (FAIT - 04/2026)
+- [x] Section admin 'Partenaires logement' : gestion partenaires + propriétés (LogementPartnersSection) (FAIT - 04/2026)
+- [x] Redirect admin_principal/admin_secondaire vers /admin après login (FAIT - 04/2026)
+- [x] DashboardShell.jsx : wrapper immersif dark mode partagé pour tous les dashboards (FAIT - 04/2026)
+- [x] CompaniesSection + FeaturedCompanyPage : entreprises en vedette sur homepage (FAIT - 04/2026)
 
 
 ### P1 - Priorité haute

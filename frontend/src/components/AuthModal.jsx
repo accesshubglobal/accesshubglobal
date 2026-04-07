@@ -63,6 +63,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         else if (result.user?.role === 'partenaire') navigate('/partner');
         else if (result.user?.role === 'employeur') navigate('/employer');
         else if (result.user?.role === 'partenaire_logement') navigate('/logement');
+        else if (result.user?.role === 'admin_principal' || result.user?.role === 'admin_secondaire') navigate('/admin');
       } else {
         setError(result.error);
       }
@@ -98,6 +99,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
       else if (loginResult.user?.role === 'partenaire') navigate('/partner');
       else if (loginResult.user?.role === 'employeur') navigate('/employer');
       else if (loginResult.user?.role === 'partenaire_logement') navigate('/logement');
+      else if (loginResult.user?.role === 'admin_principal' || loginResult.user?.role === 'admin_secondaire') navigate('/admin');
     } catch (err) {
       setVerificationError(err.response?.data?.detail || 'Code invalide');
     }
