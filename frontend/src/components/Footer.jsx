@@ -254,17 +254,17 @@ const Footer = () => {
             <h3 className="text-white font-semibold text-lg mb-4">Nos Partenaires</h3>
             <ul className="space-y-3 text-gray-400">
               <li>
-                <a href="/partner/register" className="hover:text-white transition-colors flex items-center gap-2 text-emerald-400">
+                <a href="/rejoindre/partenaire" className="hover:text-white transition-colors flex items-center gap-2 text-emerald-400">
                   <Handshake size={14} /> Partenaire Universitaire
                 </a>
               </li>
               <li>
-                <a href="/agent/register" className="hover:text-white transition-colors flex items-center gap-2 text-blue-400">
+                <a href="/rejoindre/agent" className="hover:text-white transition-colors flex items-center gap-2 text-blue-400">
                   <Users size={14} /> Agent Partenaire
                 </a>
               </li>
               <li>
-                <a href="/employer/register" className="hover:text-white transition-colors flex items-center gap-2 text-amber-400">
+                <a href="/rejoindre/employeur" className="hover:text-white transition-colors flex items-center gap-2 text-amber-400">
                   <Briefcase size={14} /> Partenaires d'emploi
                 </a>
               </li>
