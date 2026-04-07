@@ -183,74 +183,85 @@ const SECTOR_COLORS = [
   { bg: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-200' },
 ];
 
+const ORB_SETS = [
+  { a: '#1a56db', b: '#7c3aed' },
+  { a: '#059669', b: '#0891b2' },
+  { a: '#7c3aed', b: '#db2777' },
+  { a: '#d97706', b: '#dc2626' },
+  { a: '#0891b2', b: '#1a56db' },
+  { a: '#db2777', b: '#7c3aed' },
+];
+
 const CompanyCard = ({ company, onNavigate, colorIndex = 0 }) => {
   const isClickable = company.type === 'employer';
-  const color = SECTOR_COLORS[colorIndex % SECTOR_COLORS.length];
   const logoSrc = company.logo || company.logoUrl;
   const name = company.name || company.companyName;
+  const orb = ORB_SETS[colorIndex % ORB_SETS.length];
 
   return (
     <div
       onClick={isClickable ? onNavigate : undefined}
-      className={`group bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-200 shadow-sm ${
-        isClickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-1' : ''
+      className={`group relative rounded-3xl overflow-hidden transition-all duration-300 ${
+        isClickable ? 'cursor-pointer hover:-translate-y-1 hover:shadow-2xl' : ''
       }`}
+      style={{ minHeight: '220px' }}
       data-testid={`company-card-${company.id}`}
     >
-      {/* Bande colorée + logo centré */}
-      <div className={`relative h-20 ${color.bg} flex items-end justify-center pb-0`}>
-        {/* Offers badge — coin supérieur droit */}
-        {company.activeOffers > 0 && (
-          <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 bg-white/25 backdrop-blur-sm text-white text-[10px] font-bold rounded-full">
-            <Briefcase size={9} /> {company.activeOffers} offre{company.activeOffers > 1 ? 's' : ''}
-          </span>
-        )}
+      {/* Background */}
+      {logoSrc && company.coverUrl ? (
+        <img src={company.coverUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      ) : (
+        <div className="absolute inset-0 bg-[#0a0f1e] overflow-hidden">
+          <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-30 blur-3xl animate-pulse" style={{ backgroundColor: orb.a }} />
+          <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full opacity-20 blur-3xl" style={{ backgroundColor: orb.b, animation: 'pulse 3.5s ease-in-out 1s infinite' }} />
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.15) 1px,transparent 1px)`, backgroundSize: '40px 40px' }} />
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="absolute w-1 h-1 bg-blue-300 rounded-full opacity-40"
+              style={{ left: `${10 + i * 16}%`, top: `${20 + (i % 3) * 25}%`, animation: `pulse ${2 + (i % 3)}s ease-in-out ${i * 0.3}s infinite` }} />
+          ))}
+        </div>
+      )}
 
-        {/* Logo — chevauche la bande */}
-        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2">
+      {/* Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-500" />
+
+      {/* Badge offres — coin haut droit */}
+      {company.activeOffers > 0 && (
+        <span className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold rounded-full z-10">
+          <Briefcase size={9} /> {company.activeOffers} offre{company.activeOffers > 1 ? 's' : ''}
+        </span>
+      )}
+
+      {/* Contenu bas */}
+      <div className="relative z-10 flex items-end gap-3 p-5 h-full" style={{ minHeight: '220px' }}>
+        <div className="flex-1">
           {logoSrc ? (
-            <img src={logoSrc} alt={name}
-              className="w-14 h-14 rounded-2xl object-cover border-4 border-white shadow-md" />
+            <img src={logoSrc} alt={name} className="w-10 h-10 rounded-xl object-cover border-2 border-white/25 shadow-lg mb-3" />
           ) : (
-            <div className={`w-14 h-14 rounded-2xl ${color.light} border-4 border-white shadow-md flex items-center justify-center`}>
-              <Building2 size={22} className={color.text} />
+            <div className="w-10 h-10 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center mb-3">
+              <Building2 size={18} className="text-white" />
             </div>
           )}
+          <h3 className="text-white font-bold text-sm leading-tight line-clamp-2 drop-shadow">{name}</h3>
+          {company.sector && <p className="text-white/60 text-xs mt-0.5">{company.sector}</p>}
+          {company.city && (
+            <p className="flex items-center gap-1 text-white/50 text-[10px] mt-1">
+              <MapPin size={9} /> {company.city}{company.country ? `, ${company.country}` : ''}
+            </p>
+          )}
         </div>
-      </div>
-
-      {/* Contenu */}
-      <div className="pt-9 pb-4 px-4 text-center">
-        <h3 className={`font-bold text-gray-900 text-sm leading-tight line-clamp-1 group-hover:${color.text} transition-colors`}>
-          {name}
-        </h3>
-
-        {company.sector && (
-          <span className={`inline-block mt-1.5 px-2.5 py-0.5 ${color.light} ${color.text} text-[10px] font-semibold rounded-full border ${color.border}`}>
-            {company.sector}
-          </span>
+        {isClickable && (
+          <div className="flex-shrink-0 w-8 h-8 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center group-hover:bg-white group-hover:text-[#1a56db] transition-all">
+            <ArrowRight size={14} className="text-white group-hover:text-[#1a56db] transition-colors" />
+          </div>
         )}
-
-        {company.city && (
-          <p className="flex items-center justify-center gap-1 mt-2 text-[11px] text-gray-400">
-            <MapPin size={10} /> {company.city}{company.country ? `, ${company.country}` : ''}
-          </p>
+        {!isClickable && company.website && (
+          <a href={company.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            className="flex-shrink-0 w-8 h-8 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center hover:bg-white transition-all">
+            <Globe size={13} className="text-white hover:text-[#1a56db]" />
+          </a>
         )}
-
-        {/* CTA ou lien site */}
-        <div className="mt-3 pt-3 border-t border-gray-50">
-          {isClickable ? (
-            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${color.text} group-hover:gap-2 transition-all`}>
-              Voir le profil <ArrowRight size={11} />
-            </span>
-          ) : company.website ? (
-            <a href={company.website} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className={`inline-flex items-center gap-1 text-[11px] font-semibold ${color.text} hover:underline`}>
-              <Globe size={11} /> Site web <ExternalLink size={9} />
-            </a>
-          ) : null}
-        </div>
       </div>
     </div>
   );
