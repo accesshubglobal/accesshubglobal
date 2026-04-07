@@ -9,8 +9,10 @@ import {
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import DashboardShell, { StatCard, GlassPanel, AccentBtn } from './DashboardShell';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+const ACCENT = '#3b82f6';
 const API = `${BACKEND_URL}/api`;
 
 // ── Shared form helpers ───────────────────────────────────────────────────────
@@ -1065,31 +1067,15 @@ const AgentDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]" data-testid="agent-dashboard">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#1e3a5f] to-[#2a5298] rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-900 text-sm">Espace Agent</h1>
-              <p className="text-[11px] text-gray-500">{user?.firstName} {user?.lastName}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/')} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Retour au site">
-              <Home size={18} />
-            </button>
-            <button onClick={logout} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" data-testid="agent-logout">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Global modals (rendered outside tabs) */}
+    <DashboardShell
+      accent={ACCENT} orbA="#1a56db" orbB="#7c3aed"
+      roleLabel="Espace Agent" roleIcon={Building2}
+      user={user} navItems={tabs}
+      activeTab={activeTab} setActiveTab={setActiveTab}
+      onLogout={logout}
+      data-testid="agent-dashboard"
+    >
+      {/* Global modals */}
       {showStudentForm && (
         <StudentFormModal
           student={editingStudent}
@@ -1109,66 +1095,34 @@ const AgentDashboard = () => {
       )}
       {previewApp && <AppPreviewModal app={previewApp} onClose={() => setPreviewApp(null)} />}
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`agent-tab-${tab.id}`}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                  activeTab === tab.id ? 'bg-[#1e3a5f] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
-                }`}>
-                <Icon size={15} /> {tab.label}
-                {tab.count > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
         {/* ── Dashboard Tab ── */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {[
-                { label: 'Étudiants', value: stats?.students || 0, icon: Users, color: 'bg-blue-600' },
-                { label: 'Candidatures', value: stats?.totalApplications || 0, icon: FileText, color: 'bg-violet-600' },
-                { label: 'En attente', value: stats?.pendingApplications || 0, icon: Clock, color: 'bg-amber-500' },
-                { label: 'Approuvées', value: stats?.approvedApplications || 0, icon: CheckCircle, color: 'bg-emerald-600' },
-                { label: 'Rejetées', value: stats?.rejectedApplications || 0, icon: XCircle, color: 'bg-red-500' },
-              ].map(s => (
-                <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                  <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center mb-3`}>
-                    <s.icon className="w-4 h-4 text-white" />
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-                </div>
-              ))}
+              <StatCard label="Étudiants" value={stats?.students || 0} icon={Users} accent={ACCENT} />
+              <StatCard label="Candidatures" value={stats?.totalApplications || 0} icon={FileText} accent="#8b5cf6" />
+              <StatCard label="En attente" value={stats?.pendingApplications || 0} icon={Clock} accent="#f59e0b" />
+              <StatCard label="Approuvées" value={stats?.approvedApplications || 0} icon={CheckCircle} accent="#10b981" />
+              <StatCard label="Rejetées" value={stats?.rejectedApplications || 0} icon={XCircle} accent="#ef4444" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-              <button onClick={() => setActiveTab('students')} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-left hover:border-[#1e3a5f]/40 transition-colors group">
-                <div className="flex items-center justify-between">
+              {[
+                { label: 'Gérer mes étudiants', icon: Users, tab: 'students' },
+                { label: 'Voir les offres et postuler', icon: GraduationCap, tab: 'offers' },
+              ].map(a => (
+                <button key={a.tab} onClick={() => setActiveTab(a.tab)}
+                  className="flex items-center justify-between p-5 rounded-2xl border transition-all hover:-translate-y-0.5 text-left group"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-[#1e3a5f]" />
-                    <span className="font-semibold text-gray-900">Gérer mes étudiants</span>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: 'rgba(59,130,246,0.15)' }}>
+                      <a.icon size={16} style={{ color: ACCENT }} />
+                    </div>
+                    <span className="font-semibold text-white">{a.label}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#1e3a5f]" />
-                </div>
-              </button>
-              <button onClick={() => setActiveTab('offers')} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-left hover:border-[#1e3a5f]/40 transition-colors group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="w-5 h-5 text-[#1e3a5f]" />
-                    <span className="font-semibold text-gray-900">Voir les offres et postuler</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#1e3a5f]" />
-                </div>
-              </button>
+                  <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors" />
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -1458,8 +1412,7 @@ const AgentDashboard = () => {
             )}
           </div>
         )}
-      </div>
-    </div>
+    </DashboardShell>
   );
 };
 

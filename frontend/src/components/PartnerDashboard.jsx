@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OfferFormModal from './OfferFormModal';
 import UniversityFormModal from './UniversityFormModal';
+import DashboardShell, { StatCard, GlassPanel, AccentBtn } from './DashboardShell';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+const ACCENT = '#10b981';
 const API = `${BACKEND_URL}/api`;
 
 const axiosAuth = (token) => axios.create({
@@ -270,68 +272,22 @@ const PartnerDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <Handshake size={18} className="text-emerald-700" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900 text-sm">Espace Partenaire</p>
-              <p className="text-xs text-gray-500">{user?.firstName} {user?.lastName}{user?.company ? ` — ${user.company}` : ''}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-sm text-gray-500 hover:text-gray-700 hidden sm:block">Voir le site</a>
-            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1.5 transition-colors" data-testid="partner-logout">
-              <LogOut size={15} /> Déconnexion
-            </button>
-          </div>
+    <DashboardShell
+      accent={ACCENT} orbA="#059669" orbB="#0891b2"
+      roleLabel="Espace Partenaire" roleIcon={Handshake}
+      user={user} navItems={tabs}
+      activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); if (tab !== activeTab) handleTabChange(tab); }}
+      onLogout={handleLogout}
+    >
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Université" value={stats.hasUniversity ? '✓' : '—'} icon={Building2} accent={ACCENT} sub={stats.universityApproved ? 'Approuvée' : (stats.hasUniversity ? 'En attente' : 'Non soumise')} />
+          <StatCard label="Offres publiées" value={stats.offersCount} icon={GraduationCap} accent="#3b82f6" />
+          <StatCard label="Offres approuvées" value={stats.approvedOffersCount} icon={CheckCircle} accent="#10b981" />
+          <StatCard label="En attente" value={stats.offersCount - stats.approvedOffersCount} icon={Clock} accent="#f59e0b" />
         </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Stats cards */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Université', value: stats.hasUniversity ? '1' : '0', sub: stats.universityApproved ? 'Approuvée' : (stats.hasUniversity ? 'En attente' : 'Non soumise'), color: 'emerald' },
-              { label: 'Offres publiées', value: stats.offersCount, sub: `${stats.approvedOffersCount} approuvée(s)`, color: 'blue' },
-              { label: 'Offres en attente', value: stats.offersCount - stats.approvedOffersCount, sub: 'validation admin', color: 'amber' },
-              { label: 'Statut compte', value: '✓', sub: 'Partenaire actif', color: 'green' },
-            ].map(s => (
-              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-sm font-medium text-gray-700 mt-1">{s.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => handleTabChange(tab.id)} data-testid={`partner-tab-${tab.id}`}
-                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-700'
-                }`}>
-                <Icon size={15} /> {tab.label}
-                {tab.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      )}
 
         {/* ── University Tab ── */}
         {activeTab === 'university' && (
@@ -600,8 +556,7 @@ const PartnerDashboard = () => {
             isPartner={true}
           />
         )}
-      </main>
-    </div>
+    </DashboardShell>
   );
 };
 

@@ -9,6 +9,9 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+import DashboardShell, { StatCard, GlassPanel, AccentBtn } from './DashboardShell';
+
+const ACCENT = '#f59e0b';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
@@ -112,35 +115,19 @@ const EmployerDashboard = () => {
   const tabs = [
     { id: 'dashboard', label: 'Tableau de bord', icon: BarChart3 },
     { id: 'company', label: 'Mon Entreprise', icon: Building2 },
-    { id: 'offers', label: 'Mes Offres', icon: Briefcase, count: offers.length },
-    { id: 'applications', label: 'Candidatures', icon: Users, count: applications.filter(a => a.status === 'pending').length },
+    { id: 'offers', label: 'Mes Offres', icon: Briefcase, badge: offers.length },
+    { id: 'applications', label: 'Candidatures', icon: Users, badge: applications.filter(a => a.status === 'pending').length },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]" data-testid="employer-dashboard">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#1a56db] to-[#2a5298] rounded-lg flex items-center justify-center">
-              <Briefcase className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-900 text-sm">Espace Employeur</h1>
-              <p className="text-[11px] text-gray-500">{user?.company || `${user?.firstName} ${user?.lastName}`}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/')} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Retour au site">
-              <Home size={18} />
-            </button>
-            <button onClick={logout} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" data-testid="employer-logout">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <DashboardShell
+      accent={ACCENT} orbA="#d97706" orbB="#dc2626"
+      roleLabel="Espace Employeur" roleIcon={Briefcase}
+      user={user} navItems={tabs}
+      activeTab={activeTab} setActiveTab={setActiveTab}
+      onLogout={logout}
+      data-testid="employer-dashboard"
+    >
       {/* Modals */}
       {showCompanyForm && (
         <CompanyFormModal company={company} onClose={() => setShowCompanyForm(false)}
@@ -170,82 +157,53 @@ const EmployerDashboard = () => {
           onStatusChange={handleApplicationStatus} />
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`employer-tab-${tab.id}`}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                  activeTab === tab.id ? 'bg-[#1a56db] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
-                }`}>
-                <Icon size={15} /> {tab.label}
-                {tab.count > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'}`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Dashboard Tab ── */}
+      {/* ── Dashboard Tab ── */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Offres totales', value: stats?.totalOffers || 0, icon: Briefcase, color: 'bg-blue-600' },
-                { label: 'Offres actives', value: stats?.approvedOffers || 0, icon: CheckCircle, color: 'bg-green-600' },
-                { label: 'En attente', value: stats?.pendingOffers || 0, icon: Clock, color: 'bg-amber-500' },
-                { label: 'Candidatures', value: stats?.totalApplications || 0, icon: Users, color: 'bg-violet-600' },
-              ].map(s => (
-                <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                  <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center mb-3`}>
-                    <s.icon className="w-4 h-4 text-white" />
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-                </div>
-              ))}
+              <StatCard label="Offres totales" value={stats?.totalOffers || 0} icon={Briefcase} accent={ACCENT} />
+              <StatCard label="Offres actives" value={stats?.approvedOffers || 0} icon={CheckCircle} accent="#10b981" />
+              <StatCard label="En attente" value={stats?.pendingOffers || 0} icon={Clock} accent="#f59e0b" />
+              <StatCard label="Candidatures" value={stats?.totalApplications || 0} icon={Users} accent="#8b5cf6" />
             </div>
 
             {stats !== null && !stats?.hasCompany && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-center gap-4">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-600" />
+              <div className="rounded-2xl p-5 flex items-center gap-4 border"
+                style={{ backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(245,158,11,0.2)' }}>
+                  <AlertCircle className="w-5 h-5 text-amber-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-amber-800">Complétez les informations de votre entreprise</p>
-                  <p className="text-sm text-amber-700 mt-0.5">Vous devez renseigner les informations de votre entreprise avant de publier des offres.</p>
+                  <p className="font-semibold text-amber-300">Complétez les informations de votre entreprise</p>
+                  <p className="text-sm text-amber-400/70 mt-0.5">Renseignez votre profil entreprise avant de publier des offres.</p>
                 </div>
                 <button onClick={() => setActiveTab('company')}
-                  className="px-4 py-2 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 whitespace-nowrap">
+                  className="px-4 py-2 text-sm font-medium rounded-xl whitespace-nowrap text-white"
+                  style={{ backgroundColor: '#f59e0b' }}>
                   Compléter
                 </button>
               </div>
             )}
 
             <div className="grid md:grid-cols-2 gap-4">
-              <button onClick={() => setActiveTab('offers')} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-left hover:border-[#1a56db]/40 transition-colors group">
-                <div className="flex items-center justify-between">
+              {[
+                { label: 'Publier une offre', icon: Briefcase, tab: 'offers' },
+                { label: 'Voir les candidatures', icon: Users, tab: 'applications' },
+              ].map(a => (
+                <button key={a.tab} onClick={() => setActiveTab(a.tab)}
+                  className="flex items-center justify-between p-5 rounded-2xl border transition-all hover:-translate-y-0.5 text-left group"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-[#1a56db]" />
-                    <span className="font-semibold text-gray-900">Publier une offre</span>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: 'rgba(245,158,11,0.15)' }}>
+                      <a.icon size={16} style={{ color: ACCENT }} />
+                    </div>
+                    <span className="font-semibold text-white">{a.label}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#1a56db]" />
-                </div>
-              </button>
-              <button onClick={() => setActiveTab('applications')} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-left hover:border-[#1a56db]/40 transition-colors group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-[#1a56db]" />
-                    <span className="font-semibold text-gray-900">Voir les candidatures</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#1a56db]" />
-                </div>
-              </button>
+                  <ChevronRight size={16} className="text-white/30 group-hover:text-white/60 transition-colors" />
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -425,8 +383,7 @@ const EmployerDashboard = () => {
             )}
           </div>
         )}
-      </div>
-    </div>
+      </DashboardShell>
   );
 };
 
