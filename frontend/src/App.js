@@ -31,6 +31,7 @@ import LogementDashboard from "./components/LogementDashboard";
 import PartnerDashboard from "./components/PartnerDashboard";
 import AgentDashboard from "./components/AgentDashboard";
 import EmployerDashboard from "./components/EmployerDashboard";
+import EmployerRegisterPage from "./components/EmployerRegisterPage";
 import UniversityDetailPage from "./components/UniversityDetailPage";
 import UniversitiesListPage from "./components/UniversitiesListPage";
 import JobOffersPage from "./pages/JobOffersPage";

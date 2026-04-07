@@ -37,6 +37,14 @@
 - Rôle: user
 - Email vérifié: oui (emailVerified=true)
 
+## Partenaire Logement de test
+- Email: test_logement@test.com
+- Mot de passe: Logement2025!
+- Rôle: partenaire_logement
+- Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
+- Entreprise: Résidence Test
+- Accès: /logement
+
 ## Notes
 - Le compte admin garde l'ancien email malgré le rebranding (ne pas changer)
 - Le domaine email Resend: auth.accesshubglobal.com

@@ -62,6 +62,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         if (result.user?.role === 'agent') navigate('/agent');
         else if (result.user?.role === 'partenaire') navigate('/partner');
         else if (result.user?.role === 'employeur') navigate('/employer');
+        else if (result.user?.role === 'partenaire_logement') navigate('/logement');
       } else {
         setError(result.error);
       }
@@ -96,6 +97,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
       if (loginResult.user?.role === 'agent') navigate('/agent');
       else if (loginResult.user?.role === 'partenaire') navigate('/partner');
       else if (loginResult.user?.role === 'employeur') navigate('/employer');
+      else if (loginResult.user?.role === 'partenaire_logement') navigate('/logement');
     } catch (err) {
       setVerificationError(err.response?.data?.detail || 'Code invalide');
     }

@@ -110,6 +110,7 @@ const CONFIGS = {
     ],
     requirement: null,
   },
+  employeur: {
     registerPath: '/employer/register',
     accentColor: '#f59e0b',
     accentLight: 'rgba(245,158,11,0.15)',

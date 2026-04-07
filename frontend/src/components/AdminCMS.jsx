@@ -31,6 +31,7 @@ import PartnersSection from './admin/PartnersSection';
 import EmployersSection from './admin/EmployersSection';
 import JobOffersAdminSection from './admin/JobOffersAdminSection';
 import AdminCompaniesSection from './admin/AdminCompaniesSection';
+import LogementPartnersSection from './admin/LogementPartnersSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -90,6 +91,8 @@ const AdminCMS = ({ onClose }) => {
         return isPrincipalAdmin ? <JobOffersAdminSection /> : null;
       case 'companies-admin':
         return isPrincipalAdmin ? <AdminCompaniesSection /> : null;
+      case 'logement-partners':
+        return isPrincipalAdmin ? <LogementPartnersSection /> : null;
       case 'applications':
         return <ApplicationsSection />;
       case 'housing':
