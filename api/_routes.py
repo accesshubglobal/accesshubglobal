@@ -19,6 +19,7 @@ from routers.admin import router as admin_router
 from routers.agent import router as agent_router
 from routers.partner import router as partner_router
 from routers.employer import router as employer_router
+from routers.logement import router as logement_router
 
 api_router = APIRouter()
 
@@ -28,3 +29,4 @@ api_router.include_router(admin_router)
 api_router.include_router(agent_router)
 api_router.include_router(partner_router)
 api_router.include_router(employer_router)
+api_router.include_router(logement_router)

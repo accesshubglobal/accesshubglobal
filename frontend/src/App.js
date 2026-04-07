@@ -26,7 +26,8 @@ import CommunityPage from "./components/CommunityPage";
 import CommunityPostPage from "./components/CommunityPostPage";
 import AgentRegisterPage from "./components/AgentRegisterPage";
 import PartnerRegisterPage from "./components/PartnerRegisterPage";
-import EmployerRegisterPage from "./components/EmployerRegisterPage";
+import LogementRegisterPage from "./components/LogementRegisterPage";
+import LogementDashboard from "./components/LogementDashboard";
 import PartnerDashboard from "./components/PartnerDashboard";
 import AgentDashboard from "./components/AgentDashboard";
 import EmployerDashboard from "./components/EmployerDashboard";
@@ -41,7 +42,7 @@ import CompanyInfoPage from "./pages/CompanyInfoPage";
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from "./pages/LegalPages";
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false, requireEmployer = false }) => {
+const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false, requireEmployer = false, requireLogement = false }) => {
   const { isAuthenticated, isAdmin, isAgent, user, loading } = useAuth();
   
   if (loading) {
@@ -52,21 +53,11 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false, 
     );
   }
   
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (requireAgent && !isAgent) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (requireEmployer && user?.role !== 'employeur') {
-    return <Navigate to="/" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (requireAdmin && !isAdmin) return <Navigate to="/" replace />;
+  if (requireAgent && !isAgent) return <Navigate to="/" replace />;
+  if (requireEmployer && user?.role !== 'employeur') return <Navigate to="/" replace />;
+  if (requireLogement && user?.role !== 'partenaire_logement') return <Navigate to="/" replace />;
   
   return children;
 };
@@ -128,6 +119,10 @@ const EmployerPage = () => {
   return <EmployerDashboard />;
 };
 
+const LogementPage = () => {
+  return <LogementDashboard />;
+};
+
 function App() {
   return (
     <div className="App">
@@ -143,6 +138,7 @@ function App() {
               <Route path="/agent/register" element={<AgentRegisterPage />} />
               <Route path="/partner/register" element={<PartnerRegisterPage />} />
               <Route path="/employer/register" element={<EmployerRegisterPage />} />
+              <Route path="/logement/register" element={<LogementRegisterPage />} />
               <Route path="/rejoindre/:type" element={<PartnerLandingPage />} />
               <Route path="/partner" element={<PartnerDashboard />} />
               <Route path="/emploi" element={<JobOffersPage />} />
@@ -176,6 +172,14 @@ function App() {
                 element={
                   <ProtectedRoute requireEmployer>
                     <EmployerPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/logement" 
+                element={
+                  <ProtectedRoute requireLogement>
+                    <LogementPage />
                   </ProtectedRoute>
                 } 
               />

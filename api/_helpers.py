@@ -582,6 +582,14 @@ async def get_employer_user(current_user: dict = Depends(get_current_user)):
     return current_user
 
 
+async def get_logement_user(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "partenaire_logement":
+        raise HTTPException(status_code=403, detail="Accès partenaire logement requis")
+    if not current_user.get("isApproved", False):
+        raise HTTPException(status_code=403, detail="Votre compte est en attente d'approbation")
+    return current_user
+
+
 def serialize_doc(doc: dict) -> dict:
     if doc.get('createdAt') and isinstance(doc['createdAt'], datetime):
         doc['createdAt'] = doc['createdAt'].isoformat()

@@ -775,3 +775,31 @@ class FeaturedCompanyCreate(BaseModel):
     phone: Optional[str] = ""
     isMain: bool = False
     isActive: bool = True
+
+
+# ============= LOGEMENT PARTNER MODELS =============
+
+class LogementPartnerRegister(BaseModel):
+    firstName: str
+    lastName: str
+    email: str
+    password: str
+    phone: Optional[str] = ""
+    companyName: Optional[str] = ""
+    companyDoc: Optional[str] = ""
+
+class LogementPropertyCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    propertyType: str = "Appartement"
+    city: str
+    country: Optional[str] = ""
+    address: Optional[str] = ""
+    price: float
+    pricePeriod: Optional[str] = "mois"
+    surface: Optional[int] = 0
+    rooms: Optional[int] = 1
+    amenities: Optional[List[str]] = []
+    images: Optional[List[str]] = []
+    availableFrom: Optional[str] = ""
+    isAvailable: bool = True

@@ -163,7 +163,7 @@ async def login(credentials: UserLogin):
         raise HTTPException(status_code=401, detail="Compte désactivé")
 
     # Block partner/agent/employer login if email not verified
-    if user.get("role") in ("partenaire", "agent", "employeur") and not user.get("emailVerified", False):
+    if user.get("role") in ("partenaire", "agent", "employeur", "partenaire_logement") and not user.get("emailVerified", False):
         raise HTTPException(
             status_code=403,
             detail="Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception."

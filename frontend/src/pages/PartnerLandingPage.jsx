@@ -4,7 +4,7 @@ import {
   ArrowRight, CheckCircle, Users, Building2, Briefcase,
   Globe, TrendingUp, Shield, Star, ChevronDown,
   GraduationCap, Award, Zap, HeartHandshake, BarChart3,
-  FileText, UserCheck, BadgeCheck, Sparkles, Clock
+  FileText, UserCheck, BadgeCheck, Sparkles, Clock, Home
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -77,7 +77,39 @@ const CONFIGS = {
     ],
     requirement: null,
   },
-  employeur: {
+  logement: {
+    registerPath: '/logement/register',
+    accentColor: '#0891b2',
+    accentLight: 'rgba(8,145,178,0.15)',
+    orbA: '#0891b2',
+    orbB: '#0e7490',
+    label: 'Partenariat Logement',
+    title: 'Logez les étudiants',
+    titleHighlight: 'du monde entier.',
+    subtitle: 'Devenez partenaire logement AccessHub Global et proposez vos hébergements à des milliers d\'étudiants internationaux à la recherche d\'un toit fiable et sécurisé.',
+    ctaLabel: 'Devenir Partenaire Logement',
+    icon: Home,
+    stats: [
+      { value: '10k+', label: 'Étudiants en mobilité' },
+      { value: '30+', label: 'Villes couvertes' },
+      { value: '98%', label: 'Taux d\'occupation' },
+    ],
+    benefits: [
+      { icon: Users, title: 'Visibilité garantie', desc: 'Vos annonces sont visibles par des milliers d\'étudiants en recherche de logement.' },
+      { icon: Globe, title: 'Clientèle internationale', desc: 'Accédez à une clientèle internationale stable, sérieuse et recommandée par nos partenaires.' },
+      { icon: BarChart3, title: 'Gestion centralisée', desc: 'Gérez toutes vos propriétés et candidatures depuis un tableau de bord dédié.' },
+      { icon: Shield, title: 'Partenaires vérifiés', desc: 'Tous les étudiants passent par notre système de recommandation — logement sécurisé.' },
+      { icon: Star, title: 'Mise en avant', desc: 'Vos logements sont mis en avant sur la page d\'accueil et dans nos newsletters.' },
+      { icon: Zap, title: 'Publication rapide', desc: 'Publiez vos annonces en quelques minutes avec photos, équipements et disponibilités.' },
+    ],
+    steps: [
+      { num: '01', title: 'Créez votre compte', desc: 'Inscrivez-vous gratuitement et soumettez votre dossier partenaire.' },
+      { num: '02', title: 'Validation de l\'équipe', desc: 'Notre équipe vérifie votre profil et vous active sous 48h.' },
+      { num: '03', title: 'Ajoutez vos logements', desc: 'Publiez vos annonces avec photos, prix, équipements et disponibilités.' },
+      { num: '04', title: 'Recevez des locataires', desc: 'Les étudiants contactent directement depuis la plateforme.' },
+    ],
+    requirement: null,
+  },
     registerPath: '/employer/register',
     accentColor: '#f59e0b',
     accentLight: 'rgba(245,158,11,0.15)',
