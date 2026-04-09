@@ -90,6 +90,7 @@ const AgentsSection = ({ onBadgeUpdate }) => {
   };
 
   return (
+    <>
     <div className="space-y-6" data-testid="agents-admin-section">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900 text-lg">Gestion des Agents</h3>
@@ -251,6 +252,7 @@ const AgentsSection = ({ onBadgeUpdate }) => {
         </div>
       </div>
     )}
+    </>
   );
 };
 
