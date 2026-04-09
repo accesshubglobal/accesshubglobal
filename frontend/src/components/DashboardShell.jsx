@@ -88,7 +88,7 @@ const DashboardShell = ({
     : '?';
 
   const NavContent = () => (
-    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+    <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto">
       {navItems.map(item => {
         const Icon = item.icon;
         const active = activeTab === item.id;
@@ -121,7 +121,7 @@ const DashboardShell = ({
   );
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden" style={{ backgroundColor: '#050d1a' }}>
+    <div className="h-screen flex relative overflow-hidden" style={{ backgroundColor: '#050d1a' }}>
       {/* ── Background orbs ── */}
       <div className="absolute pointer-events-none inset-0 overflow-hidden">
         <div className="absolute -top-48 -left-48 w-[500px] h-[500px] rounded-full opacity-[0.12] blur-3xl animate-pulse"
@@ -141,13 +141,13 @@ const DashboardShell = ({
       )}
 
       {/* ── Sidebar ── */}
-      <aside className={`fixed top-0 left-0 h-full w-60 z-50 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:relative lg:flex-shrink-0 ${
+      <aside className={`fixed top-0 left-0 h-screen w-60 z-50 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:relative lg:flex-shrink-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRight: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}>
 
         {/* Brand */}
-        <div className="px-5 pt-6 pb-5 flex items-center gap-3">
+        <div className="px-5 pt-6 pb-5 flex items-center gap-3 flex-shrink-0">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: `${accent}25` }}>
             {RoleIcon && <RoleIcon size={18} style={{ color: accent }} />}
@@ -159,7 +159,7 @@ const DashboardShell = ({
         </div>
 
         {/* User card */}
-        <div className="mx-3 mb-4 p-3 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="mx-3 mb-4 p-3 rounded-2xl flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0"
               style={{ backgroundColor: accent }}>
@@ -176,7 +176,7 @@ const DashboardShell = ({
         <NavContent />
 
         {/* Footer actions */}
-        <div className="px-3 pb-6 space-y-1 border-t mt-2 pt-3" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+        <div className="px-3 pb-6 space-y-1 border-t pt-3 flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
           <button onClick={() => navigate('/')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-white/70 transition-colors">
             <Home size={16} /> Retour au site

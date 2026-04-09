@@ -17,6 +17,7 @@
 ## Agent Partenaire de test
 - Email: agent@test.com
 - Mot de passe: Test2025!
+- Code d'activation (requis à chaque connexion): AG-BVJRO96I
 - Rôle: agent
 - Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
 - Nom: Jean Agent

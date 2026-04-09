@@ -254,3 +254,20 @@ async def agent_send_message(msg: MessageCreate, agent: dict = Depends(get_agent
     return message
 
 
+# ── Contract ─────────────────────────────────────────────────────────────────
+@router.get("/agent/contract")
+async def get_agent_contract(agent: dict = Depends(get_agent_user)):
+    return {
+        "contractUrl": agent.get("contractUrl", ""),
+        "contractName": agent.get("contractName", "Contrat Agent"),
+        "contractUploadedAt": agent.get("contractUploadedAt", ""),
+    }
+
+
+# ── Verify login code ─────────────────────────────────────────────────────────
+@router.post("/agent/verify-login-code")
+async def verify_agent_login_code(data: dict, agent: dict = Depends(get_agent_user)):
+    stored_code = agent.get("agentCode", "")
+    if not stored_code or data.get("code", "").strip().upper() != stored_code.strip().upper():
+        raise HTTPException(status_code=400, detail="Code d'activation incorrect. Vérifiez votre code.")
+    return {"success": True}

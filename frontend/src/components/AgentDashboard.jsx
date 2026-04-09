@@ -4,7 +4,7 @@ import {
   LogOut, ChevronRight, Clock, CheckCircle, XCircle, AlertCircle, Send,
   GraduationCap, Heart, Star, Search, X, Loader2, Home, Building2,
   Download, ChevronLeft, ChevronDown, User, BookOpen, Briefcase,
-  Activity, Globe, Shield, MapPin, Phone
+  Activity, Globe, Shield, MapPin, Phone, Upload, Key, ShieldCheck
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -451,69 +451,427 @@ const StudentFormModal = ({ student, onClose, onSave, loading }) => {
   );
 };
 
-// ── Apply Select Modal ─────────────────────────────────────────────────────────
-const ApplySelectModal = ({ offer, students, onClose, onSubmit, loading }) => {
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const handleSubmit = (e) => {
+// ── Activation Code Gate ─────────────────────────────────────────────────────
+const ActivationCodeGate = ({ user, onVerified, onLogout }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleVerify = async (e) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
-    onSubmit({ studentId: selectedStudentId, offerId: offer.id, offerTitle: offer.title, termsAccepted });
+    setLoading(true); setError('');
+    try {
+      await axios.post(`${API}/agent/verify-login-code`, { code: code.trim().toUpperCase() });
+      sessionStorage.setItem(`agent_code_${user?.id}`, 'true');
+      onVerified();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Code incorrect. Vérifiez votre code d\'activation.');
+    }
+    setLoading(false);
   };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ backgroundColor: '#050d1a' }}>
+      <div className="absolute pointer-events-none inset-0 overflow-hidden">
+        <div className="absolute -top-48 -left-48 w-[500px] h-[500px] rounded-full opacity-[0.12] blur-3xl animate-pulse" style={{ backgroundColor: '#1a56db' }} />
+        <div className="absolute -bottom-32 right-0 w-[400px] h-[400px] rounded-full opacity-[0.08] blur-3xl" style={{ backgroundColor: '#7c3aed', animation: 'pulse 4s ease-in-out 1.5s infinite' }} />
+      </div>
+      <div className="relative z-10 w-full max-w-md mx-auto px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(59,130,246,0.15)' }}>
+          <Key size={30} style={{ color: ACCENT }} />
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2">Vérification d'identité</h2>
+        <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          Saisissez votre code d'activation pour accéder à votre espace agent AccessHub Global.
+        </p>
+        <form onSubmit={handleVerify} className="space-y-4">
+          <input
+            type="text"
+            value={code}
+            onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            placeholder="Ex : AG-XXXXXXXX"
+            className="w-full px-4 py-3.5 rounded-2xl text-white text-center text-lg font-mono tracking-widest focus:outline-none transition-colors"
+            style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+            autoFocus
+            data-testid="activation-code-input"
+          />
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+              <AlertCircle size={14} className="flex-shrink-0" /> {error}
+            </div>
+          )}
+          <button type="submit" disabled={!code.trim() || loading}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
+            style={{ backgroundColor: ACCENT }}
+            data-testid="verify-code-btn">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+            {loading ? 'Vérification...' : 'Accéder à mon espace'}
+          </button>
+          <button type="button" onClick={onLogout}
+            className="w-full py-2 text-sm transition-colors"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>
+            Se déconnecter
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ── Offer Detail Modal ────────────────────────────────────────────────────────
+const OfferDetailModal = ({ offer, onClose, onApply }) => {
+  const [offerDetails, setOfferDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    if (!offer?.id) return;
+    setLoadingDetails(true);
+    axios.get(`${API}/offers/${offer.id}`)
+      .then(r => setOfferDetails(r.data))
+      .catch(() => setOfferDetails(offer))
+      .finally(() => setLoadingDetails(false));
+  }, [offer?.id]);
+
+  const o = offerDetails || offer;
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] p-5 text-white">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-bold text-lg">Postuler à une offre</h3>
-              <p className="text-blue-200 text-sm mt-1 line-clamp-2">{offer?.title}</p>
-              <p className="text-blue-300 text-xs mt-0.5">{offer?.university} — {offer?.city}</p>
-            </div>
-            <button onClick={onClose} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg"><X size={18} /></button>
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        <div className="flex items-start justify-between px-6 py-4 bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] rounded-t-2xl flex-shrink-0">
+          <div className="text-white flex-1 min-w-0">
+            <h3 className="font-bold text-lg leading-tight">{o.title}</h3>
+            <p className="text-blue-200 text-sm mt-0.5">{o.university}{o.city ? ` — ${o.city}` : ''}{o.country ? `, ${o.country}` : ''}</p>
           </div>
+          <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl ml-3 flex-shrink-0"><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">Sélectionner l'étudiant</label>
-            {students.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700 text-center">
-                <Users size={20} className="mx-auto mb-2 text-amber-500" />
-                Aucun étudiant enregistré. Ajoutez d'abord un étudiant.
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {loadingDetails && <div className="text-center py-8"><Loader2 size={24} className="animate-spin text-gray-300 mx-auto" /></div>}
+
+          <div className="flex flex-wrap gap-2">
+            <span className="px-3 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">{o.degree}</span>
+            <span className="px-3 py-1 text-xs font-medium bg-gray-50 text-gray-600 rounded-full">{o.duration}</span>
+            {o.hasScholarship && <span className="px-3 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">Bourse disponible</span>}
+            {o.teachingLanguage && <span className="px-3 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">{o.teachingLanguage}</span>}
+            {o.intake && <span className="px-3 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded-full">Rentrée : {o.intake}</span>}
+            {o.deadline && <span className="px-3 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-full">Clôture : {o.deadline}</span>}
+          </div>
+
+          {o.description && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
+              <p className="text-sm text-gray-600 leading-relaxed">{o.description}</p>
+            </div>
+          )}
+
+          {o.fees && Object.values(o.fees).some(v => v > 0) && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Frais</h4>
+              <div className="grid grid-cols-2 gap-2 bg-amber-50 rounded-xl p-4 border border-amber-100">
+                {o.fees.originalTuition > 0 && <div><p className="text-[10px] text-gray-400 uppercase">Scolarité</p><p className="font-semibold text-sm">{Number(o.fees.originalTuition).toLocaleString()} {o.currency || 'CNY'}</p></div>}
+                {o.fees.scholarshipTuition > 0 && <div><p className="text-[10px] text-gray-400 uppercase">Après bourse</p><p className="font-semibold text-sm text-green-700">{Number(o.fees.scholarshipTuition).toLocaleString()} {o.currency || 'CNY'}</p></div>}
+                {o.fees.registrationFee > 0 && <div><p className="text-[10px] text-gray-400 uppercase">Inscription</p><p className="font-semibold text-sm">{Number(o.fees.registrationFee).toLocaleString()} {o.currency || 'CNY'}</p></div>}
+                {o.fees.applicationFee > 0 && <div><p className="text-[10px] text-gray-400 uppercase">Dossier</p><p className="font-semibold text-sm">{Number(o.fees.applicationFee).toLocaleString()} {o.currency || 'CNY'}</p></div>}
+                {o.fees.accommodationSingle > 0 && <div><p className="text-[10px] text-gray-400 uppercase">Héberg. single</p><p className="font-semibold text-sm">{Number(o.fees.accommodationSingle).toLocaleString()} {o.currency || 'CNY'}</p></div>}
+                {o.fees.accommodationDouble > 0 && <div><p className="text-[10px] text-gray-400 uppercase">Héberg. double</p><p className="font-semibold text-sm">{Number(o.fees.accommodationDouble).toLocaleString()} {o.currency || 'CNY'}</p></div>}
               </div>
-            ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {students.map(s => (
-                  <label key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedStudentId === s.id ? 'border-[#1e3a5f] bg-[#1e3a5f]/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="student" value={s.id} checked={selectedStudentId === s.id}
-                      onChange={() => setSelectedStudentId(s.id)} className="text-[#1e3a5f]" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm">{s.firstName} {s.lastName}</p>
-                      <p className="text-xs text-gray-500 truncate">{s.email} {s.nationality ? `· ${s.nationality}` : ''}</p>
-                    </div>
-                    {selectedStudentId === s.id && <CheckCircle size={16} className="text-[#1e3a5f] flex-shrink-0" />}
-                  </label>
+              {o.serviceFee > 0 && (
+                <div className="mt-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Frais de service AccessHub Global</span>
+                  <span className="font-bold text-[#1e3a5f]">{Number(o.serviceFee).toLocaleString()} {o.currency || 'CNY'}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {o.requiredDocuments?.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Documents requis ({o.requiredDocuments.length})</h4>
+              <div className="space-y-1.5">
+                {o.requiredDocuments.map((doc, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
+                    <FileText size={13} className="text-blue-500 flex-shrink-0" /> {doc}
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
-          {selectedStudentId && (
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} className="mt-0.5" required />
-              <span className="text-xs text-gray-600">Je confirme que les informations de l'étudiant sont exactes et j'accepte les conditions générales.</span>
-            </label>
+            </div>
           )}
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={!selectedStudentId || loading || students.length === 0}
-              className="flex-1 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
+
+          {o.admissionConditions?.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Conditions d'admission</h4>
+              <div className="space-y-1">
+                {o.admissionConditions.map((c, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
+                    <span>{typeof c === 'string' ? c : c.condition || c.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {o.hasScholarship && o.scholarshipDetails && Object.keys(o.scholarshipDetails).length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Détails de la bourse</h4>
+              <div className="bg-green-50 rounded-xl p-4 border border-green-100 text-sm text-gray-600 space-y-1">
+                {o.scholarshipType && <p><span className="font-medium">Type :</span> {o.scholarshipType}</p>}
+                {o.scholarshipDetails?.coverage && <p><span className="font-medium">Couverture :</span> {o.scholarshipDetails.coverage}</p>}
+                {o.scholarshipDetails?.amount && <p><span className="font-medium">Montant :</span> {o.scholarshipDetails.amount}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Fermer</button>
+          <button onClick={() => { onApply(offer); onClose(); }}
+            className="flex-1 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-bold hover:opacity-90 flex items-center justify-center gap-2"
+            data-testid="offer-detail-apply-btn">
+            <Send size={14} /> Postuler à cette offre
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Apply Select Modal (multi-step) ──────────────────────────────────────────
+const ApplySelectModal = ({ offer, students, onClose, onSubmit, loading }) => {
+  const [step, setStep] = useState(1);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [documents, setDocuments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [paymentProof, setPaymentProof] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [stepError, setStepError] = useState('');
+
+  const requiredDocs = offer?.requiredDocuments || [];
+  const fees = offer?.fees || {};
+
+  const handleDocUpload = async (e, docName) => {
+    const file = e.target.files[0]; if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await axios.post(`${BACKEND_URL}/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setDocuments(prev => [...prev.filter(d => d.name !== docName), { name: docName, url: r.data.url }]);
+    } catch { setStepError('Erreur lors du téléchargement'); }
+    setUploading(false);
+  };
+
+  const handlePaymentUpload = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await axios.post(`${BACKEND_URL}/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setPaymentProof(r.data.url);
+    } catch { setStepError('Erreur upload reçu de paiement'); }
+    setUploading(false);
+  };
+
+  const goNext = () => {
+    setStepError('');
+    if (step === 1 && !selectedStudentId) { setStepError('Sélectionnez un étudiant'); return; }
+    if (step === 2 && requiredDocs.length > 0) {
+      const missing = requiredDocs.filter(doc => !documents.find(d => d.name === doc));
+      if (missing.length > 0) { setStepError(`Documents manquants : ${missing.slice(0, 2).join(', ')}${missing.length > 2 ? '...' : ''}`); return; }
+    }
+    if (step === 3 && !paymentProof && !paymentMethod) { setStepError('Veuillez renseigner les informations de paiement'); return; }
+    setStep(s => s + 1);
+  };
+
+  const handleSubmit = () => {
+    if (!termsAccepted) { setStepError('Veuillez accepter les conditions générales'); return; }
+    onSubmit({ studentId: selectedStudentId, offerId: offer.id, offerTitle: offer.title, documents, paymentProof, paymentAmount: parseFloat(paymentAmount) || 0, paymentMethod, termsAccepted });
+  };
+
+  const STEPS = ['Étudiant', 'Documents', 'Paiement', 'Confirmation'];
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden" style={{ maxHeight: '90vh' }}>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a5298] p-5 text-white flex-shrink-0">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-lg">Soumettre une candidature</h3>
+              <p className="text-blue-200 text-sm mt-0.5 line-clamp-1">{offer?.title}</p>
+            </div>
+            <button onClick={onClose} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg ml-2 flex-shrink-0"><X size={18} /></button>
+          </div>
+          <div className="flex gap-1 mt-4">
+            {STEPS.map((_, i) => <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i + 1 <= step ? 'bg-white' : 'bg-white/25'}`} />)}
+          </div>
+          <p className="text-xs text-blue-200 mt-1.5">Étape {step}/{STEPS.length} — {STEPS[step - 1]}</p>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {stepError && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <AlertCircle size={14} /> {stepError}
+            </div>
+          )}
+
+          {/* Step 1: Étudiant */}
+          {step === 1 && (
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Sélectionner l'étudiant à inscrire</p>
+              {students.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700 text-center">
+                  <Users size={20} className="mx-auto mb-2 text-amber-500" />
+                  Aucun étudiant enregistré. Ajoutez d'abord un étudiant dans la section "Étudiants".
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-52 overflow-y-auto">
+                  {students.map(s => (
+                    <label key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedStudentId === s.id ? 'border-[#1e3a5f] bg-[#1e3a5f]/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="student" value={s.id} checked={selectedStudentId === s.id} onChange={() => setSelectedStudentId(s.id)} className="text-[#1e3a5f]" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm">{s.firstName} {s.lastName}</p>
+                        <p className="text-xs text-gray-500">{s.nationality || s.email}</p>
+                      </div>
+                      {selectedStudentId === s.id && <CheckCircle size={16} className="text-[#1e3a5f] flex-shrink-0" />}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Documents */}
+          {step === 2 && (
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-1">Documents requis pour cette offre</p>
+              <p className="text-xs text-gray-400 mb-3">Téléchargez chaque document (PDF, JPG, PNG).</p>
+              {requiredDocs.length === 0 ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 text-center">
+                  <CheckCircle size={18} className="mx-auto mb-1 text-green-500" />
+                  Aucun document requis pour cette offre. Passez à l'étape suivante.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {requiredDocs.map((docName, i) => {
+                    const uploaded = documents.find(d => d.name === docName);
+                    return (
+                      <div key={i} className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${uploaded ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {uploaded ? <CheckCircle size={15} className="text-green-500 flex-shrink-0" /> : <FileText size={15} className="text-gray-300 flex-shrink-0" />}
+                          <span className="text-sm text-gray-700 truncate">{docName}</span>
+                        </div>
+                        <label className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors flex-shrink-0 ${uploaded ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                          {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                          {uploaded ? 'Remplacer' : 'Charger'}
+                          <input type="file" className="hidden" onChange={e => handleDocUpload(e, docName)} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 cursor-pointer hover:border-blue-300 hover:text-blue-500 transition-colors">
+                  <Plus size={12} /> Ajouter un document supplémentaire
+                  <input type="file" className="hidden" onChange={async (e) => {
+                    const file = e.target.files[0]; if (!file) return;
+                    setUploading(true);
+                    try { const fd = new FormData(); fd.append('file', file); const r = await axios.post(`${BACKEND_URL}/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }); setDocuments(p => [...p, { name: file.name, url: r.data.url }]); } catch {}
+                    setUploading(false);
+                  }} />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Paiement */}
+          {step === 3 && (
+            <div className="space-y-4">
+              {(fees.registrationFee > 0 || fees.applicationFee > 0 || offer?.serviceFee > 0) && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Frais à régler</p>
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-2 text-sm">
+                    {fees.registrationFee > 0 && <div className="flex justify-between"><span className="text-gray-600">Frais d'inscription</span><span className="font-semibold">{Number(fees.registrationFee).toLocaleString()} {offer.currency || 'CNY'}</span></div>}
+                    {fees.applicationFee > 0 && <div className="flex justify-between"><span className="text-gray-600">Frais de dossier</span><span className="font-semibold">{Number(fees.applicationFee).toLocaleString()} {offer.currency || 'CNY'}</span></div>}
+                    {offer.serviceFee > 0 && <div className="flex justify-between border-t border-amber-200 pt-2 mt-1"><span className="text-gray-600">Frais de service AccessHub</span><span className="font-bold text-[#1e3a5f]">{Number(offer.serviceFee).toLocaleString()} {offer.currency || 'CNY'}</span></div>}
+                  </div>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Mode de paiement *</label>
+                <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={sel}>
+                  <option value="">Sélectionner...</option>
+                  <option value="virement">Virement bancaire</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="carte">Carte bancaire</option>
+                  <option value="especes">Espèces (bureau)</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Montant payé ({offer?.currency || 'CNY'})</label>
+                <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className={inp} placeholder="0.00" min="0" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Preuve de paiement * (reçu, capture d'écran)</label>
+                <label className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 cursor-pointer transition-colors text-sm ${paymentProof ? 'border-green-300 bg-green-50 text-green-700' : 'border-dashed border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-500'}`}>
+                  {uploading ? <Loader2 size={14} className="animate-spin" /> : paymentProof ? <CheckCircle size={14} /> : <Upload size={14} />}
+                  {paymentProof ? 'Preuve téléchargée — Cliquer pour remplacer' : 'Télécharger le reçu de paiement'}
+                  <input type="file" className="hidden" onChange={handlePaymentUpload} accept=".pdf,.jpg,.jpeg,.png" />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Confirmation */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2.5 text-sm border border-gray-100">
+                <p className="font-semibold text-gray-700 mb-3">Récapitulatif de la candidature</p>
+                <div className="flex justify-between"><span className="text-gray-500">Offre</span><span className="font-medium text-right ml-2 text-gray-900 max-w-[60%] truncate">{offer.title}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Université</span><span className="font-medium text-gray-900">{offer.university}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Étudiant</span><span className="font-medium text-gray-900">{(() => { const s = students.find(s => s.id === selectedStudentId); return s ? `${s.firstName} ${s.lastName}` : '-'; })()}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Documents</span><span className={`font-medium ${documents.length > 0 ? 'text-green-700' : 'text-amber-600'}`}>{documents.length} fichier(s) joint(s)</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Paiement</span><span className={`font-medium ${paymentProof ? 'text-green-700' : 'text-amber-600'}`}>{paymentProof ? 'Reçu joint' : 'Non fourni'}{paymentMethod ? ` (${paymentMethod})` : ''}</span></div>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+                <input type="checkbox" checked={termsAccepted} onChange={e => { setTermsAccepted(e.target.checked); setStepError(''); }} className="mt-0.5 flex-shrink-0" />
+                <span className="text-xs text-gray-600 leading-relaxed">Je confirme que toutes les informations et documents fournis sont exacts et authentiques. J'accepte les conditions générales d'AccessHub Global pour la soumission de cette candidature.</span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-5 py-4 border-t border-gray-100 flex-shrink-0">
+          {step > 1 ? (
+            <button type="button" onClick={() => { setStep(s => s - 1); setStepError(''); }}
+              className="flex items-center justify-center gap-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+              <ChevronLeft size={14} /> Retour
+            </button>
+          ) : (
+            <button type="button" onClick={onClose} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Annuler</button>
+          )}
+          {step < 4 ? (
+            <button type="button" onClick={goNext} disabled={students.length === 0 && step === 1}
+              className="flex-1 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1"
+              data-testid="apply-next-btn">
+              Continuer <ChevronRight size={14} />
+            </button>
+          ) : (
+            <button type="button" onClick={handleSubmit} disabled={!termsAccepted || loading}
+              className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-40 flex items-center justify-center gap-2"
               data-testid="apply-submit-btn">
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {loading ? 'Envoi...' : 'Soumettre la candidature'}
+              {loading ? 'Soumission...' : 'Confirmer la candidature'}
             </button>
-          </div>
-        </form>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -941,6 +1299,17 @@ const AgentDashboard = () => {
 
   const isApproved = user?.isApproved;
 
+  // Activation code gate
+  const [codeVerified, setCodeVerified] = useState(() =>
+    sessionStorage.getItem(`agent_code_${user?.id}`) === 'true'
+  );
+
+  // Offer detail modal
+  const [offerDetailModal, setOfferDetailModal] = useState(null);
+
+  // Contract
+  const [contractData, setContractData] = useState(null);
+
   useEffect(() => {
     if (activeTab === 'dashboard') loadStats();
     if (activeTab === 'students') loadStudents();
@@ -948,6 +1317,7 @@ const AgentDashboard = () => {
     if (activeTab === 'offers') { loadOffers(); loadStudents(); }
     if (activeTab === 'favorites') loadFavorites();
     if (activeTab === 'messages') loadMessages();
+    if (activeTab === 'contrat') loadContract();
   }, [activeTab]);
 
   useEffect(() => { loadStats(); }, []);
@@ -979,6 +1349,10 @@ const AgentDashboard = () => {
     setLoading(true);
     try { const r = await axios.get(`${API}/agent/messages`); setMessages(r.data); } catch {}
     setLoading(false);
+  };
+
+  const loadContract = async () => {
+    try { const r = await axios.get(`${API}/agent/contract`); setContractData(r.data); } catch {}
   };
 
   const handleStudentSave = async (data) => {
@@ -1060,11 +1434,22 @@ const AgentDashboard = () => {
     { id: 'offers', label: 'Offres', icon: GraduationCap },
     { id: 'favorites', label: 'Favoris', icon: Heart },
     { id: 'messages', label: 'Messages', icon: MessageCircle },
+    { id: 'contrat', label: 'Contrat', icon: FileText },
   ];
 
   const filteredOffers = offers.filter(o =>
     !searchQuery || o.title?.toLowerCase().includes(searchQuery.toLowerCase()) || o.university?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (!codeVerified) {
+    return (
+      <ActivationCodeGate
+        user={user}
+        onVerified={() => setCodeVerified(true)}
+        onLogout={() => { logout(); }}
+      />
+    );
+  }
 
   return (
     <DashboardShell
@@ -1082,6 +1467,13 @@ const AgentDashboard = () => {
           onClose={() => { setShowStudentForm(false); setEditingStudent(null); }}
           onSave={handleStudentSave}
           loading={loading}
+        />
+      )}
+      {offerDetailModal && (
+        <OfferDetailModal
+          offer={offerDetailModal}
+          onClose={() => setOfferDetailModal(null)}
+          onApply={(offer) => { setApplyModal({ offer }); loadStudents(); }}
         />
       )}
       {applyModal && (
@@ -1289,10 +1681,10 @@ const AgentDashboard = () => {
                           <Heart size={16} fill={user?.favorites?.includes(o.id) ? 'currentColor' : 'none'} />
                         </button>
                         <button
-                          onClick={() => { setApplyModal({ offer: o }); }}
-                          data-testid={`apply-offer-${o.id}`}
+                          onClick={() => setOfferDetailModal(o)}
+                          data-testid={`view-offer-${o.id}`}
                           className="flex items-center gap-1.5 text-xs bg-[#1e3a5f] text-white px-4 py-2 rounded-xl hover:opacity-90 font-medium transition-opacity">
-                          <Send size={12} /> Postuler
+                          <Eye size={12} /> Voir les détails
                         </button>
                       </div>
                     </div>
@@ -1326,9 +1718,9 @@ const AgentDashboard = () => {
                         <button onClick={() => toggleFav(o.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                           <Heart size={16} fill="currentColor" />
                         </button>
-                        <button onClick={() => { setApplyModal({ offer: o }); loadStudents(); }}
+                        <button onClick={() => { setOfferDetailModal(o); loadStudents(); }}
                           className="flex items-center gap-1.5 text-xs bg-[#1e3a5f] text-white px-3 py-1.5 rounded-xl hover:opacity-90 font-medium">
-                          <Send size={12} /> Postuler
+                          <Eye size={12} /> Voir détails
                         </button>
                       </div>
                     </div>
@@ -1408,6 +1800,53 @@ const AgentDashboard = () => {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Contract Tab ── */}
+        {activeTab === 'contrat' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-900">Mon Contrat</h2>
+            {contractData?.contractUrl ? (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <FileText size={28} className="text-[#1e3a5f]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900">{contractData.contractName || 'Contrat Agent'}</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {contractData.contractUploadedAt
+                        ? `Mis à jour le ${new Date(contractData.contractUploadedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                        : 'Document PDF'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Contrat de partenariat AccessHub Global</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <a href={contractData.contractUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
+                    data-testid="view-contract-btn">
+                    <Eye size={15} /> Visualiser
+                  </a>
+                  <a href={contractData.contractUrl} download
+                    className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                    data-testid="download-contract-btn">
+                    <Download size={15} /> Télécharger
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                  <FileText size={32} className="text-gray-200" />
+                </div>
+                <p className="text-gray-500 font-medium">Aucun contrat disponible</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                  Votre contrat de partenariat sera disponible ici une fois que l'administrateur l'aura téléversé.
+                </p>
               </div>
             )}
           </div>

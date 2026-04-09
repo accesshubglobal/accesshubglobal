@@ -827,6 +827,24 @@ async def admin_reject_agent(agent_id: str, admin: dict = Depends(get_principal_
     return {"message": "Agent rejete"}
 
 
+# ── Agent contract upload ─────────────────────────────────────────────────────
+@router.put("/admin/agents/{agent_id}/contract")
+async def admin_upload_agent_contract(agent_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    agent = await db.users.find_one({"id": agent_id, "role": "agent"})
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent non trouvé")
+    await db.users.update_one(
+        {"id": agent_id},
+        {"$set": {
+            "contractUrl": data.get("contractUrl", ""),
+            "contractName": data.get("contractName", "Contrat Agent"),
+            "contractUploadedAt": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True}
+
+
 
 # ============= INSTITUTIONAL PAGES =============
 
