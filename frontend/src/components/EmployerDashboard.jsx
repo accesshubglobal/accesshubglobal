@@ -3,7 +3,8 @@ import {
   Briefcase, Building2, LogOut, Home, Plus, Edit3, Trash2, Eye, X,
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, Loader2,
   BarChart3, Users, FileText, Upload, Globe, Phone, Mail, MapPin,
-  Layers, Star, Calendar, TrendingUp, Send, Award, ChevronDown, ChevronUp
+  Layers, Star, Calendar, TrendingUp, Send, Award, ChevronDown, ChevronUp,
+  Key, ShieldCheck, Download, RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +35,78 @@ const CURRENCIES = ['EUR', 'USD', 'CNY', 'XAF', 'MAD'];
 const POSITION_TYPES = ['Temps plein', 'Temps partiel', 'Freelance/Mission', 'Alternance'];
 const WORK_MODES = ['Présentiel', 'Télétravail', 'Hybride'];
 
+// ── Activation Code Gate ─────────────────────────────────────────────────────
+const EmployerActivationCodeGate = ({ user, onVerified, onLogout }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      await axios.post(`${API}/employer/verify-login-code`,
+        { code: code.trim().toUpperCase() },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      sessionStorage.setItem(`employer_code_${user?.id}`, 'true');
+      onVerified();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Code incorrect. Vérifiez votre code d\'activation.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ backgroundColor: '#050d1a' }}>
+      <div className="absolute pointer-events-none inset-0 overflow-hidden">
+        <div className="absolute -top-48 -left-48 w-[500px] h-[500px] rounded-full opacity-[0.12] blur-3xl animate-pulse" style={{ backgroundColor: '#f59e0b' }} />
+        <div className="absolute -bottom-32 right-0 w-[400px] h-[400px] rounded-full opacity-[0.08] blur-3xl" style={{ backgroundColor: '#d97706', animation: 'pulse 4s ease-in-out 1.5s infinite' }} />
+      </div>
+      <div className="relative z-10 w-full max-w-md mx-auto px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(245,158,11,0.15)' }}>
+          <Key size={30} style={{ color: ACCENT }} />
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2">Vérification d'identité</h2>
+        <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          Saisissez votre <strong style={{ color: 'rgba(255,255,255,0.7)' }}>code d'activation employeur</strong> (format EMP-XXXXXXXX).<br />
+          C'est le code que l'administrateur vous a fourni lors de votre inscription.
+        </p>
+        <form onSubmit={handleVerify} className="space-y-4">
+          <input
+            type="text"
+            value={code}
+            onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            placeholder="Ex : EMP-XXXXXXXX"
+            className="w-full px-4 py-3.5 rounded-2xl text-white text-center text-lg font-mono tracking-widest focus:outline-none transition-colors"
+            style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+            autoFocus
+            data-testid="employer-activation-code-input"
+          />
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+              <AlertCircle size={14} className="flex-shrink-0" /> {error}
+            </div>
+          )}
+          <button type="submit" disabled={!code.trim() || loading}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
+            style={{ backgroundColor: ACCENT }}
+            data-testid="employer-verify-code-btn">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+            {loading ? 'Vérification...' : 'Accéder à mon espace'}
+          </button>
+          <button type="button" onClick={onLogout}
+            className="w-full py-2 text-sm transition-colors"
+            style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Se déconnecter
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ── Employer Dashboard ─────────────────────────────────────────────────────────
 const EmployerDashboard = () => {
   const { user, logout } = useAuth();
@@ -44,6 +117,14 @@ const EmployerDashboard = () => {
   const [offers, setOffers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Activation code gate
+  const [codeVerified, setCodeVerified] = useState(() =>
+    sessionStorage.getItem(`employer_code_${user?.id}`) === 'true'
+  );
+
+  // Contract
+  const [contractData, setContractData] = useState(null);
 
   // Modals
   const [showCompanyForm, setShowCompanyForm] = useState(false);
@@ -57,6 +138,7 @@ const EmployerDashboard = () => {
     if (activeTab === 'company') loadCompany();
     if (activeTab === 'offers') { loadOffers(); loadStats(); }
     if (activeTab === 'applications') loadApplications();
+    if (activeTab === 'contrat') loadContract();
   }, [activeTab]);
 
   const loadStats = async () => {
@@ -75,11 +157,21 @@ const EmployerDashboard = () => {
     try { const r = await axios.get(`${API}/employer/applications`); setApplications(r.data); } catch {}
     setLoading(false);
   };
+  const loadContract = async () => {
+    try { const r = await axios.get(`${API}/employer/contract`); setContractData(r.data); } catch {}
+  };
 
   const handleDeleteOffer = async (id) => {
     if (!window.confirm('Supprimer cette offre ?')) return;
     try { await axios.delete(`${API}/employer/job-offers/${id}`); loadOffers(); loadStats(); }
     catch (err) { alert(err.response?.data?.detail || 'Erreur'); }
+  };
+
+  const handleDuplicateOffer = async (id) => {
+    try {
+      await axios.post(`${API}/employer/job-offers/${id}/duplicate`);
+      loadOffers();
+    } catch (err) { alert(err.response?.data?.detail || 'Erreur lors de la duplication'); }
   };
 
   const handleApplicationStatus = async (appId, status) => {
@@ -92,15 +184,32 @@ const EmployerDashboard = () => {
 
   const isApproved = user?.isApproved;
 
-  if (user && user.role === 'employeur' && !isApproved) {
+  if (!codeVerified) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+      <EmployerActivationCodeGate
+        user={user}
+        onVerified={() => setCodeVerified(true)}
+        onLogout={logout}
+      />
+    );
+  }
+
+  if (user && user.role === 'employeur' && !isApproved) {
+    const isPendingUpdate = stats?.pendingCompanyUpdate;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center" data-testid="employer-pending-approval">
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Clock className="w-8 h-8 text-amber-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Compte en attente de validation</h2>
-          <p className="text-gray-600 mb-4 text-sm">Votre compte employeur est en cours de vérification par notre équipe.</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {isPendingUpdate ? 'Mise à jour en cours de validation' : 'Compte en attente de validation'}
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            {isPendingUpdate
+              ? 'Vos nouvelles informations d\'entreprise sont en cours de vérification. Votre profil et vos offres seront de nouveau visibles après approbation.'
+              : 'Votre compte employeur est en cours de vérification par notre équipe. Vous serez notifié dès approbation.'}
+          </p>
           <div className="flex gap-3 justify-center">
             <button onClick={() => navigate('/')} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Retour au site</button>
             <button onClick={logout} className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1">
@@ -117,6 +226,7 @@ const EmployerDashboard = () => {
     { id: 'company', label: 'Mon Entreprise', icon: Building2 },
     { id: 'offers', label: 'Mes Offres', icon: Briefcase, badge: offers.length },
     { id: 'applications', label: 'Candidatures', icon: Users, badge: applications.filter(a => a.status === 'pending').length },
+    { id: 'contrat', label: 'Contrat', icon: FileText },
   ];
 
   return (
@@ -334,6 +444,11 @@ const EmployerDashboard = () => {
                         data-testid={`edit-offer-${offer.id}`}>
                         <Edit3 size={13} /> Modifier
                       </button>
+                      <button onClick={() => handleDuplicateOffer(offer.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                        data-testid={`duplicate-offer-${offer.id}`}>
+                        <Layers size={13} /> Dupliquer
+                      </button>
                       <button onClick={() => handleDeleteOffer(offer.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                         data-testid={`delete-offer-${offer.id}`}>
@@ -383,6 +498,53 @@ const EmployerDashboard = () => {
             )}
           </div>
         )}
+
+        {/* ── Contract Tab ── */}
+        {activeTab === 'contrat' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-900">Mon Contrat</h2>
+            {contractData?.contractUrl ? (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <FileText size={28} className="text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900">{contractData.contractName || 'Contrat Employeur'}</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {contractData.contractUploadedAt
+                        ? `Mis à jour le ${new Date(contractData.contractUploadedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                        : 'Document PDF'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Contrat de partenariat AccessHub Global</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <a href={contractData.contractUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90"
+                    data-testid="view-employer-contract-btn">
+                    <Eye size={15} /> Visualiser
+                  </a>
+                  <a href={contractData.contractUrl} download
+                    className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
+                    data-testid="download-employer-contract-btn">
+                    <Download size={15} /> Télécharger
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                  <FileText size={32} className="text-gray-200" />
+                </div>
+                <p className="text-gray-500 font-medium">Aucun contrat disponible</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                  Votre contrat sera disponible ici une fois que l'administrateur l'aura téléversé.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </DashboardShell>
   );
 };
@@ -417,9 +579,13 @@ const CompanyFormModal = ({ company, onClose, onSave }) => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await axios.post(`${BACKEND_URL}/api/upload`, fd);
+      const r = await axios.post(`${BACKEND_URL}/api/upload`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       set(field, r.data.url);
-    } catch { alert('Erreur lors du téléversement'); }
+    } catch (err) {
+      alert('Erreur lors du téléversement : ' + (err.response?.data?.detail || err.message));
+    }
     setUploading(u => ({ ...u, [field]: false }));
   };
 
@@ -427,6 +593,9 @@ const CompanyFormModal = ({ company, onClose, onSave }) => {
     e.preventDefault();
     if (!form.companyName || !form.sector || !form.description || !form.address || !form.city || !form.country || !form.phone || !form.email) {
       alert('Veuillez remplir tous les champs obligatoires'); return;
+    }
+    if (!form.officialDocumentUrl) {
+      alert('Le document officiel de l\'entreprise est obligatoire. Veuillez téléverser votre KBIS ou registre de commerce.'); return;
     }
     setLoading(true);
     await onSave(form);
@@ -478,10 +647,15 @@ const CompanyFormModal = ({ company, onClose, onSave }) => {
           </div>
 
           {/* Document officiel */}
-          <div className="border border-blue-100 bg-blue-50/50 rounded-xl p-4">
-            <p className="text-sm font-semibold text-[#1a56db] mb-3 flex items-center gap-2"><FileText size={15} /> Document officiel de l'entreprise</p>
-            <p className="text-xs text-gray-500 mb-3">KBIS, Registre de commerce, Statuts, ou tout document officiel prouvant l'existence légale de l'entreprise.</p>
-            <UploadField label="Téléverser le document" field="officialDocumentUrl" value={form.officialDocumentUrl} onUpload={handleUpload} uploading={uploading.officialDocumentUrl} accept=".pdf,.doc,.docx,image/*" isDoc />
+          <div className="border border-red-100 bg-red-50/30 rounded-xl p-4">
+            <p className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-2">
+              <FileText size={15} /> Document officiel de l'entreprise <span className="text-red-500">*</span>
+            </p>
+            <p className="text-xs text-gray-500 mb-3">KBIS, Registre de commerce, Statuts — <strong>Obligatoire</strong> pour valider votre compte.</p>
+            <UploadField label="Téléverser le document *" field="officialDocumentUrl" value={form.officialDocumentUrl} onUpload={handleUpload} uploading={uploading.officialDocumentUrl} accept=".pdf,.doc,.docx,image/*" isDoc />
+            {!form.officialDocumentUrl && (
+              <p className="text-xs text-red-500 mt-2 flex items-center gap-1"><AlertCircle size={11} /> Document requis pour la validation de votre compte</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

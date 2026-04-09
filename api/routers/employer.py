@@ -75,7 +75,7 @@ async def admin_approve_employer(employer_id: str, admin: dict = Depends(get_pri
     user = await db.users.find_one({"id": employer_id, "role": "employeur"})
     if not user:
         raise HTTPException(status_code=404, detail="Employeur non trouvé")
-    await db.users.update_one({"id": employer_id}, {"$set": {"isApproved": True}})
+    await db.users.update_one({"id": employer_id}, {"$set": {"isApproved": True, "pendingCompanyUpdate": False}})
     return {"message": "Employeur approuvé"}
 
 
@@ -87,6 +87,38 @@ async def admin_reject_employer(employer_id: str, admin: dict = Depends(get_prin
         raise HTTPException(status_code=404, detail="Employeur non trouvé")
     await db.users.update_one({"id": employer_id}, {"$set": {"isApproved": False, "isActive": False}})
     return {"message": "Employeur rejeté"}
+
+
+# ── Admin: update employer login code ────────────────────────────────────────
+@router.put("/admin/employers/{employer_id}/login-code")
+async def admin_update_employer_login_code(employer_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    new_code = data.get("employerCode", "").strip().upper()
+    if not new_code:
+        raise HTTPException(status_code=400, detail="Le code ne peut pas être vide")
+    employer = await db.users.find_one({"id": employer_id, "role": "employeur"})
+    if not employer:
+        raise HTTPException(status_code=404, detail="Employeur non trouvé")
+    await db.users.update_one({"id": employer_id}, {"$set": {"employerCode": new_code}})
+    return {"success": True, "employerCode": new_code}
+
+
+# ── Admin: upload employer contract ──────────────────────────────────────────
+@router.put("/admin/employers/{employer_id}/contract")
+async def admin_upload_employer_contract(employer_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    employer = await db.users.find_one({"id": employer_id, "role": "employeur"})
+    if not employer:
+        raise HTTPException(status_code=404, detail="Employeur non trouvé")
+    await db.users.update_one(
+        {"id": employer_id},
+        {"$set": {
+            "contractUrl": data.get("contractUrl", ""),
+            "contractName": data.get("contractName", "Contrat Employeur"),
+            "contractUploadedAt": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True}
 
 
 # ============= ADMIN - JOB OFFERS MODERATION =============
@@ -261,6 +293,7 @@ async def employer_stats(employer: dict = Depends(get_employer_user)):
     return {
         "hasCompany": company is not None,
         "companyApproved": employer.get("isApproved", False),
+        "pendingCompanyUpdate": employer.get("pendingCompanyUpdate", False),
         "companyName": company.get("companyName", "") if company else "",
         "totalOffers": total_offers,
         "approvedOffers": approved_offers,
@@ -295,6 +328,11 @@ async def employer_create_company(data: EmployerCompanyUpdate, employer: dict = 
         doc["id"] = existing.get("id", str(uuid.uuid4()))
         doc["createdAt"] = existing.get("createdAt", now)
         await db.employer_companies.replace_one({"employerId": employer["id"]}, doc)
+        # Company update → reset approval so admin can re-verify
+        await db.users.update_one(
+            {"id": employer["id"]},
+            {"$set": {"isApproved": False, "pendingCompanyUpdate": True}}
+        )
     else:
         await db.employer_companies.insert_one(doc)
     doc.pop("_id", None)
@@ -313,6 +351,8 @@ async def employer_get_job_offers(employer: dict = Depends(get_employer_user)):
 @router.post("/employer/job-offers")
 async def employer_create_job_offer(data: JobOfferCreate, employer: dict = Depends(get_employer_user)):
     db = get_db()
+    if not employer.get("isApproved"):
+        raise HTTPException(status_code=403, detail="Votre compte doit être approuvé par l'admin avant de publier des offres.")
     company = await db.employer_companies.find_one({"employerId": employer["id"]})
     if not company:
         raise HTTPException(status_code=400, detail="Vous devez d'abord renseigner les informations de votre entreprise")
@@ -387,6 +427,47 @@ async def user_get_job_applications(current_user: dict = Depends(get_current_use
     db = get_db()
     apps = await db.job_applications.find({"applicantId": current_user["id"]}, {"_id": 0}).sort("createdAt", -1).to_list(100)
     return apps
+
+
+# ── Employer verify login code ────────────────────────────────────────────────
+@router.post("/employer/verify-login-code")
+async def verify_employer_login_code(data: dict, employer: dict = Depends(get_employer_user)):
+    stored_code = employer.get("employerCode", "")
+    if not stored_code or data.get("code", "").strip().upper() != stored_code.strip().upper():
+        raise HTTPException(status_code=400, detail="Code d'activation incorrect. Vérifiez votre code.")
+    return {"success": True}
+
+
+# ── Employer contract ─────────────────────────────────────────────────────────
+@router.get("/employer/contract")
+async def get_employer_contract(employer: dict = Depends(get_employer_user)):
+    return {
+        "contractUrl": employer.get("contractUrl", ""),
+        "contractName": employer.get("contractName", "Contrat Employeur"),
+        "contractUploadedAt": employer.get("contractUploadedAt", ""),
+    }
+
+
+# ── Duplicate job offer ───────────────────────────────────────────────────────
+@router.post("/employer/job-offers/{offer_id}/duplicate")
+async def employer_duplicate_job_offer(offer_id: str, employer: dict = Depends(get_employer_user)):
+    db = get_db()
+    offer = await db.job_offers.find_one({"id": offer_id, "employerId": employer["id"]}, {"_id": 0})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offre non trouvée")
+    now = datetime.now(timezone.utc).isoformat()
+    new_offer = {
+        **offer,
+        "id": str(uuid.uuid4()),
+        "title": f"Copie de {offer['title']}",
+        "isApproved": False,
+        "views": 0,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    await db.job_offers.insert_one(new_offer)
+    del new_offer["_id"]
+    return new_offer
 
 
 # ============= JOB FAVORITES =============

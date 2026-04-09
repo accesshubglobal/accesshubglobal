@@ -26,6 +26,7 @@
 ## Partenaire d'emploi (Employeur) de test
 - Email: test_employer_auto@test.com
 - Mot de passe: Employer2025!
+- Code d'activation (requis à chaque connexion): EM-D5YJTLAY
 - Rôle: employeur
 - Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
 - Entreprise: JobCorp International
