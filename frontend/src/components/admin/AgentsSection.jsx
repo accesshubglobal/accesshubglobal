@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Check, X, Trash2, Key, Copy, UserCheck, FileText, Upload, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, X, Trash2, Key, Copy, UserCheck, FileText, Upload, Loader2, Edit2, RefreshCw } from 'lucide-react';
 import axios, { API } from './adminApi';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -8,10 +8,13 @@ const AgentsSection = ({ onBadgeUpdate }) => {
   const [agents, setAgents] = useState([]);
   const [agentCodes, setAgentCodes] = useState([]);
   const [agentTab, setAgentTab] = useState('agents');
-  const [contractModal, setContractModal] = useState(null); // agent being edited
+  const [contractModal, setContractModal] = useState(null);
   const [contractUrl, setContractUrl] = useState('');
   const [contractName, setContractName] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [editCodeModal, setEditCodeModal] = useState(null); // agent en cours d'édition
+  const [newAgentCode, setNewAgentCode] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => { loadAgents(); loadAgentCodes(); }, []);
 
@@ -89,6 +92,28 @@ const AgentsSection = ({ onBadgeUpdate }) => {
     } catch (err) { alert(err.response?.data?.detail || 'Erreur'); }
   };
 
+  const copyCode = (code, id) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
+  const openEditCode = (agent) => {
+    setEditCodeModal(agent);
+    setNewAgentCode(agent.agentCode || '');
+  };
+
+  const saveAgentCode = async () => {
+    if (!editCodeModal || !newAgentCode.trim()) return;
+    try {
+      const r = await axios.put(`${API}/admin/agents/${editCodeModal.id}/login-code`, { agentCode: newAgentCode.trim().toUpperCase() });
+      setEditCodeModal(null);
+      loadAgents();
+      alert(`Code mis à jour : ${r.data.agentCode}`);
+    } catch (err) { alert(err.response?.data?.detail || 'Erreur'); }
+  };
+
   return (
     <>
     <div className="space-y-6" data-testid="agents-admin-section">
@@ -136,8 +161,29 @@ const AgentsSection = ({ onBadgeUpdate }) => {
                   </div>
                   <p className="text-xs text-gray-500">{agent.email} {agent.company ? `| ${agent.company}` : ''}</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    {agent.studentsCount || 0} etudiants | {agent.applicationsCount || 0} candidatures | Code: {agent.agentCode || '-'}
+                    {agent.studentsCount || 0} etudiants | {agent.applicationsCount || 0} candidatures
                   </p>
+                  {/* Code de connexion — visible et copiable */}
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">Code connexion :</span>
+                    <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 rounded text-xs font-mono text-blue-800 font-semibold">
+                      {agent.agentCode || '—'}
+                    </span>
+                    {agent.agentCode && (
+                      <button onClick={() => copyCode(agent.agentCode, agent.id)}
+                        className="p-0.5 hover:text-blue-600 transition-colors"
+                        title="Copier le code">
+                        {copiedId === agent.id
+                          ? <Check size={12} className="text-green-500" />
+                          : <Copy size={12} className="text-gray-400" />}
+                      </button>
+                    )}
+                    <button onClick={() => openEditCode(agent)}
+                      className="p-0.5 hover:text-amber-600 transition-colors"
+                      title="Modifier le code de connexion">
+                      <Edit2 size={12} className="text-gray-400 hover:text-amber-500" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {!agent.isApproved && (
@@ -206,6 +252,52 @@ const AgentsSection = ({ onBadgeUpdate }) => {
         </div>
       )}
     </div>
+
+    {/* ── Edit Code Modal ── */}
+    {editCodeModal && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Code de connexion</h3>
+              <p className="text-xs text-gray-400 mt-0.5">{editCodeModal.firstName} {editCodeModal.lastName}</p>
+            </div>
+            <button onClick={() => setEditCodeModal(null)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X size={16} /></button>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 leading-relaxed">
+              <strong>Comment ça marche :</strong> Ce code est demandé à l'agent à chaque connexion (en plus de son mot de passe). Modifiez-le si l'agent a perdu son code, puis communiquez-lui le nouveau.
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Nouveau code de connexion</label>
+              <div className="flex gap-2">
+                <input
+                  value={newAgentCode}
+                  onChange={e => setNewAgentCode(e.target.value.toUpperCase())}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-100 uppercase"
+                  placeholder="Ex: AG-NOUVEAU"
+                />
+                <button
+                  onClick={() => setNewAgentCode(`AG-${Math.random().toString(36).substring(2, 10).toUpperCase()}`)}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-600 transition-colors"
+                  title="Générer un code aléatoire">
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setEditCodeModal(null)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Annuler</button>
+              <button onClick={saveAgentCode} disabled={!newAgentCode.trim()}
+                className="flex-1 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-40"
+                data-testid="save-agent-code-btn">
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── Contract Modal ── */}
     {contractModal && (

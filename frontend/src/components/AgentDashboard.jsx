@@ -482,7 +482,8 @@ const ActivationCodeGate = ({ user, onVerified, onLogout }) => {
         </div>
         <h2 className="text-2xl font-black text-white mb-2">Vérification d'identité</h2>
         <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
-          Saisissez votre code d'activation pour accéder à votre espace agent AccessHub Global.
+          Saisissez votre <strong style={{ color: 'rgba(255,255,255,0.7)' }}>code d'activation agent</strong> (format AG-XXXXXXXX).<br />
+          C'est le code que l'administrateur vous a fourni lors de votre inscription.
         </p>
         <form onSubmit={handleVerify} className="space-y-4">
           <input

@@ -924,3 +924,17 @@ async def admin_delete_featured_company(company_id: str, admin: dict = Depends(g
     db = get_db()
     await db.featured_companies.delete_one({"id": company_id})
     return {"success": True}
+
+
+# ── Update agent login code ───────────────────────────────────────────────────
+@router.put("/admin/agents/{agent_id}/login-code")
+async def admin_update_agent_login_code(agent_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    new_code = data.get("agentCode", "").strip().upper()
+    if not new_code:
+        raise HTTPException(status_code=400, detail="Le code ne peut pas être vide")
+    agent = await db.users.find_one({"id": agent_id, "role": "agent"})
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent non trouvé")
+    await db.users.update_one({"id": agent_id}, {"$set": {"agentCode": new_code}})
+    return {"success": True, "agentCode": new_code}
