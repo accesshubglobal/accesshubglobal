@@ -86,7 +86,8 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] **Admin LogementPartners** : Code LG-TESTCODE affiché, modale modifier code + upload contrat (FAIT - 04/2026)
 
 
-### P1 - Priorité haute
+|- [x] **Fix Bug Gate Code** : Clé sessionStorage remplacée de `user?.id` (null lors du 1er render async) par `token.slice(-16)` — cohérence garantie dans tous les 4 dashboards (Agent, Partenaire, Employeur, Logement) (FAIT - 04/2026)
+|- [x] **Fix Bug PDF Contrat** : `fixPdfUrl` retourne l'URL inchangée (plus de conversion `/image/upload/` → `/raw/upload/` qui créait des 404 pour les anciens uploads). `downloadFile` ajoute `fl_attachment` correctement (FAIT - 04/2026)
 - [ ] Intégration paiement en ligne (Stripe ou autre)
 
 ### P2 - Priorité moyenne
