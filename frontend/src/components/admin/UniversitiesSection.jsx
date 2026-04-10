@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, Copy } from 'lucide-react';
 import axios, { API } from './adminApi';
 import UniversityFormModal from '../UniversityFormModal';
 
@@ -10,6 +10,7 @@ const UniversitiesSection = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [duplicating, setDuplicating] = useState(null);
 
   useEffect(() => { loadUniversities(); }, []);
 
@@ -52,6 +53,15 @@ const UniversitiesSection = () => {
     }
   };
 
+  const duplicateUniversity = async (uniId) => {
+    setDuplicating(uniId);
+    try {
+      await axios.post(`${API}/admin/universities/${uniId}/duplicate`);
+      loadUniversities();
+    } catch (err) { alert(err.response?.data?.detail || 'Erreur lors de la duplication'); }
+    setDuplicating(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -85,11 +95,16 @@ const UniversitiesSection = () => {
                   <span className="text-xs text-gray-400">{uni.views || 0} vues</span>
                   <div className="flex gap-2">
                     <button onClick={() => { setEditingItem(uni); setSaveError(''); setShowModal(true); }}
-                      className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors">
+                      className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors" title="Modifier">
                       <Edit size={16} />
                     </button>
+                    <button onClick={() => duplicateUniversity(uni.id)} disabled={duplicating === uni.id}
+                      className="p-2 hover:bg-amber-50 text-amber-500 rounded-lg transition-colors" title="Dupliquer"
+                      data-testid={`duplicate-uni-${uni.id}`}>
+                      {duplicating === uni.id ? <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : <Copy size={16} />}
+                    </button>
                     <button onClick={() => deleteUniversity(uni.id)}
-                      className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors">
+                      className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Supprimer">
                       <Trash2 size={16} />
                     </button>
                   </div>

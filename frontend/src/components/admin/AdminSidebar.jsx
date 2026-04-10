@@ -3,14 +3,53 @@ import {
   LayoutDashboard, Users, GraduationCap, Building, Home, MessageCircle, FileText,
   LogOut, Award, Mail, Image, Star, MessageSquare, HelpCircle, PhoneCall,
   CreditCard, ChevronLeft, ChevronRight, ChevronDown,
-  Layers, Megaphone, Wrench, FolderOpen, BookOpen, MessageSquarePlus, UserCheck, Headphones, Handshake, Briefcase
+  Layers, Megaphone, Wrench, FolderOpen, BookOpen, MessageSquarePlus, UserCheck, Headphones, Handshake, Briefcase,
+  Shield, Zap
 } from 'lucide-react';
+
+/* ─── Theme tokens ───────────────────────────────────────────────────── */
+const PRINCIPAL = {
+  sidebar:     '#08080f',
+  border:      'rgba(245,158,11,0.12)',
+  groupText:   'rgba(255,255,255,0.35)',
+  itemText:    'rgba(255,255,255,0.55)',
+  itemHoverBg: 'rgba(245,158,11,0.06)',
+  activeBg:    'rgba(245,158,11,0.1)',
+  activeBorder:'#f59e0b',
+  activeText:  '#fbbf24',
+  badge:       { bg:'rgba(245,158,11,0.2)', text:'#fbbf24' },
+  dot:         '#f59e0b',
+  accent:      '#f59e0b',
+  roleLabel:   'Admin Principal',
+  roleColor:   '#f59e0b',
+  logoBg:      'linear-gradient(135deg,#f59e0b,#d97706)',
+  logoLetter:  'A',
+};
+const SECONDARY = {
+  sidebar:     '#0f172a',
+  border:      'rgba(20,184,166,0.15)',
+  groupText:   'rgba(148,163,184,0.7)',
+  itemText:    'rgba(148,163,184,0.85)',
+  itemHoverBg: 'rgba(20,184,166,0.07)',
+  activeBg:    'rgba(20,184,166,0.1)',
+  activeBorder:'#2dd4bf',
+  activeText:  '#2dd4bf',
+  badge:       { bg:'rgba(20,184,166,0.2)', text:'#2dd4bf' },
+  dot:         '#14b8a6',
+  accent:      '#14b8a6',
+  roleLabel:   'Admin Secondaire',
+  roleColor:   '#2dd4bf',
+  logoBg:      'linear-gradient(135deg,#14b8a6,#0891b2)',
+  logoLetter:  'A',
+};
 
 const AdminSidebar = ({
   user, isPrincipalAdmin, sidebarCollapsed, setSidebarCollapsed,
   activeSection, expandedGroup, setExpandedGroup, onSectionClick, onLogout,
   stats, badges
 }) => {
+  const T = isPrincipalAdmin ? PRINCIPAL : SECONDARY;
+
   const allMenuGroups = [
     {
       id: 'dashboard',
@@ -88,9 +127,8 @@ const AdminSidebar = ({
 
   const menuGroups = allMenuGroups.filter(g => g.items.length > 0);
 
-  const findGroupForSection = (sectionId) => {
-    return menuGroups.find(g => g.items.some(i => i.id === sectionId))?.id || 'dashboard';
-  };
+  const findGroupForSection = (sectionId) =>
+    menuGroups.find(g => g.items.some(i => i.id === sectionId))?.id || 'dashboard';
 
   const handleSectionClick = (sectionId) => {
     onSectionClick(sectionId);
@@ -98,30 +136,74 @@ const AdminSidebar = ({
   };
 
   return (
-    <div className={`${sidebarCollapsed ? 'w-[72px]' : 'w-64'} bg-[#0f1d2f] text-white flex flex-col transition-all duration-300 flex-shrink-0 h-screen`}>
-      {/* Logo */}
-      <div className={`flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-5'} py-5 border-b border-white/[0.06]`}>
+    <div
+      style={{
+        background: T.sidebar,
+        borderRight: `1px solid ${T.border}`,
+        width: sidebarCollapsed ? 72 : 256,
+        transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      data-testid="admin-sidebar"
+    >
+      {/* Subtle noise overlay for Principal */}
+      {isPrincipalAdmin && (
+        <div style={{
+          position:'absolute', inset:0, pointerEvents:'none', zIndex:0,
+          background:'radial-gradient(ellipse at 20% 0%, rgba(245,158,11,0.06) 0%, transparent 50%)',
+        }} />
+      )}
+
+      {/* Logo / Brand */}
+      <div style={{
+        display:'flex', alignItems:'center',
+        padding: sidebarCollapsed ? '20px 10px' : '20px 20px',
+        borderBottom: `1px solid ${T.border}`,
+        justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+        position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
         {!sidebarCollapsed && (
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-sm font-bold">W</div>
+          <div style={{ display:'flex', alignItems:'center', gap:12, flex:1 }}>
+            <div style={{
+              width:36, height:36, borderRadius:10, display:'flex', alignItems:'center',
+              justifyContent:'center', fontWeight:800, fontSize:15, color:'#fff',
+              background: T.logoBg, flexShrink:0,
+              boxShadow: isPrincipalAdmin ? '0 4px 12px rgba(245,158,11,0.3)' : '0 4px 12px rgba(20,184,166,0.25)',
+            }}>
+              {T.logoLetter}
+            </div>
             <div>
-              <p className="text-sm font-semibold leading-tight">AccessHub CMS</p>
-              <p className="text-[10px] text-blue-300/60">Administration</p>
+              <p style={{ color:'#fff', fontSize:13, fontWeight:700, margin:0, letterSpacing:'-0.01em' }}>AccessHub CMS</p>
+              <p style={{ color: T.accent, fontSize:10, fontWeight:600, margin:0, letterSpacing:'0.06em', textTransform:'uppercase' }}>
+                {T.roleLabel}
+              </p>
             </div>
           </div>
         )}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="p-1.5 hover:bg-white/[0.06] rounded-lg transition-colors text-gray-400 hover:text-white"
+          style={{
+            width:30, height:30, borderRadius:8, border:`1px solid ${T.border}`,
+            background:'transparent', cursor:'pointer', display:'flex', alignItems:'center',
+            justifyContent:'center', color: T.groupText, transition:'all 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = T.itemHoverBg; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.groupText; }}
           data-testid="sidebar-toggle"
         >
-          {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin">
-        {menuGroups.map((group) => {
+      <nav style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'10px 0', position:'relative', zIndex:1 }}
+        className="scrollbar-thin">
+        {menuGroups.map((group, groupIdx) => {
           const GroupIcon = group.icon;
           const isExpanded = expandedGroup === group.id;
           const isSingle = group.items.length === 1;
@@ -130,26 +212,29 @@ const AdminSidebar = ({
 
           if (sidebarCollapsed) {
             return (
-              <div key={group.id} className="px-2 mb-1">
+              <div key={group.id} style={{ padding:'2px 8px' }}>
                 <button
                   onClick={() => {
-                    if (isSingle) {
-                      handleSectionClick(group.items[0].id);
-                    } else {
-                      setExpandedGroup(isExpanded ? null : group.id);
-                      if (!isGroupActive) handleSectionClick(group.items[0].id);
-                    }
+                    if (isSingle) handleSectionClick(group.items[0].id);
+                    else { setExpandedGroup(isExpanded ? null : group.id); if (!isGroupActive) handleSectionClick(group.items[0].id); }
                   }}
-                  className={`w-full p-2.5 rounded-xl flex items-center justify-center relative transition-all ${
-                    isGroupActive
-                      ? 'bg-blue-500/20 text-blue-300'
-                      : 'text-gray-400 hover:bg-white/[0.06] hover:text-gray-200'
-                  }`}
+                  style={{
+                    width:'100%', padding:'10px', borderRadius:10, border:'none',
+                    background: isGroupActive ? T.activeBg : 'transparent', cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center', position:'relative',
+                    color: isGroupActive ? T.activeText : T.itemText,
+                    transition:'all 0.2s',
+                  }}
+                  onMouseEnter={e => { if(!isGroupActive){ e.currentTarget.style.background = T.itemHoverBg; e.currentTarget.style.color='#fff'; }}}
+                  onMouseLeave={e => { if(!isGroupActive){ e.currentTarget.style.background='transparent'; e.currentTarget.style.color=T.itemText; }}}
                   title={group.label}
                 >
-                  <GroupIcon size={18} />
+                  <GroupIcon size={17} />
                   {hasActiveBadge && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full"></span>
+                    <span style={{
+                      position:'absolute', top:6, right:6, width:7, height:7,
+                      background: T.dot, borderRadius:'50%',
+                    }} />
                   )}
                 </button>
               </div>
@@ -157,57 +242,74 @@ const AdminSidebar = ({
           }
 
           return (
-            <div key={group.id} className="mb-0.5">
+            <div key={group.id} style={{ marginBottom:2 }}>
+              {/* Group header */}
               <button
                 onClick={() => {
-                  if (isSingle) {
-                    handleSectionClick(group.items[0].id);
-                  } else {
-                    setExpandedGroup(isExpanded ? null : group.id);
-                  }
+                  if (isSingle) handleSectionClick(group.items[0].id);
+                  else setExpandedGroup(isExpanded ? null : group.id);
                 }}
                 data-testid={`sidebar-group-${group.id}`}
-                className={`w-full flex items-center justify-between px-5 py-2.5 text-left transition-all ${
-                  isGroupActive
-                    ? 'text-white'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
-                }`}
+                style={{
+                  width:'100%', padding:'8px 18px', border:'none', background:'transparent',
+                  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between',
+                  color: isGroupActive ? '#fff' : T.groupText,
+                  transition:'all 0.2s',
+                }}
+                onMouseEnter={e => { if(!isGroupActive) e.currentTarget.style.color = T.itemText; }}
+                onMouseLeave={e => { if(!isGroupActive) e.currentTarget.style.color = T.groupText; }}
               >
-                <span className="flex items-center gap-3">
-                  <GroupIcon size={17} className={isGroupActive ? 'text-blue-400' : ''} />
-                  <span className="text-[13px] font-medium">{group.label}</span>
+                <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <GroupIcon size={13} style={{ color: isGroupActive ? T.accent : T.groupText }} />
+                  <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase' }}>
+                    {group.label}
+                  </span>
                 </span>
-                <span className="flex items-center gap-2">
+                <span style={{ display:'flex', alignItems:'center', gap:6 }}>
                   {hasActiveBadge && (
-                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                    <span style={{ width:6, height:6, background: T.dot, borderRadius:'50%' }} />
                   )}
                   {!isSingle && (
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={12} style={{ transition:'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none', color: T.groupText }} />
                   )}
                 </span>
               </button>
 
+              {/* Group items */}
               {!isSingle && (
-                <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div style={{
+                  overflow:'hidden', transition:'max-height 0.25s ease, opacity 0.2s',
+                  maxHeight: isExpanded ? '500px' : 0, opacity: isExpanded ? 1 : 0,
+                }}>
                   {group.items.map((item) => {
                     const Icon = item.icon;
+                    const isActive = activeSection === item.id;
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleSectionClick(item.id)}
                         data-testid={`sidebar-item-${item.id}`}
-                        className={`w-full flex items-center justify-between pl-12 pr-5 py-2 text-left transition-all ${
-                          activeSection === item.id
-                            ? 'text-white bg-blue-500/15 border-r-2 border-blue-400'
-                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
-                        }`}
+                        style={{
+                          width:'100%', padding:'8px 18px 8px 36px', border:'none', cursor:'pointer',
+                          display:'flex', alignItems:'center', justifyContent:'space-between',
+                          background: isActive ? T.activeBg : 'transparent',
+                          borderLeft: isActive ? `2px solid ${T.activeBorder}` : '2px solid transparent',
+                          color: isActive ? T.activeText : T.itemText,
+                          transition:'all 0.15s',
+                        }}
+                        onMouseEnter={e => { if(!isActive){ e.currentTarget.style.background = T.itemHoverBg; e.currentTarget.style.color = '#fff'; }}}
+                        onMouseLeave={e => { if(!isActive){ e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.itemText; }}}
                       >
-                        <span className="flex items-center gap-2.5">
-                          <Icon size={15} />
-                          <span className="text-[13px]">{item.label}</span>
+                        <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <Icon size={14} />
+                          <span style={{ fontSize:13, fontWeight: isActive ? 600 : 400 }}>{item.label}</span>
                         </span>
                         {item.badge > 0 && (
-                          <span className="min-w-[20px] px-1.5 py-0.5 bg-red-500/80 text-[10px] font-medium text-white rounded-full text-center">
+                          <span style={{
+                            minWidth:20, padding:'1px 6px', borderRadius:9999, fontSize:10,
+                            fontWeight:700, textAlign:'center',
+                            background: T.badge.bg, color: T.badge.text,
+                          }}>
                             {item.badge}
                           </span>
                         )}
@@ -221,26 +323,64 @@ const AdminSidebar = ({
         })}
       </nav>
 
+      {/* ── Role badge strip (only when expanded) ── */}
+      {!sidebarCollapsed && (
+        <div style={{
+          margin:'0 14px 10px', borderRadius:10, padding:'8px 12px',
+          background: isPrincipalAdmin ? 'rgba(245,158,11,0.08)' : 'rgba(20,184,166,0.08)',
+          border: `1px solid ${T.border}`, display:'flex', alignItems:'center', gap:8, zIndex:1, position:'relative',
+        }}>
+          {isPrincipalAdmin
+            ? <Shield size={13} style={{ color: T.accent, flexShrink:0 }} />
+            : <Zap size={13} style={{ color: T.accent, flexShrink:0 }} />
+          }
+          <span style={{ fontSize:11, fontWeight:600, color: T.accent, letterSpacing:'0.03em' }}>
+            {T.roleLabel}
+          </span>
+        </div>
+      )}
+
       {/* User + Logout */}
-      <div className={`border-t border-white/[0.06] ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+      <div style={{
+        borderTop: `1px solid ${T.border}`,
+        padding: sidebarCollapsed ? '12px 8px' : '14px 14px',
+        position:'relative', zIndex:1,
+      }}>
         {!sidebarCollapsed && (
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-[11px] font-bold">
-              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'0 4px' }}>
+            <div style={{
+              width:34, height:34, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+              background: T.logoBg, display:'flex', alignItems:'center', justifyContent:'center',
+              boxShadow: `0 0 0 2px ${T.border}`,
+            }}>
+              <span style={{ color:'#fff', fontSize:13, fontWeight:700 }}>
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium text-gray-200 truncate">{user?.firstName} {user?.lastName}</p>
-              <p className="text-[10px] text-gray-500">Admin</p>
+            <div style={{ flex:1, minWidth:0 }}>
+              <p style={{ color:'#fff', fontSize:12, fontWeight:600, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p style={{ color: T.accent, fontSize:10, fontWeight:600, margin:0, letterSpacing:'0.05em', textTransform:'uppercase' }}>
+                {T.roleLabel}
+              </p>
             </div>
           </div>
         )}
         <button
           onClick={onLogout}
-          className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-2.5 px-3'} py-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all text-[13px]`}
+          style={{
+            width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px',
+            borderRadius:8, border:'none', background:'transparent', cursor:'pointer',
+            color: 'rgba(255,80,80,0.65)', fontSize:13, transition:'all 0.2s',
+            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,60,60,0.1)'; e.currentTarget.style.color = '#fc7070'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,80,80,0.65)'; }}
           data-testid="sidebar-logout"
         >
-          <LogOut size={16} />
-          {!sidebarCollapsed && 'Déconnexion'}
+          <LogOut size={15} />
+          {!sidebarCollapsed && <span>Déconnexion</span>}
         </button>
       </div>
     </div>

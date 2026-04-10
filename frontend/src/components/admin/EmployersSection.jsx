@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Briefcase, Users, Plus, Key, Trash2, CheckCircle, XCircle, Clock,
-  Copy, Building2, FileText, Globe, Eye, EyeOff, RefreshCw, X, Upload, Loader2, Edit2
+  Copy, Building2, FileText, Globe, Eye, EyeOff, RefreshCw, X, Upload, Loader2, Edit2, Search
 } from 'lucide-react';
 import axios from 'axios';
+import { EmployerReviewModal } from './ReviewModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -22,6 +23,7 @@ const EmployersSection = () => {
   const [editCodeModal, setEditCodeModal] = useState(null);
   const [newEmployerCode, setNewEmployerCode] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [reviewModal, setReviewModal] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -188,17 +190,17 @@ const EmployersSection = () => {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     {!emp.isApproved && (
-                      <button onClick={() => handleApprove(emp.id)}
+                      <button onClick={() => setReviewModal(emp.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-xl"
-                        data-testid={`approve-employer-${emp.id}`}>
-                        <CheckCircle size={13} /> Approuver
+                        data-testid={`review-employer-${emp.id}`}>
+                        <CheckCircle size={13} /> Voir & Approuver
                       </button>
                     )}
                     {emp.isApproved && emp.pendingCompanyUpdate && (
-                      <button onClick={() => handleApprove(emp.id)}
+                      <button onClick={() => setReviewModal(emp.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl"
                         data-testid={`reapprove-employer-${emp.id}`}>
-                        <CheckCircle size={13} /> Re-approuver MAJ
+                        <CheckCircle size={13} /> Voir & Re-approuver
                       </button>
                     )}
                     <button onClick={() => openContractModal(emp)}
@@ -345,6 +347,16 @@ const EmployersSection = () => {
           </div>
         </div>
       </div>
+    )}
+
+    {/* ── Review Modal ── */}
+    {reviewModal && (
+      <EmployerReviewModal
+        employerId={reviewModal}
+        onClose={() => setReviewModal(null)}
+        onApprove={async (id) => { await axios.put(`${API}/admin/employers/${id}/approve`); loadData(); }}
+        onReject={async (id) => { await axios.put(`${API}/admin/employers/${id}/reject`); loadData(); }}
+      />
     )}
   </>
   );

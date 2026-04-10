@@ -86,6 +86,15 @@ async def admin_get_partners(admin: dict = Depends(get_principal_admin)):
     return partners
 
 
+@router.get("/admin/partners/{partner_id}/details")
+async def admin_get_partner_details(partner_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    user = await db.users.find_one({"id": partner_id, "role": "partenaire"}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    return user
+
+
 @router.put("/admin/partners/{partner_id}/approve")
 async def admin_approve_partner(partner_id: str, admin: dict = Depends(get_principal_admin)):
     db = get_db()

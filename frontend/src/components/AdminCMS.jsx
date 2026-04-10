@@ -127,7 +127,11 @@ const AdminCMS = ({ onClose }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50" data-testid="admin-cms">
+    <div
+      className="flex h-screen"
+      style={{ background: isPrincipalAdmin ? '#f8f7f5' : '#f1f5f9' }}
+      data-testid="admin-cms"
+    >
       <AdminSidebar
         user={user}
         isPrincipalAdmin={isPrincipalAdmin}
@@ -143,7 +147,7 @@ const AdminCMS = ({ onClose }) => {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader activeSection={activeSection} stats={stats} />
+        <AdminHeader activeSection={activeSection} stats={stats} isPrincipalAdmin={isPrincipalAdmin} />
 
         <main className="flex-1 overflow-auto p-8">
           {renderSection()}

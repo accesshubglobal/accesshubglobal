@@ -130,6 +130,22 @@ async def admin_delete_offer(offer_id: str, admin: dict = Depends(get_admin_user
     return {"message": "Offre supprimée"}
 
 
+@router.post("/admin/offers/{offer_id}/duplicate")
+async def admin_duplicate_offer(offer_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    original = await db.offers.find_one({"id": offer_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Offre non trouvée")
+    copy = {**original}
+    copy["id"] = str(uuid.uuid4())
+    copy["title"] = f"{original.get('title', '')} (copie)"
+    copy["views"] = 0
+    copy["createdAt"] = datetime.now(timezone.utc).isoformat()
+    await db.offers.insert_one(copy)
+    del copy["_id"]
+    return {"message": "Offre dupliquée", "id": copy["id"]}
+
+
 # ============= ADMIN - UNIVERSITIES =============
 
 @router.get("/admin/universities")
@@ -163,6 +179,21 @@ async def admin_delete_university(uni_id: str, admin: dict = Depends(get_admin_u
     return {"message": "Université supprimée"}
 
 
+@router.post("/admin/universities/{uni_id}/duplicate")
+async def admin_duplicate_university(uni_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    original = await db.universities.find_one({"id": uni_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Université non trouvée")
+    copy = {**original}
+    copy["id"] = str(uuid.uuid4())
+    copy["name"] = f"{original.get('name', '')} (copie)"
+    copy["createdAt"] = datetime.now(timezone.utc).isoformat()
+    await db.universities.insert_one(copy)
+    del copy["_id"]
+    return {"message": "Université dupliquée", "id": copy["id"]}
+
+
 # ============= ADMIN - HOUSING =============
 
 @router.get("/admin/housing")
@@ -194,6 +225,21 @@ async def admin_delete_housing(housing_id: str, admin: dict = Depends(get_admin_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Logement non trouvé")
     return {"message": "Logement supprimé"}
+
+
+@router.post("/admin/housing/{housing_id}/duplicate")
+async def admin_duplicate_housing(housing_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    original = await db.housing.find_one({"id": housing_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Logement non trouvé")
+    copy = {**original}
+    copy["id"] = str(uuid.uuid4())
+    copy["type"] = f"{original.get('type', '')} (copie)"
+    copy["createdAt"] = datetime.now(timezone.utc).isoformat()
+    await db.housing.insert_one(copy)
+    del copy["_id"]
+    return {"message": "Logement dupliqué", "id": copy["id"]}
 
 
 # ============= ADMIN - MESSAGES =============

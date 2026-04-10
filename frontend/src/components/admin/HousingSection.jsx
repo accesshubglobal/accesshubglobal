@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Home, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Home, X, Copy } from 'lucide-react';
 import axios, { API } from './adminApi';
 
 const HousingFormModal = ({ housing, onClose, onSuccess }) => {
@@ -100,6 +100,7 @@ const HousingSection = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [duplicating, setDuplicating] = useState(null);
 
   useEffect(() => { loadHousing(); }, []);
 
@@ -110,6 +111,15 @@ const HousingSection = () => {
       setHousing(response.data);
     } catch (err) { console.error('Error loading housing:', err); }
     setLoading(false);
+  };
+
+  const duplicateHousing = async (id) => {
+    setDuplicating(id);
+    try {
+      await axios.post(`${API}/admin/housing/${id}/duplicate`);
+      loadHousing();
+    } catch (err) { alert(err.response?.data?.detail || 'Erreur lors de la duplication'); }
+    setDuplicating(null);
   };
 
   return (
@@ -136,8 +146,11 @@ const HousingSection = () => {
                   <p className="text-sm text-gray-500">{h.location}, {h.city}</p>
                   <p className="text-[#1a56db] font-medium mt-2">{h.priceRange}</p>
                   <div className="flex gap-2 mt-3">
-                    <button onClick={() => { setEditingItem(h); setShowModal(true); }} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"><Edit size={16} /></button>
-                    <button onClick={async () => { if (window.confirm('Supprimer ce logement?')) { await axios.delete(`${API}/admin/housing/${h.id}`); loadHousing(); }}} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => { setEditingItem(h); setShowModal(true); }} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors" title="Modifier"><Edit size={16} /></button>
+                    <button onClick={() => duplicateHousing(h.id)} disabled={duplicating === h.id} className="p-2 hover:bg-amber-50 text-amber-500 rounded-lg transition-colors" title="Dupliquer" data-testid={`duplicate-housing-${h.id}`}>
+                      {duplicating === h.id ? <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : <Copy size={16} />}
+                    </button>
+                    <button onClick={async () => { if (window.confirm('Supprimer ce logement?')) { await axios.delete(`${API}/admin/housing/${h.id}`); loadHousing(); }}} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Supprimer"><Trash2 size={16} /></button>
                   </div>
                 </div>
               </div>

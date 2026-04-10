@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2, MessageSquare, Paperclip, Download, FileText, Loader2, Send, Upload, RefreshCw, Plus } from 'lucide-react';
+import { Check, X, Trash2, Key, Copy, Handshake, Building2, GraduationCap, Clock, CheckCircle, Edit2, MessageSquare, Paperclip, Download, FileText, Loader2, Send, Upload, RefreshCw, Plus, Search } from 'lucide-react';
 import axios, { API } from './adminApi';
 import OfferFormModal from '../OfferFormModal';
+import { PartnerReviewModal } from './ReviewModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -40,6 +41,7 @@ const PartnersSection = ({ onBadgeUpdate }) => {
   const [editCodeModal, setEditCodeModal] = useState(null);
   const [newPartnerCode, setNewPartnerCode] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [reviewModal, setReviewModal] = useState(null);
 
   useEffect(() => {
     loadAll();
@@ -358,10 +360,10 @@ const PartnersSection = ({ onBadgeUpdate }) => {
               </div>
               {!partner.isApproved && partner.isActive !== false && (
                 <div className="flex gap-2">
-                  <button onClick={() => approvePartner(partner.id)}
-                    className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                    title="Approuver" data-testid={`approve-partner-${partner.id}`}>
-                    <Check size={16} />
+                  <button onClick={() => setReviewModal(partner.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg"
+                    title="Voir le dossier et approuver" data-testid={`review-partner-${partner.id}`}>
+                    <Check size={13} /> Voir & Approuver
                   </button>
                   <button onClick={() => rejectPartner(partner.id)}
                     className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
@@ -732,6 +734,16 @@ const PartnersSection = ({ onBadgeUpdate }) => {
           </div>
         </div>
       </div>
+    )}
+
+    {/* ── Review Modal ── */}
+    {reviewModal && (
+      <PartnerReviewModal
+        partnerId={reviewModal}
+        onClose={() => setReviewModal(null)}
+        onApprove={async (id) => { await approvePartner(id); }}
+        onReject={async (id) => { await rejectPartner(id); }}
+      />
     )}
   </>
   );

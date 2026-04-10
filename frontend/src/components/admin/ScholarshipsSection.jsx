@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Award } from 'lucide-react';
+import { Plus, Edit, Trash2, Award, Copy } from 'lucide-react';
 import axios, { API } from './adminApi';
 
 const ScholarshipsSection = ({ onNavigate }) => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [duplicating, setDuplicating] = useState(null);
 
   useEffect(() => { loadOffers(); }, []);
 
@@ -19,6 +20,13 @@ const ScholarshipsSection = ({ onNavigate }) => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette offre?')) return;
     try { await axios.delete(`${API}/admin/offers/${offerId}`); loadOffers(); }
     catch (err) { console.error(err); }
+  };
+
+  const duplicateOffer = async (offerId) => {
+    setDuplicating(offerId);
+    try { await axios.post(`${API}/admin/offers/${offerId}/duplicate`); loadOffers(); }
+    catch (err) { alert(err.response?.data?.detail || 'Erreur duplication'); }
+    setDuplicating(null);
   };
 
   const scholarshipOffers = offers.filter(o => o.hasScholarship);
@@ -65,8 +73,11 @@ const ScholarshipsSection = ({ onNavigate }) => {
                   <td className="px-6 py-4 text-sm text-gray-600">{offer.scholarshipTuition === 0 ? 'Frais: 100%' : `Frais réduits: ${offer.scholarshipTuition?.toLocaleString() || 0}`}</td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button onClick={() => onNavigate?.('offers', { editOffer: offer })} className="p-2 text-gray-500 hover:text-[#1a56db] hover:bg-blue-50 rounded-lg transition-colors"><Edit size={16} /></button>
-                      <button onClick={() => deleteOffer(offer.id)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                      <button onClick={() => onNavigate?.('offers', { editOffer: offer })} className="p-2 text-gray-500 hover:text-[#1a56db] hover:bg-blue-50 rounded-lg transition-colors" title="Modifier"><Edit size={16} /></button>
+                      <button onClick={() => duplicateOffer(offer.id)} disabled={duplicating === offer.id} className="p-2 text-gray-500 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors" title="Dupliquer" data-testid={`duplicate-scholarship-${offer.id}`}>
+                        {duplicating === offer.id ? <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" /> : <Copy size={16} />}
+                      </button>
+                      <button onClick={() => deleteOffer(offer.id)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer"><Trash2 size={16} /></button>
                     </div>
                   </td>
                 </tr>

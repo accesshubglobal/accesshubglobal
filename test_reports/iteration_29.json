@@ -1,0 +1,83 @@
+{
+  "summary": "Testing of 3 new features: (1) Admin redesign (PRINCIPAL midnight+gold / SECONDARY slate+teal), (2) Pre-approval Review Modal for employers and partners, (3) Duplicate buttons for offers, universities, housing, scholarships. All backend APIs pass (17/17). All frontend flows verified. One bug found and fixed: housing duplicate used 'title' field instead of 'type' field for the (copie) suffix.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/admin/housing/{id}/duplicate",
+        "issue": "BUG FIXED: Was setting copy['title'] but housing uses 'type' field as display name. Fixed to copy['type']. Faulty test duplicates cleaned up from DB.",
+        "priority": "MEDIUM - FIXED"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "OffersSection.jsx",
+        "issue": "Empty string passed to img src when offer has no image: <img src={offer.image}> renders src='' causing browser to reload whole page. Should use src={offer.image || undefined}",
+        "selector": ".w-12.h-12.object-cover.rounded-lg",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": {
+    "DESIGN: Sidebar dark background (#08080f = rgb(8,8,15)) for Admin Principal": "PASS",
+    "DESIGN: Sidebar shows 'Admin Principal' role label in gold": "PASS",
+    "DESIGN: Header shows 'ADMIN PRINCIPAL' badge with amber styling": "PASS",
+    "DESIGN: Header avatar has gold gradient for Principal admin": "PASS",
+    "DESIGN: Breadcrumb shows group > section in header": "PASS",
+    "SIDEBAR: Groups expand/collapse (PROGRAMMES, GESTION, etc.)": "PASS",
+    "SIDEBAR: Toggle collapse button (72px collapsed / 256px expanded)": "PASS",
+    "DUPLICATE OFFERS: Button present (amber/copy icon), creates copy with '(copie)' in title": "PASS",
+    "DUPLICATE UNIVERSITIES: Button present, creates copy with '(copie)' in name": "PASS",
+    "DUPLICATE HOUSING: Bug fixed - now creates copy with '(copie)' in 'type' field": "PASS (after fix)",
+    "DUPLICATE SCHOLARSHIPS: Button present, creates copy with '(copie)'": "PASS",
+    "REVIEW MODAL EMPLOYER: 'Voir & Approuver' opens modal with all info + Dossier incomplet warning": "PASS",
+    "REVIEW MODAL EMPLOYER: Approve/Reject buttons work, modal closes after approve": "PASS",
+    "REVIEW MODAL PARTNER: 'Voir & Approuver' opens modal with personal info + partnerCode": "PASS",
+    "REVIEW MODAL PARTNER: Approve/Reject buttons work, modal closes after approve": "PASS",
+    "API /api/admin/offers/{id}/duplicate: returns {message, id}": "PASS",
+    "API /api/admin/universities/{id}/duplicate: returns {message, id}": "PASS",
+    "API /api/admin/housing/{id}/duplicate: returns {message, id}": "PASS",
+    "API /api/admin/employers/{id}/details: returns full info without password": "PASS",
+    "API /api/admin/partners/{id}/details: returns full info with partnerCode": "PASS"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features_29.py",
+    "/app/test_reports/pytest/pytest_results_29.xml"
+  ],
+  "action_items": [
+    "Fix empty img src in OffersSection.jsx: change src={offer.image} to src={offer.image || undefined} to avoid browser requesting empty URLs",
+    "OPTIONAL: Clean up duplicate test data in DB (offers have many 'copie (copie) (copie)' artifacts from previous test runs)"
+  ],
+  "critical_code_review_comments": [
+    "BUG FIXED: admin.py housing duplicate used copy['title'] but housing model uses 'type' field for display. Fixed to copy['type'] in /app/api/routers/admin.py line 238",
+    "Empty img src in OffersSection.jsx: When offer.image is undefined/empty string, <img src=''> causes unnecessary network request. Minor but visible in console",
+    "EmployerReviewModal shows 'Dossier incomplet' warning correctly when company info or official doc is missing - this works as designed",
+    "Partner Review Modal shows partnerCode (e.g. PA-BF237N22) in the modal info - useful for admin verification"
+  ],
+  "updated_files": [
+    "/app/api/routers/admin.py"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 tests pass)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": {
+    "admin": {"email": "admin@winners-consulting.com", "password": "Admin2025!"},
+    "employer": {"email": "test_employer_auto@test.com", "password": "Employer2025!", "activation_code": "EM-D5YJTLAY"},
+    "partner": {"email": "partner@test.com", "password": "Partner2025!", "activation_code": "PA-BF237N22"}
+  },
+  "seed_data_creation": "Test duplicates created and cleaned up. Partner/Employer were temporarily rejected for modal testing, then re-approved via modal approve flow.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 new features verified: (1) Admin PRINCIPAL redesign dark+gold working, SECONDARY slate+teal by design. (2) ReviewModal for employers and partners opens with full data and Approve/Reject functionality. (3) Duplicate buttons work for all 4 content types - housing bug was fixed (title→type). Backend tests in /app/backend/tests/test_new_features_29.py (17 tests, all pass). Minor: empty img src in OffersSection.jsx console warnings.",
+  "rca_of_bug": {
+    "bug": "Housing duplicate sets wrong field",
+    "root_cause": "admin.py admin_duplicate_housing function set copy['title'] for the '(copie)' suffix, but Housing model uses 'type' (not 'title') as its display name. The housing documents have no 'title' field.",
+    "fix": "Changed copy['title'] to copy['type'] in /app/api/routers/admin.py line 238",
+    "impact": "Before fix: duplicated housing items appeared with same visible name as original. After fix: duplicated housing shows 'OriginalType (copie)'"
+  }
+}

@@ -69,6 +69,17 @@ async def admin_get_employers(admin: dict = Depends(get_admin_user)):
     return employers
 
 
+@router.get("/admin/employers/{employer_id}/details")
+async def admin_get_employer_details(employer_id: str, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    user = await db.users.find_one({"id": employer_id, "role": "employeur"}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Employeur non trouvé")
+    company = await db.employer_companies.find_one({"employerId": employer_id}, {"_id": 0})
+    user["company"] = company or {}
+    return user
+
+
 @router.put("/admin/employers/{employer_id}/approve")
 async def admin_approve_employer(employer_id: str, admin: dict = Depends(get_principal_admin)):
     db = get_db()
