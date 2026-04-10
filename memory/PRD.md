@@ -86,7 +86,9 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] **Admin LogementPartners** : Code LG-TESTCODE affiché, modale modifier code + upload contrat (FAIT - 04/2026)
 
 
-|- [x] **Fix Bug Gate Code** : Clé sessionStorage remplacée de `user?.id` (null lors du 1er render async) par `token.slice(-16)` — cohérence garantie dans tous les 4 dashboards (Agent, Partenaire, Employeur, Logement) (FAIT - 04/2026)
+|- [x] **Redesign Admin Principal + Secondaire** : Nouveau design immersif avec 2 thèmes distincts — Principal (noir minuit #08080f + or #f59e0b) / Secondaire (slate #0f172a + teal #14b8a6). Sidebar refactorisée avec groupes expandables, badges de rôle, toggle collapse. Header avec breadcrumb, pills de rôle et avatar thématique. (FAIT - 04/2026)
+|- [x] **Modal de revue pré-approbation** : Avant d'approuver un Employeur ou Partenaire Universitaire, l'admin voit un modal `ReviewModal.jsx` avec toutes les infos (personnelles, entreprise, documents téléchargeables) + warning "Dossier incomplet" si données manquantes. (FAIT - 04/2026)
+|- [x] **Duplication d'offres** : Bouton Dupliquer (icône Copy, amber) dans Offres, Bourses, Universités et Logements. Endpoints backend `/api/admin/{type}/{id}/duplicate`. (FAIT - 04/2026)
 |- [x] **Fix Bug PDF Contrat** : `fixPdfUrl` retourne l'URL inchangée (plus de conversion `/image/upload/` → `/raw/upload/` qui créait des 404 pour les anciens uploads). `downloadFile` ajoute `fl_attachment` correctement (FAIT - 04/2026)
 - [ ] Intégration paiement en ligne (Stripe ou autre)
 

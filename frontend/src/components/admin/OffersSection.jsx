@@ -81,7 +81,7 @@ const OffersSection = () => {
                 <tr key={offer.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img src={offer.image} alt={offer.title} className="w-12 h-12 object-cover rounded-lg" />
+                      <img src={offer.image || undefined} alt={offer.title} className="w-12 h-12 object-cover rounded-lg bg-gray-100" />
                       <div>
                         <p className="font-medium text-gray-900">{offer.title}</p>
                         <p className="text-xs text-gray-500">{offer.degree} - {offer.duration}</p>
