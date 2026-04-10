@@ -40,6 +40,7 @@ import FeaturedCompanyPage from "./pages/FeaturedCompanyPage";
 import PartnerLandingPage from "./pages/PartnerLandingPage";
 import AboutPage from "./pages/AboutPage";
 import CompanyInfoPage from "./pages/CompanyInfoPage";
+import LogementsPage from "./pages/LogementsPage";
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from "./pages/LegalPages";
 
 // Protected Route Component
@@ -149,6 +150,7 @@ function App() {
               <Route path="/universities/:id" element={<UniversityDetailPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/company" element={<CompanyInfoPage />} />
+              <Route path="/logements" element={<LogementsPage />} />
               <Route path="/legal" element={<LegalNoticePage />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsOfUsePage />} />
