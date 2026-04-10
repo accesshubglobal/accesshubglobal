@@ -11,8 +11,8 @@
 - Mot de passe: Partner2025!
 - Rôle: partenaire
 - Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
-- Code d'activation (requis à chaque connexion): PA-MSSCGLU8
-- Contrat: Contrat Test Partenaire (https://example.com/test.pdf)
+- Code d'activation (requis à chaque connexion): PA-BF237N22
+- Contrat: ResolveNet Installation and Execution Guide (https://res.cloudinary.com/dtjgzpmna/image/upload/v1775791404/winners_consulting/stream_q2fstp.pdf)
 - Accès: /partner
 
 ## Agent Partenaire de test

@@ -29,11 +29,12 @@ const LogementActivationCodeGate = ({ user, onVerified, onLogout }) => {
     e.preventDefault();
     setLoading(true); setError('');
     try {
+      const tok = localStorage.getItem('token');
       await axios.post(`${API}/logement/verify-login-code`,
         { code: code.trim().toUpperCase() },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        { headers: { Authorization: `Bearer ${tok}` } }
       );
-      sessionStorage.setItem(`logement_code_${user?.id}`, 'true');
+      if (tok) sessionStorage.setItem(`logement_code_${tok.slice(-16)}`, 'true');
       onVerified();
     } catch (err) {
       setError(err.response?.data?.detail || "Code incorrect.");
@@ -286,10 +287,11 @@ const LogementDashboard = () => {
   const [profileSaving, setProfileSaving] = useState(false);
   const [docUploading, setDocUploading] = useState({});
 
-  // Activation code gate
-  const [codeVerified, setCodeVerified] = useState(() =>
-    sessionStorage.getItem(`logement_code_${user?.id}`) === 'true'
-  );
+  // Activation code gate — uses token slice as session key (user?.id is null on first render)
+  const [codeVerified, setCodeVerified] = useState(() => {
+    const tok = localStorage.getItem('token');
+    return !!tok && sessionStorage.getItem(`logement_code_${tok.slice(-16)}`) === 'true';
+  });
 
   const ax = () => axios.create({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 

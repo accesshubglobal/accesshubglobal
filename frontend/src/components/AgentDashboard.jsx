@@ -462,8 +462,12 @@ const ActivationCodeGate = ({ user, onVerified, onLogout }) => {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      await axios.post(`${API}/agent/verify-login-code`, { code: code.trim().toUpperCase() });
-      sessionStorage.setItem(`agent_code_${user?.id}`, 'true');
+      const tok = localStorage.getItem('token');
+      await axios.post(`${API}/agent/verify-login-code`,
+        { code: code.trim().toUpperCase() },
+        { headers: { Authorization: `Bearer ${tok}` } }
+      );
+      if (tok) sessionStorage.setItem(`agent_code_${tok.slice(-16)}`, 'true');
       onVerified();
     } catch (err) {
       setError(err.response?.data?.detail || 'Code incorrect. Vérifiez votre code d\'activation.');
@@ -1301,10 +1305,11 @@ const AgentDashboard = () => {
 
   const isApproved = user?.isApproved;
 
-  // Activation code gate
-  const [codeVerified, setCodeVerified] = useState(() =>
-    sessionStorage.getItem(`agent_code_${user?.id}`) === 'true'
-  );
+  // Activation code gate — uses token slice as session key (user?.id is null on first render)
+  const [codeVerified, setCodeVerified] = useState(() => {
+    const tok = localStorage.getItem('token');
+    return !!tok && sessionStorage.getItem(`agent_code_${tok.slice(-16)}`) === 'true';
+  });
 
   // Offer detail modal
   const [offerDetailModal, setOfferDetailModal] = useState(null);
