@@ -1,0 +1,160 @@
+{
+  "theme": "hybrid_dark_light",
+  "archetype": {
+    "primary": "Archetype 5: Jewel & Luxury (Premium, Powerful)",
+    "secondary": "Archetype 4: Swiss & High-Contrast / Performance Pro (Operational, Focused)"
+  },
+  "typography": {
+    "headings": {
+      "family": "Manrope, sans-serif",
+      "weights": ["500", "600", "700", "800"],
+      "classes": "font-sans tracking-tight"
+    },
+    "body": {
+      "family": "IBM Plex Sans, sans-serif",
+      "weights": ["400", "500", "600"],
+      "classes": "font-sans leading-relaxed"
+    },
+    "sizes": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl",
+      "h3": "text-xl sm:text-2xl",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-base",
+      "small": "text-sm",
+      "xs": "text-xs tracking-[0.2em] uppercase"
+    }
+  },
+  "color_palette": {
+    "primary_admin": {
+      "theme_name": "Premium Obsidian & Gold",
+      "sidebar": {
+        "background": "bg-[#0A0A0A]",
+        "border": "border-white/10",
+        "text_primary": "text-white/95",
+        "text_secondary": "text-white/50",
+        "active_item_bg": "bg-gradient-to-r from-amber-500/10 to-transparent",
+        "active_item_border": "border-l-2 border-amber-500",
+        "active_text": "text-amber-500",
+        "hover_bg": "hover:bg-white/5",
+        "hover_text": "hover:text-white"
+      },
+      "header": {
+        "background": "bg-white/80 backdrop-blur-xl",
+        "border": "border-black/5",
+        "text": "text-slate-900",
+        "accent": "text-amber-600"
+      },
+      "badges": {
+        "bg": "bg-amber-500/20",
+        "text": "text-amber-500",
+        "border": "border-amber-500/30"
+      },
+      "surface_effects": "glassmorphism, subtle glowing gradients"
+    },
+    "secondary_admin": {
+      "theme_name": "Deep Slate & Teal",
+      "sidebar": {
+        "background": "bg-[#0f172a]",
+        "border": "border-teal-500/20",
+        "text_primary": "text-slate-200",
+        "text_secondary": "text-slate-400",
+        "active_item_bg": "bg-teal-500/10",
+        "active_item_border": "border-l-2 border-teal-400",
+        "active_text": "text-teal-400",
+        "hover_bg": "hover:bg-slate-800",
+        "hover_text": "hover:text-teal-200"
+      },
+      "header": {
+        "background": "bg-white/90 backdrop-blur-md",
+        "border": "border-slate-200",
+        "text": "text-slate-900",
+        "accent": "text-teal-600"
+      },
+      "badges": {
+        "bg": "bg-teal-500/20",
+        "text": "text-teal-500",
+        "border": "border-teal-500/30"
+      },
+      "surface_effects": "crisp edges, solid modular cards"
+    },
+    "main_content": {
+      "background": "bg-slate-50",
+      "text": "text-slate-900"
+    }
+  },
+  "spacing_and_layout": {
+    "grid": "Bento Grid Protocol (Mode B: Control Room Grid)",
+    "sidebar": "w-64 flex-shrink-0 transition-all duration-300 ease-in-out",
+    "sidebar_collapsed": "w-20",
+    "padding": "p-6 sm:p-8",
+    "gap": "gap-6",
+    "radius": "rounded-xl for principal, rounded-lg for secondary"
+  },
+  "components": {
+    "AdminCMS": {
+      "description": "Wrapper component managing the layout and state for isPrincipalAdmin.",
+      "layout": "flex h-screen overflow-hidden bg-slate-50",
+      "logic": "Pass isPrincipalAdmin down to Sidebar and Header. Apply global CSS variables based on role."
+    },
+    "AdminSidebar": {
+      "description": "Dynamic sidebar switching styles based on isPrincipalAdmin.",
+      "features": [
+        "Expandable groups with smooth height transitions",
+        "Notification badges styled by role",
+        "User profile section pinned at bottom",
+        "Collapse toggle button",
+        "Texture overlay: bg-[url('noise-texture-url')] mix-blend-overlay opacity-[0.03]"
+      ]
+    },
+    "AdminHeader": {
+      "description": "Top bar adapting its accent and borders based on admin role.",
+      "features": [
+        "Breadcrumb navigation",
+        "Notification bell with role-specific dot color",
+        "User info with avatar and role label"
+      ]
+    }
+  },
+  "micro_interactions": {
+    "hover": "Scale up icons slightly (scale-110), fade in backgrounds (opacity-100)",
+    "active": "Subtle glow effect for Principal (drop-shadow-[0_0_8px_rgba(245,158,11,0.5)])",
+    "transitions": "Use Framer Motion for sidebar collapse/expand, stagger children reveals (delay: 0.05 * index)"
+  },
+  "accessibility": {
+    "contrast": "Ensure all text meets APCA/WCAG AA standards against backgrounds. Active text requires 4.5:1 ratio minimum.",
+    "testing": "All interactive elements MUST include a 'data-testid' attribute (e.g., data-testid='sidebar-nav-item', data-testid='user-profile-button')."
+  },
+  "language": "French labels throughout (e.g., 'Tableau de bord', 'Utilisateurs', 'Paramètres', 'Déconnexion').",
+  "media_urls": {
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1584940120505-117038d90b05?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBjb3Jwb3JhdGUlMjBhdmF0YXIlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzU4NDQ0NzF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Principal Admin Avatar",
+        "category": "user_profile"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1618645041616-51edd6add6d0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBjb3Jwb3JhdGUlMjBhdmF0YXIlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzU4NDQ0NzF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Secondary Admin Avatar",
+        "category": "user_profile"
+      }
+    ],
+    "textures": [
+      {
+        "url": "https://images.unsplash.com/photo-1763386599791-fd86c07e1c86?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwxfHxzdWJ0bGUlMjBkYXJrJTIwbm9pc2UlMjB0ZXh0dXJlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzU4NDQ0NzF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Subtle Dark Noise Texture for Sidebar Background",
+        "category": "background_texture"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Implement the components in `/app/frontend/src/components/`. Create files `AdminCMS.jsx`, `AdminSidebar.jsx`, and `AdminHeader.jsx`.",
+    "Use standard Tailwind CSS classes. Apply conditional styling based on the `isPrincipalAdmin` boolean prop.",
+    "For the principal admin sidebar, use `#0A0A0A` base with amber accents and add the noise texture with a very low opacity (`opacity-5` to `opacity-10`).",
+    "For the secondary admin sidebar, use `#0f172a` base with teal accents.",
+    "Ensure all text is in French as requested.",
+    "Add `data-testid` to all clickable elements (links, buttons, toggles).",
+    "Use `lucide-react` or `@phosphor-icons/react` for icons.",
+    "Use framer-motion for smooth transitions of the sidebar width and expandable groups."
+  ]
+}
