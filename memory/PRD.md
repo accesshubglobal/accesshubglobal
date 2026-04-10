@@ -68,6 +68,9 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] Redirect admin_principal/admin_secondaire vers /admin après login (FAIT - 04/2026)
 - [x] DashboardShell.jsx : wrapper immersif dark mode partagé pour tous les dashboards (FAIT - 04/2026)
 - [x] CompaniesSection + FeaturedCompanyPage : entreprises en vedette sur homepage (FAIT - 04/2026)
+- [x] **Compte Agent** : Gate code activation chaque connexion (ActivationCodeGate), contrat PDF admin, gestion code admin (FAIT - 04/2026)
+- [x] **Compte Employeur** : Gate code activation chaque connexion (ActivationCodeGate), doc officiel obligatoire, re-approbation sur edit profil, contrat PDF admin, gestion code admin (FAIT - 04/2026)
+- [x] **Compte Université/Partenaire** : Gate code activation chaque connexion (PartnerActivationCodeGate), onglet Contrat dans dashboard, endpoints admin upload contrat + gestion code (FAIT - 04/2026)
 
 
 ### P1 - Priorité haute
