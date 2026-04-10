@@ -21,6 +21,7 @@
 - Code d'activation (requis à chaque connexion): AG-BVJRO96I
 - Rôle: agent
 - Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
+- Documents: NON soumis (documentsVerified=false) — à soumettre pour débloquer inscription étudiants
 - Nom: Jean Agent
 - Connexion: via la modale de connexion sur la page d'accueil → redirige vers /agent
 

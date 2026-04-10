@@ -69,8 +69,15 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] DashboardShell.jsx : wrapper immersif dark mode partagé pour tous les dashboards (FAIT - 04/2026)
 - [x] CompaniesSection + FeaturedCompanyPage : entreprises en vedette sur homepage (FAIT - 04/2026)
 - [x] **Compte Agent** : Gate code activation chaque connexion (ActivationCodeGate), contrat PDF admin, gestion code admin (FAIT - 04/2026)
+- [x] **Compte Agent — Gate documents** : Onglet "Mes Documents" avec pièce d'identité + justificatif de domicile obligatoires. Bloque inscription étudiants jusqu'à validation admin. Admin voit les docs + bouton "Valider docs" (FAIT - 04/2026)
 - [x] **Compte Employeur** : Gate code activation chaque connexion (ActivationCodeGate), doc officiel obligatoire, re-approbation sur edit profil, contrat PDF admin, gestion code admin (FAIT - 04/2026)
 - [x] **Compte Université/Partenaire** : Gate code activation chaque connexion (PartnerActivationCodeGate), onglet Contrat dans dashboard, endpoints admin upload contrat + gestion code (FAIT - 04/2026)
+- [x] **Compte Logement — Gate code** : LogementActivationCodeGate (LG-XXXXXXXX) bloque dashboard jusqu'à saisie code (FAIT - 04/2026)
+- [x] **Compte Logement — Contrat** : Onglet Contrat dans sidebar, admin upload PDF via LogementPartnersSection (FAIT - 04/2026)
+- [x] **Compte Logement — Entreprise** : Onglet Mon Entreprise avec infos société + doc officiel obligatoire + pièce d'identité obligatoire (FAIT - 04/2026)
+- [x] **Compte Logement — Dupliquer annonce** : Bouton Dupliquer sur chaque annonce dans Mes Annonces (FAIT - 04/2026)
+- [x] **Compte Logement — Fix sidebar** : mt-auto sur footer pour coller en bas de page (FAIT - 04/2026)
+- [x] **Admin LogementPartners** : Code LG-TESTCODE affiché, modale modifier code + upload contrat (FAIT - 04/2026)
 
 
 ### P1 - Priorité haute
