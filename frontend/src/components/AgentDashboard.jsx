@@ -1311,17 +1311,23 @@ const AgentDashboard = () => {
   // Contract
   const [contractData, setContractData] = useState(null);
 
+  // Documents
+  const [agentProfile, setAgentProfile] = useState(null);
+  const [docUploading, setDocUploading] = useState({});
+  const [docSaving, setDocSaving] = useState(false);
+
   useEffect(() => {
     if (activeTab === 'dashboard') loadStats();
-    if (activeTab === 'students') loadStudents();
-    if (activeTab === 'applications') { loadApplications(); loadStudents(); }
+    if (activeTab === 'students') { loadStudents(); loadAgentProfile(); }
+    if (activeTab === 'applications') { loadApplications(); loadStudents(); loadAgentProfile(); }
     if (activeTab === 'offers') { loadOffers(); loadStudents(); }
     if (activeTab === 'favorites') loadFavorites();
     if (activeTab === 'messages') loadMessages();
     if (activeTab === 'contrat') loadContract();
+    if (activeTab === 'documents') loadAgentProfile();
   }, [activeTab]);
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => { loadStats(); loadAgentProfile(); }, []);
 
   const loadStats = async () => {
     try { const r = await axios.get(`${API}/agent/dashboard-stats`); setStats(r.data); } catch {}
@@ -1354,6 +1360,25 @@ const AgentDashboard = () => {
 
   const loadContract = async () => {
     try { const r = await axios.get(`${API}/agent/contract`); setContractData(r.data); } catch {}
+  };
+
+  const loadAgentProfile = async () => {
+    try { const r = await axios.get(`${API}/agent/profile`); setAgentProfile(r.data); } catch {}
+  };
+
+  const handleDocUpload = async (e, docType) => {
+    const file = e.target.files[0]; if (!file) return;
+    setDocUploading(d => ({ ...d, [docType]: true }));
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await axios.post(`${BACKEND_URL}/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = r.data.url;
+      const nameKey = docType === 'idDocUrl' ? 'idDocName' : 'addressDocName';
+      const updated = { ...agentProfile, [docType]: url, [nameKey]: file.name };
+      setAgentProfile(updated);
+      await axios.put(`${API}/agent/profile`, { [docType]: url, [nameKey]: file.name });
+    } catch { alert('Erreur lors du téléchargement'); }
+    setDocUploading(d => ({ ...d, [docType]: false }));
   };
 
   const handleStudentSave = async (data) => {
@@ -1430,6 +1455,7 @@ const AgentDashboard = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Tableau de bord', icon: BarChart3 },
+    { id: 'documents', label: 'Mes Documents', icon: Shield },
     { id: 'students', label: 'Étudiants', icon: Users, count: students.length },
     { id: 'applications', label: 'Candidatures', icon: FileText, count: applications.length },
     { id: 'offers', label: 'Offres', icon: GraduationCap },
@@ -1437,6 +1463,9 @@ const AgentDashboard = () => {
     { id: 'messages', label: 'Messages', icon: MessageCircle },
     { id: 'contrat', label: 'Contrat', icon: FileText },
   ];
+
+  const docsOk = agentProfile?.documentsVerified;
+  const docsSubmitted = agentProfile?.documentsSubmitted;
 
   const filteredOffers = offers.filter(o =>
     !searchQuery || o.title?.toLowerCase().includes(searchQuery.toLowerCase()) || o.university?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1491,6 +1520,30 @@ const AgentDashboard = () => {
         {/* ── Dashboard Tab ── */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
+            {/* Documents warning */}
+            {!docsOk && (
+              <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl"
+                style={{ backgroundColor: docsSubmitted ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${docsSubmitted ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+                <AlertCircle size={18} className={docsSubmitted ? 'text-blue-400' : 'text-red-400'} style={{ marginTop: 2, flexShrink: 0 }} />
+                <div className="flex-1">
+                  {docsSubmitted ? (
+                    <>
+                      <p className="text-blue-300 font-semibold text-sm">Documents en cours de vérification</p>
+                      <p className="text-blue-400/70 text-xs mt-0.5">Vos documents sont soumis. L'inscription d'étudiants sera débloquée après validation par l'administrateur.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-300 font-semibold text-sm">Documents obligatoires manquants</p>
+                      <p className="text-red-400/70 text-xs mt-0.5">Vous devez soumettre une pièce d'identité et un justificatif de domicile avant d'inscrire des étudiants.</p>
+                    </>
+                  )}
+                </div>
+                <button onClick={() => setActiveTab('documents')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex-shrink-0 text-white ${docsSubmitted ? 'bg-blue-500 hover:bg-blue-600' : 'bg-red-500 hover:bg-red-600'}`}>
+                  {docsSubmitted ? 'Voir' : 'Soumettre'}
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <StatCard label="Étudiants" value={stats?.students || 0} icon={Users} accent={ACCENT} />
               <StatCard label="Candidatures" value={stats?.totalApplications || 0} icon={FileText} accent="#8b5cf6" />
@@ -1523,10 +1576,30 @@ const AgentDashboard = () => {
         {/* ── Students Tab ── */}
         {activeTab === 'students' && (
           <div className="space-y-4">
+            {/* Documents gate */}
+            {!docsOk && (
+              <div className="flex items-start gap-3 px-4 py-4 rounded-2xl"
+                style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <Shield size={20} className="text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-red-300 font-semibold text-sm">Accès restreint</p>
+                  <p className="text-red-400/70 text-xs mt-0.5">
+                    {docsSubmitted
+                      ? "Vos documents sont en cours de vérification. L'inscription d'étudiants sera disponible après validation."
+                      : "Vous devez soumettre une pièce d'identité et un justificatif de domicile avant d'inscrire des étudiants."}
+                  </p>
+                </div>
+                <button onClick={() => setActiveTab('documents')}
+                  className="px-3 py-1.5 bg-red-500 text-white rounded-xl text-xs font-semibold flex-shrink-0">
+                  {docsSubmitted ? 'Voir statut' : 'Soumettre docs'}
+                </button>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Mes Étudiants ({students.length})</h2>
-              <button onClick={() => { setEditingStudent(null); setShowStudentForm(true); }} data-testid="add-student-btn"
-                className="px-4 py-2 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90 flex items-center gap-2">
+              <button onClick={() => { if (!docsOk) { setActiveTab('documents'); return; } setEditingStudent(null); setShowStudentForm(true); }} data-testid="add-student-btn"
+                className={`px-4 py-2 text-white rounded-xl text-sm font-medium hover:opacity-90 flex items-center gap-2 ${docsOk ? 'bg-[#1e3a5f]' : 'bg-gray-400 cursor-not-allowed'}`}
+                title={docsOk ? '' : 'Documents requis avant inscription'}>
                 <Plus size={15} /> Ajouter un étudiant
               </button>
             </div>
@@ -1849,6 +1922,75 @@ const AgentDashboard = () => {
                   Votre contrat de partenariat sera disponible ici une fois que l'administrateur l'aura téléversé.
                 </p>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Documents Tab ── */}
+        {activeTab === 'documents' && agentProfile !== null && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Mes Documents</h2>
+              <p className="text-sm text-gray-500 mt-1">Ces documents sont requis avant de pouvoir inscrire des étudiants.</p>
+            </div>
+
+            {/* Status */}
+            <div className={`flex items-start gap-3 px-4 py-3.5 rounded-2xl ${agentProfile.documentsVerified ? 'bg-green-50 border border-green-200' : agentProfile.documentsSubmitted ? 'bg-blue-50 border border-blue-200' : 'bg-amber-50 border border-amber-200'}`}>
+              {agentProfile.documentsVerified
+                ? <CheckCircle size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
+                : agentProfile.documentsSubmitted
+                ? <Clock size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                : <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />}
+              <div>
+                <p className={`font-semibold text-sm ${agentProfile.documentsVerified ? 'text-green-800' : agentProfile.documentsSubmitted ? 'text-blue-800' : 'text-amber-800'}`}>
+                  {agentProfile.documentsVerified ? 'Documents vérifiés — Vous êtes opérationnel' : agentProfile.documentsSubmitted ? 'Documents soumis — En attente de vérification admin' : 'Documents non soumis'}
+                </p>
+                <p className={`text-xs mt-0.5 ${agentProfile.documentsVerified ? 'text-green-600' : agentProfile.documentsSubmitted ? 'text-blue-600' : 'text-amber-600'}`}>
+                  {agentProfile.documentsVerified
+                    ? "Votre pièce d'identité et justificatif de domicile ont été vérifiés. Vous pouvez inscrire des étudiants."
+                    : agentProfile.documentsSubmitted
+                    ? "L'administrateur va vérifier vos documents sous peu."
+                    : "Soumettez les deux documents ci-dessous pour débloquer l'inscription d'étudiants."}
+                </p>
+              </div>
+            </div>
+
+            {/* Documents */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
+              <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+                <Shield size={16} className="text-blue-600" /> Documents d'identité
+              </h3>
+
+              {[
+                { key: 'idDocUrl', nameKey: 'idDocName', label: "Pièce d'identité valide *", desc: "Carte nationale d'identité ou passeport en cours de validité" },
+                { key: 'addressDocUrl', nameKey: 'addressDocName', label: "Justificatif de domicile *", desc: "Facture d'électricité, de gaz, internet ou relevé bancaire récent (moins de 3 mois)" },
+              ].map(({ key, nameKey, label, desc }) => (
+                <div key={key} className={`border-2 border-dashed rounded-2xl p-4 transition-colors ${agentProfile[key] ? 'border-green-200 bg-green-50' : 'border-gray-200 hover:border-blue-200'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-800 text-sm">{label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                      {agentProfile[key] && (
+                        <a href={agentProfile[key]} target="_blank" rel="noreferrer" className="text-xs text-green-600 hover:underline mt-1 flex items-center gap-1">
+                          <Eye size={11} /> {agentProfile[nameKey] || 'Document téléchargé'} — voir
+                        </a>
+                      )}
+                    </div>
+                    <label className={`cursor-pointer flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${agentProfile[key] ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                      {docUploading[key] ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                      {agentProfile[key] ? 'Remplacer' : 'Téléverser'}
+                      <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={e => handleDocUpload(e, key)} />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {agentProfile.documentsSubmitted && !agentProfile.documentsVerified && (
+              <p className="text-center text-xs text-gray-500">
+                Documents soumis. En attente de validation par l'administrateur.
+              </p>
             )}
           </div>
         )}

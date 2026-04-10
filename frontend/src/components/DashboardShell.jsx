@@ -88,7 +88,7 @@ const DashboardShell = ({
     : '?';
 
   const NavContent = () => (
-    <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto">
+    <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
       {navItems.map(item => {
         const Icon = item.icon;
         const active = activeTab === item.id;
@@ -175,8 +175,8 @@ const DashboardShell = ({
         {/* Navigation */}
         <NavContent />
 
-        {/* Footer actions */}
-        <div className="px-3 pb-6 space-y-1 border-t pt-3 flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+        {/* Footer actions — mt-auto ensures they stick to the bottom */}
+        <div className="mt-auto px-3 pb-6 space-y-1 border-t pt-3 flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
           <button onClick={() => navigate('/')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-white/70 transition-colors">
             <Home size={16} /> Retour au site

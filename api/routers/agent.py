@@ -271,3 +271,46 @@ async def verify_agent_login_code(data: dict, agent: dict = Depends(get_agent_us
     if not stored_code or data.get("code", "").strip().upper() != stored_code.strip().upper():
         raise HTTPException(status_code=400, detail="Code d'activation incorrect. Vérifiez votre code.")
     return {"success": True}
+
+
+# ── Agent profile (get / update) ──────────────────────────────────────────────
+@router.get("/agent/profile")
+async def get_agent_profile(agent: dict = Depends(get_agent_user)):
+    return {
+        "firstName": agent.get("firstName", ""),
+        "lastName": agent.get("lastName", ""),
+        "email": agent.get("email", ""),
+        "phone": agent.get("phone", ""),
+        "idDocUrl": agent.get("idDocUrl", ""),
+        "idDocName": agent.get("idDocName", ""),
+        "addressDocUrl": agent.get("addressDocUrl", ""),
+        "addressDocName": agent.get("addressDocName", ""),
+        "documentsVerified": agent.get("documentsVerified", False),
+        "documentsSubmitted": bool(agent.get("idDocUrl") and agent.get("addressDocUrl")),
+    }
+
+
+@router.put("/agent/profile")
+async def update_agent_profile(data: dict, agent: dict = Depends(get_agent_user)):
+    db = get_db()
+    allowed = {k: v for k, v in data.items() if k in (
+        "phone", "idDocUrl", "idDocName", "addressDocUrl", "addressDocName"
+    )}
+    # Reset verification if docs re-uploaded
+    if "idDocUrl" in allowed or "addressDocUrl" in allowed:
+        allowed["documentsVerified"] = False
+    await db.users.update_one({"id": agent["id"]}, {"$set": allowed})
+    return {"success": True}
+
+
+# ── Admin: verify agent documents ─────────────────────────────────────────────
+@router.put("/admin/agents/{agent_id}/verify-documents")
+async def admin_verify_agent_documents(agent_id: str, data: dict, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    agent = await db.users.find_one({"id": agent_id, "role": "agent"})
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent non trouvé")
+    verified = data.get("verified", True)
+    await db.users.update_one({"id": agent_id}, {"$set": {"documentsVerified": verified}})
+    return {"success": True, "documentsVerified": verified}
+

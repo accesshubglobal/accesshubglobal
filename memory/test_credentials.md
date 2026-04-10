@@ -46,6 +46,7 @@
 - Rôle: partenaire_logement
 - Statut: approuvé (isApproved=true), email vérifié (emailVerified=true)
 - Entreprise: Résidence Test
+- Code d'activation (requis à chaque connexion): LG-TESTCODE
 - Accès: /logement
 - Page inscription: /logement/register
 - Page landing: /rejoindre/logement

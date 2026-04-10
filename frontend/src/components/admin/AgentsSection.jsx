@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Trash2, Key, Copy, UserCheck, FileText, Upload, Loader2, Edit2, RefreshCw } from 'lucide-react';
+import { Check, X, Trash2, Key, Copy, UserCheck, FileText, Upload, Loader2, Edit2, RefreshCw, Shield, CheckCircle, Eye } from 'lucide-react';
 import axios, { API } from './adminApi';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -12,9 +12,10 @@ const AgentsSection = ({ onBadgeUpdate }) => {
   const [contractUrl, setContractUrl] = useState('');
   const [contractName, setContractName] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [editCodeModal, setEditCodeModal] = useState(null); // agent en cours d'édition
+  const [editCodeModal, setEditCodeModal] = useState(null);
   const [newAgentCode, setNewAgentCode] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [docViewModal, setDocViewModal] = useState(null);
 
   useEffect(() => { loadAgents(); loadAgentCodes(); }, []);
 
@@ -201,6 +202,31 @@ const AgentsSection = ({ onBadgeUpdate }) => {
                     className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 flex items-center gap-1">
                     <X size={14} /> {agent.isApproved ? 'Desactiver' : 'Rejeter'}
                   </button>
+                  {/* Documents verification */}
+                  {agent.idDocUrl && !agent.documentsVerified && (
+                    <button onClick={async () => {
+                      try {
+                        await axios.put(`${API}/admin/agents/${agent.id}/verify-documents`, { verified: true });
+                        loadAgents();
+                      } catch { alert('Erreur'); }
+                    }}
+                    className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 flex items-center gap-1"
+                    data-testid={`verify-docs-agent-${agent.id}`}>
+                      <Shield size={14} /> Valider docs
+                    </button>
+                  )}
+                  {agent.documentsVerified && (
+                    <span className="px-2 py-1 bg-green-50 text-green-700 rounded-lg text-[11px] font-medium flex items-center gap-1">
+                      <CheckCircle size={11} /> Docs OK
+                    </span>
+                  )}
+                  {(agent.idDocUrl || agent.addressDocUrl) && (
+                    <button onClick={() => setDocViewModal(agent)}
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 flex items-center gap-1"
+                      data-testid={`view-docs-agent-${agent.id}`}>
+                      <Eye size={14} /> Docs
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -344,6 +370,48 @@ const AgentsSection = ({ onBadgeUpdate }) => {
         </div>
       </div>
     )}
+    {/* ── Documents View Modal ── */}
+    {docViewModal && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="px-5 py-4 border-b flex items-center justify-between">
+            <h3 className="font-bold text-sm text-gray-900">Documents — {docViewModal.firstName} {docViewModal.lastName}</h3>
+            <button onClick={() => setDocViewModal(null)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X size={16} /></button>
+          </div>
+          <div className="p-5 space-y-4">
+            {[
+              { url: docViewModal.idDocUrl, name: docViewModal.idDocName, label: "Pièce d'identité" },
+              { url: docViewModal.addressDocUrl, name: docViewModal.addressDocName, label: "Justificatif de domicile" },
+            ].map(({ url, name, label }) => url && (
+              <div key={label} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div>
+                  <p className="font-medium text-gray-800 text-sm">{label}</p>
+                  <p className="text-xs text-gray-500">{name || 'Document'}</p>
+                </div>
+                <a href={url} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100">
+                  <Eye size={12} /> Voir
+                </a>
+              </div>
+            ))}
+            <div className="flex gap-3 pt-1">
+              {!docViewModal.documentsVerified && (
+                <button onClick={async () => {
+                  await axios.put(`${API}/admin/agents/${docViewModal.id}/verify-documents`, { verified: true });
+                  setDocViewModal(null); loadAgents();
+                }}
+                className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-2"
+                data-testid="verify-docs-modal-btn">
+                  <Shield size={14} /> Valider les documents
+                </button>
+              )}
+              <button onClick={() => setDocViewModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">Fermer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     </>
   );
 };

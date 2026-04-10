@@ -190,3 +190,141 @@ async def admin_delete_property(property_id: str, admin: dict = Depends(get_admi
     db = get_db()
     await db.logement_properties.delete_one({"id": property_id})
     return {"success": True}
+
+
+# ── Logement: verify login code ────────────────────────────────────────────────
+@router.post("/logement/verify-login-code")
+async def verify_logement_login_code(data: dict, partner: dict = Depends(get_logement_user)):
+    stored_code = partner.get("logementCode", "")
+    if not stored_code or data.get("code", "").strip().upper() != stored_code.strip().upper():
+        raise HTTPException(status_code=400, detail="Code d'activation incorrect. Vérifiez votre code.")
+    return {"success": True}
+
+
+# ── Logement: contract ─────────────────────────────────────────────────────────
+@router.get("/logement/contract")
+async def get_logement_contract(partner: dict = Depends(get_logement_user)):
+    return {
+        "contractUrl": partner.get("contractUrl", ""),
+        "contractName": partner.get("contractName", "Contrat Logement"),
+        "contractUploadedAt": partner.get("contractUploadedAt", ""),
+    }
+
+
+# ── Logement: profile (get + update) ──────────────────────────────────────────
+@router.get("/logement/profile")
+async def get_logement_profile(partner: dict = Depends(get_logement_user)):
+    return {
+        "firstName": partner.get("firstName", ""),
+        "lastName": partner.get("lastName", ""),
+        "email": partner.get("email", ""),
+        "phone": partner.get("phone", ""),
+        "companyName": partner.get("companyName", ""),
+        "companyAddress": partner.get("companyAddress", ""),
+        "companyCity": partner.get("companyCity", ""),
+        "companyCountry": partner.get("companyCountry", ""),
+        "companyWebsite": partner.get("companyWebsite", ""),
+        "companyDescription": partner.get("companyDescription", ""),
+        "officialDocUrl": partner.get("officialDocUrl", ""),
+        "officialDocName": partner.get("officialDocName", ""),
+        "idDocUrl": partner.get("idDocUrl", ""),
+        "idDocName": partner.get("idDocName", ""),
+        "profileComplete": bool(partner.get("companyName") and partner.get("officialDocUrl") and partner.get("idDocUrl")),
+    }
+
+
+@router.put("/logement/profile")
+async def update_logement_profile(data: dict, partner: dict = Depends(get_logement_user)):
+    db = get_db()
+    allowed = {k: v for k, v in data.items() if k in (
+        "phone", "companyName", "companyAddress", "companyCity", "companyCountry",
+        "companyWebsite", "companyDescription",
+        "officialDocUrl", "officialDocName", "idDocUrl", "idDocName"
+    )}
+    await db.users.update_one({"id": partner["id"]}, {"$set": allowed})
+    return {"success": True}
+
+
+# ── Logement: duplicate property ───────────────────────────────────────────────
+@router.post("/logement/properties/{property_id}/duplicate")
+async def duplicate_logement_property(property_id: str, partner: dict = Depends(get_logement_user)):
+    db = get_db()
+    original = await db.logement_properties.find_one({"id": property_id, "partnerId": partner["id"]}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Propriété non trouvée")
+    now = datetime.now(timezone.utc).isoformat()
+    new_prop = {
+        **original,
+        "id": str(uuid.uuid4()),
+        "title": f"{original['title']} (copie)",
+        "isApproved": False,
+        "createdAt": now,
+    }
+    await db.logement_properties.insert_one(new_prop)
+    return {k: v for k, v in new_prop.items() if k != "_id"}
+
+
+# ── Logement: housing inquiries ────────────────────────────────────────────────
+@router.get("/logement/inquiries")
+async def get_logement_inquiries(partner: dict = Depends(get_logement_user)):
+    db = get_db()
+    inquiries = await db.logement_inquiries.find(
+        {"partnerId": partner["id"]}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(200)
+    return inquiries
+
+
+# ── Admin: update logement login code ──────────────────────────────────────────
+@router.put("/admin/logement-partners/{partner_id}/login-code")
+async def admin_update_logement_login_code(partner_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    new_code = data.get("logementCode", "").strip().upper()
+    if not new_code:
+        raise HTTPException(status_code=400, detail="Le code ne peut pas être vide")
+    partner = await db.users.find_one({"id": partner_id, "role": "partenaire_logement"})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    await db.users.update_one({"id": partner_id}, {"$set": {"logementCode": new_code}})
+    return {"success": True, "logementCode": new_code}
+
+
+# ── Admin: upload logement contract ────────────────────────────────────────────
+@router.put("/admin/logement-partners/{partner_id}/contract")
+async def admin_upload_logement_contract(partner_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    partner = await db.users.find_one({"id": partner_id, "role": "partenaire_logement"})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    await db.users.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "contractUrl": data.get("contractUrl", ""),
+            "contractName": data.get("contractName", "Contrat Logement"),
+            "contractUploadedAt": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True}
+
+
+# ── Public: submit housing inquiry ─────────────────────────────────────────────
+@router.post("/housing-inquiry")
+async def submit_housing_inquiry(data: dict):
+    db = get_db()
+    prop = await db.logement_properties.find_one({"id": data.get("propertyId"), "isApproved": True}, {"_id": 0})
+    if not prop:
+        raise HTTPException(status_code=404, detail="Annonce introuvable")
+    inquiry = {
+        "id": str(uuid.uuid4()),
+        "propertyId": data.get("propertyId"),
+        "propertyTitle": prop.get("title", ""),
+        "partnerId": prop.get("partnerId"),
+        "name": data.get("name", ""),
+        "email": data.get("email", ""),
+        "phone": data.get("phone", ""),
+        "message": data.get("message", ""),
+        "isRead": False,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.logement_inquiries.insert_one(inquiry)
+    return {"success": True}
+
