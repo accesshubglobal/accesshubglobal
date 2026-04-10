@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { UserCheck, Eye, EyeOff, ArrowLeft, Building2, Key, Loader2, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -212,6 +213,7 @@ const AgentRegisterPage = () => {
               </button>
             </div>
           </div>
+          <PasswordStrengthIndicator password={form.password} />
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Confirmer le mot de passe *</label>

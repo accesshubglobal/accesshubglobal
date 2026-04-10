@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Eye, EyeOff, ArrowLeft, Building2, Key, Loader2, ShieldCheck, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -231,6 +232,7 @@ const EmployerRegisterPage = () => {
                     data-testid="employer-confirm-password" />
                 </div>
               </div>
+              <PasswordStrengthIndicator password={form.password} />
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>

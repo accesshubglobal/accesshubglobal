@@ -6,6 +6,8 @@ from _models import LogementPropertyCreate
 from _helpers import (
     get_db, get_current_user, get_admin_user, get_principal_admin,
     get_logement_user, broadcast_to_admins,
+    check_rate_limit, validate_password_strength, sanitize_text,
+    check_company_name_unique, normalize_email,
 )
 
 router = APIRouter()
@@ -18,20 +20,29 @@ async def register_logement_partner(data: dict):
     from _helpers import hash_password, send_verification_email
     db = get_db()
 
-    # Check email unique
-    if await db.users.find_one({"email": data.get("email")}):
+    email = normalize_email(data.get("email", ""))
+    check_rate_limit(f"register:{email}", max_requests=3, window_seconds=300)
+    validate_password_strength(data.get("password", ""))
+
+    # Email uniqueness (case-insensitive)
+    if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+
+    # Company name uniqueness
+    company = sanitize_text(data.get("companyName", ""), 200)
+    if company:
+        await check_company_name_unique(company)
 
     now = datetime.now(timezone.utc)
     verification_token = str(uuid.uuid4())
     user = {
         "id": str(uuid.uuid4()),
-        "firstName": data.get("firstName", ""),
-        "lastName": data.get("lastName", ""),
-        "email": data.get("email", ""),
+        "firstName": sanitize_text(data.get("firstName", ""), 100),
+        "lastName": sanitize_text(data.get("lastName", ""), 100),
+        "email": email,
         "password": hash_password(data.get("password", "")),
-        "phone": data.get("phone", ""),
-        "companyName": data.get("companyName", ""),
+        "phone": sanitize_text(data.get("phone", ""), 20),
+        "companyName": company,
         "companyDoc": data.get("companyDoc", ""),
         "role": "partenaire_logement",
         "isApproved": False,

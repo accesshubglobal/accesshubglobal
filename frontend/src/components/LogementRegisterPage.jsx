@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home2, Eye, EyeOff, ArrowLeft, Building2, Loader2, CheckCircle, Upload, Home } from 'lucide-react';
 import axios from 'axios';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -121,6 +122,9 @@ const LogementRegisterPage = () => {
                     {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
+              </div>
+              <div className="px-1">
+                <PasswordStrengthIndicator password={form.password} />
               </div>
               <div><label className={label}>Confirmer mot de passe *</label><input type="password" className={inp} value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} required /></div>
 

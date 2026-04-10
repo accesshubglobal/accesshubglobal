@@ -29,6 +29,9 @@ from _helpers import (
     send_notification, broadcast_to_admins,
     generate_verification_code, send_verification_email, send_password_reset_email,
     broadcast_newsletter_offer, broadcast_newsletter_blog,
+    check_brute_force, record_failed_login, clear_failed_logins,
+    check_rate_limit, validate_password_strength, sanitize_text,
+    check_company_name_unique, normalize_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,15 +49,27 @@ async def root():
 @router.post("/auth/register")
 async def register(user_data: UserCreate):
     db = get_db()
-    existing_user = await db.users.find_one({"email": user_data.email})
+
+    # Rate limiting
+    check_rate_limit(f"register:{normalize_email(user_data.email)}", max_requests=3, window_seconds=300)
+
+    # Sanitize & normalize
+    email = normalize_email(user_data.email)
+    first = sanitize_text(user_data.firstName, 100)
+    last = sanitize_text(user_data.lastName, 100)
+
+    # Password strength
+    validate_password_strength(user_data.password)
+
+    existing_user = await db.users.find_one({"email": email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Cet email est deja utilise")
 
     user = User(
-        email=user_data.email,
-        firstName=user_data.firstName,
-        lastName=user_data.lastName,
-        phone=user_data.phone
+        email=email,
+        firstName=first,
+        lastName=last,
+        phone=sanitize_text(user_data.phone or "", 20)
     )
 
     user_dict = serialize_doc(user.model_dump())
@@ -67,12 +82,12 @@ async def register(user_data: UserCreate):
     code = generate_verification_code()
     await db.email_verifications.insert_one({
         "userId": user.id,
-        "email": user_data.email,
+        "email": email,
         "code": code,
         "expiresAt": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
         "used": False,
     })
-    await send_verification_email(user_data.email, code)
+    await send_verification_email(email, code)
 
     access_token = create_access_token({"sub": user.id})
 
@@ -152,11 +167,17 @@ async def resend_verification(data: dict):
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     db = get_db()
-    user = await db.users.find_one({"email": credentials.email})
-    if not user:
-        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    email = normalize_email(credentials.email)
 
-    if not verify_password(credentials.password, user.get("password", "")):
+    # Rate limiting: max 10 login attempts per minute per email
+    check_rate_limit(f"login:{email}", max_requests=10, window_seconds=60)
+
+    # Brute force: block after 5 failed attempts
+    check_brute_force(email)
+
+    user = await db.users.find_one({"email": email})
+    if not user or not verify_password(credentials.password, user.get("password", "")):
+        record_failed_login(email)
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
 
     if not user.get("isActive", True):
@@ -168,6 +189,9 @@ async def login(credentials: UserLogin):
             status_code=403,
             detail="Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception."
         )
+
+    # Successful login — clear failed attempts
+    clear_failed_logins(email)
 
     access_token = create_access_token({"sub": user["id"]})
 
@@ -272,9 +296,19 @@ async def reset_password(request: PasswordResetConfirm):
 @router.post("/auth/register-agent", response_model=TokenResponse)
 async def register_agent(agent_data: AgentRegister):
     db = get_db()
-    existing = await db.users.find_one({"email": agent_data.email})
+
+    # Rate limit + sanitize + validate
+    email = normalize_email(agent_data.email)
+    check_rate_limit(f"register:{email}", max_requests=3, window_seconds=300)
+    validate_password_strength(agent_data.password)
+
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="Cet email est deja utilise")
+
+    company = sanitize_text(agent_data.company or "", 200)
+    if company:
+        await check_company_name_unique(company)
 
     code_doc = await db.agent_codes.find_one({"code": agent_data.activationCode, "isUsed": False})
     if not code_doc:
@@ -291,11 +325,11 @@ async def register_agent(agent_data: AgentRegister):
     now = datetime.now(timezone.utc).isoformat()
     user_dict = {
         "id": user_id,
-        "email": agent_data.email,
-        "firstName": agent_data.firstName,
-        "lastName": agent_data.lastName,
-        "phone": agent_data.phone,
-        "company": agent_data.company or "",
+        "email": email,
+        "firstName": sanitize_text(agent_data.firstName, 100),
+        "lastName": sanitize_text(agent_data.lastName, 100),
+        "phone": sanitize_text(agent_data.phone or "", 20),
+        "company": company,
         "role": "agent",
         "isActive": True,
         "isApproved": False,
@@ -342,9 +376,17 @@ async def register_agent(agent_data: AgentRegister):
 @router.post("/auth/register-partner", response_model=TokenResponse)
 async def register_partner(partner_data: PartnerRegister):
     db = get_db()
-    existing = await db.users.find_one({"email": partner_data.email})
+    email = normalize_email(partner_data.email)
+    check_rate_limit(f"register:{email}", max_requests=3, window_seconds=300)
+    validate_password_strength(partner_data.password)
+
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    company = sanitize_text(partner_data.company or "", 200)
+    if company:
+        await check_company_name_unique(company)
 
     code_doc = await db.partner_codes.find_one({"code": partner_data.activationCode, "isUsed": False})
     if not code_doc:
@@ -354,12 +396,12 @@ async def register_partner(partner_data: PartnerRegister):
     now = datetime.now(timezone.utc)
     user_doc = {
         "id": user_id,
-        "email": partner_data.email,
-        "firstName": partner_data.firstName,
-        "lastName": partner_data.lastName,
-        "phone": partner_data.phone,
-        "company": partner_data.company or "",
-        "website": partner_data.website or "",
+        "email": email,
+        "firstName": sanitize_text(partner_data.firstName, 100),
+        "lastName": sanitize_text(partner_data.lastName, 100),
+        "phone": sanitize_text(partner_data.phone or "", 20),
+        "company": company,
+        "website": sanitize_text(partner_data.website or "", 200),
         "role": "partenaire",
         "isActive": True,
         "isApproved": False,
@@ -378,20 +420,20 @@ async def register_partner(partner_data: PartnerRegister):
 
     v_code = generate_verification_code()
     await db.email_verifications.insert_one({
-        "email": partner_data.email,
+        "email": email,
         "code": v_code,
         "createdAt": now.isoformat(),
     })
-    await send_verification_email(partner_data.email, v_code)
+    await send_verification_email(email, v_code)
 
     token = create_access_token({"sub": user_id})
     return TokenResponse(
         access_token=token,
         user=UserResponse(
-            id=user_id, email=partner_data.email,
-            firstName=partner_data.firstName, lastName=partner_data.lastName,
-            phone=partner_data.phone, role="partenaire", isActive=True, favorites=[],
-            isApproved=False, company=partner_data.company or "", emailVerified=False,
+            id=user_id, email=email,
+            firstName=user_doc["firstName"], lastName=user_doc["lastName"],
+            phone=user_doc["phone"], role="partenaire", isActive=True, favorites=[],
+            isApproved=False, company=company, emailVerified=False,
         )
     )
 
@@ -404,9 +446,17 @@ async def register_partner(partner_data: PartnerRegister):
 @router.post("/auth/register-employer", response_model=TokenResponse)
 async def register_employer(employer_data: EmployerRegister):
     db = get_db()
-    existing = await db.users.find_one({"email": employer_data.email})
+    email = normalize_email(employer_data.email)
+    check_rate_limit(f"register:{email}", max_requests=3, window_seconds=300)
+    validate_password_strength(employer_data.password)
+
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    company = sanitize_text(employer_data.company or "", 200)
+    if company:
+        await check_company_name_unique(company)
 
     code_doc = await db.employer_codes.find_one({"code": employer_data.activationCode, "isUsed": False})
     if not code_doc:
@@ -416,11 +466,11 @@ async def register_employer(employer_data: EmployerRegister):
     now = datetime.now(timezone.utc)
     user_doc = {
         "id": user_id,
-        "email": employer_data.email,
-        "firstName": employer_data.firstName,
-        "lastName": employer_data.lastName,
-        "phone": employer_data.phone or "",
-        "company": employer_data.company,
+        "email": email,
+        "firstName": sanitize_text(employer_data.firstName, 100),
+        "lastName": sanitize_text(employer_data.lastName, 100),
+        "phone": sanitize_text(employer_data.phone or "", 20),
+        "company": company,
         "role": "employeur",
         "isActive": True,
         "isApproved": False,
@@ -439,19 +489,19 @@ async def register_employer(employer_data: EmployerRegister):
 
     v_code = generate_verification_code()
     await db.email_verifications.insert_one({
-        "email": employer_data.email,
+        "email": email,
         "code": v_code,
         "createdAt": now.isoformat(),
     })
-    await send_verification_email(employer_data.email, v_code)
+    await send_verification_email(email, v_code)
 
     token = create_access_token({"sub": user_id})
     return TokenResponse(
         access_token=token,
         user=UserResponse(
-            id=user_id, email=employer_data.email,
-            firstName=employer_data.firstName, lastName=employer_data.lastName,
-            phone=employer_data.phone, role="employeur", isActive=True, favorites=[],
-            isApproved=False, company=employer_data.company, emailVerified=False,
+            id=user_id, email=email,
+            firstName=user_doc["firstName"], lastName=user_doc["lastName"],
+            phone=user_doc["phone"], role="employeur", isActive=True, favorites=[],
+            isApproved=False, company=company, emailVerified=False,
         )
     )

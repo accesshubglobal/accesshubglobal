@@ -491,9 +491,136 @@ def close_db():
 
 SECRET_KEY = os.environ.get('JWT_SECRET', 'winners-consulting-secret-key-2025')
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_HOURS = 24          # Session expirée après 24h
+ACCESS_TOKEN_EXPIRE_DAYS = 1            # kept for backwards compat
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+
+_MAX_LOGIN_ATTEMPTS = 5                 # tentatives avant blocage
+_BLOCK_MINUTES = 15                     # durée du blocage
+_RATE_WINDOW_SECONDS = 60               # fenêtre rate-limit
+_MAX_RATE_REQUESTS = 10                 # max requêtes par fenêtre
+
+# In-memory stores (simple, sufficient for single-instance)
+_failed_attempts: dict = {}   # ip_or_email -> [timestamps]
+_rate_store: dict = {}         # key -> [timestamps]
+
+
+# ── Brute-force protection ────────────────────────────────────────────────────
+
+def _now_ts() -> float:
+    return datetime.now(timezone.utc).timestamp()
+
+
+def check_brute_force(identifier: str):
+    """Raise 429 if identifier (email) has ≥5 failed logins in last 15 min."""
+    now = _now_ts()
+    cutoff = now - (_BLOCK_MINUTES * 60)
+    attempts = [t for t in _failed_attempts.get(identifier, []) if t > cutoff]
+    _failed_attempts[identifier] = attempts
+    if len(attempts) >= _MAX_LOGIN_ATTEMPTS:
+        remaining = int((_BLOCK_MINUTES * 60) - (now - min(attempts)))
+        mins = max(1, remaining // 60)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Trop de tentatives. Compte temporairement bloqué. Réessayez dans {mins} minute(s)."
+        )
+
+
+def record_failed_login(identifier: str):
+    """Record a failed login attempt."""
+    now = _now_ts()
+    cutoff = now - (_BLOCK_MINUTES * 60)
+    attempts = [t for t in _failed_attempts.get(identifier, []) if t > cutoff]
+    attempts.append(now)
+    _failed_attempts[identifier] = attempts
+
+
+def clear_failed_logins(identifier: str):
+    """Clear failed attempts after successful login."""
+    _failed_attempts.pop(identifier, None)
+
+
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+
+def check_rate_limit(key: str, max_requests: int = None, window_seconds: int = None):
+    """Raise 429 if more than max_requests in window_seconds for given key."""
+    max_req = max_requests or _MAX_RATE_REQUESTS
+    window = window_seconds or _RATE_WINDOW_SECONDS
+    now = _now_ts()
+    cutoff = now - window
+    hits = [t for t in _rate_store.get(key, []) if t > cutoff]
+    hits.append(now)
+    _rate_store[key] = hits
+    if len(hits) > max_req:
+        raise HTTPException(
+            status_code=429,
+            detail="Trop de requêtes. Veuillez patienter avant de réessayer."
+        )
+
+
+# ── Password strength ─────────────────────────────────────────────────────────
+
+def validate_password_strength(password: str):
+    """Raise 400 if password doesn't meet requirements."""
+    import re
+    errors = []
+    if len(password) < 8:
+        errors.append("au moins 8 caractères")
+    if not re.search(r'[A-Z]', password):
+        errors.append("au moins 1 lettre majuscule")
+    if not re.search(r'\d', password):
+        errors.append("au moins 1 chiffre")
+    if errors:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Mot de passe trop faible — requis : {', '.join(errors)}."
+        )
+
+
+# ── Input sanitization ────────────────────────────────────────────────────────
+
+def sanitize_text(value: str, max_len: int = 500) -> str:
+    """Strip, truncate, and remove dangerous characters from text input."""
+    import re
+    if not isinstance(value, str):
+        return ""
+    value = value.strip()[:max_len]
+    # Remove null bytes and control characters (keep newlines for descriptions)
+    value = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', value)
+    # Collapse multiple spaces
+    value = re.sub(r'  +', ' ', value)
+    return value
+
+
+# ── Company name uniqueness ───────────────────────────────────────────────────
+
+async def check_company_name_unique(name: str, exclude_id: str = None):
+    """Raise 400 if company name already exists across users and universities."""
+    if not name or not name.strip():
+        return
+    db = get_db()
+    norm = name.strip()
+    query = {"$or": [
+        {"companyName": {"$regex": f"^{norm}$", "$options": "i"}},
+        {"company": {"$regex": f"^{norm}$", "$options": "i"}},
+    ]}
+    if exclude_id:
+        query["id"] = {"$ne": exclude_id}
+    existing_user = await db.users.find_one(query)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Ce nom d'entreprise est déjà utilisé par un autre compte.")
+    # Also check universities collection
+    uni = await db.universities.find_one({"name": {"$regex": f"^{norm}$", "$options": "i"}})
+    if uni:
+        raise HTTPException(status_code=400, detail="Ce nom est déjà utilisé par une université enregistrée sur la plateforme.")
+
+
+# ── Email normalization ───────────────────────────────────────────────────────
+
+def normalize_email(email: str) -> str:
+    return email.strip().lower() if email else ""
+
 
 # ============= NOTIFICATION HOOKS (for WebSocket in local env) =============
 
@@ -521,7 +648,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 

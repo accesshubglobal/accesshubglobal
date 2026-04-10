@@ -3,7 +3,7 @@ import { X, Mail, Lock, User, Phone, Eye, EyeOff, Loader2, ShieldCheck, ArrowLef
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import PasswordResetModal from './PasswordResetModal';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -236,12 +236,13 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
             <input type={showPassword ? 'text' : 'password'} placeholder="Mot de passe" value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] focus:ring-2 focus:ring-[#1a56db]/20"
-              required minLength={6} data-testid="auth-password" />
+              required minLength={8} data-testid="auth-password" />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {mode === 'register' && <PasswordStrengthIndicator password={formData.password} />}
 
           {mode === 'login' && (
             <div className="flex justify-end">
