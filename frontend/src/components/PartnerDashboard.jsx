@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X } from 'lucide-react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X, Key, ShieldCheck, Eye } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,78 @@ const API = `${BACKEND_URL}/api`;
 const axiosAuth = (token) => axios.create({
   headers: { Authorization: `Bearer ${token}` }
 });
+
+// ── Activation Code Gate ───────────────────────────────────────────────────────
+const PartnerActivationCodeGate = ({ user, onVerified, onLogout }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      await axios.post(`${API}/partner/verify-login-code`,
+        { code: code.trim().toUpperCase() },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      sessionStorage.setItem(`partner_code_${user?.id}`, 'true');
+      onVerified();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Code incorrect. Vérifiez votre code d'activation.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ backgroundColor: '#050d1a' }}>
+      <div className="absolute pointer-events-none inset-0 overflow-hidden">
+        <div className="absolute -top-48 -left-48 w-[500px] h-[500px] rounded-full opacity-[0.12] blur-3xl animate-pulse" style={{ backgroundColor: '#10b981' }} />
+        <div className="absolute -bottom-32 right-0 w-[400px] h-[400px] rounded-full opacity-[0.08] blur-3xl" style={{ backgroundColor: '#059669', animation: 'pulse 4s ease-in-out 1.5s infinite' }} />
+      </div>
+      <div className="relative z-10 w-full max-w-md mx-auto px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(16,185,129,0.15)' }}>
+          <Key size={30} style={{ color: ACCENT }} />
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2">Vérification d'identité</h2>
+        <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          Saisissez votre <strong style={{ color: 'rgba(255,255,255,0.7)' }}>code d'activation partenaire</strong> (format PA-XXXXXXXX).<br />
+          C'est le code que l'administrateur vous a fourni lors de votre inscription.
+        </p>
+        <form onSubmit={handleVerify} className="space-y-4">
+          <input
+            type="text"
+            value={code}
+            onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            placeholder="Ex : PA-XXXXXXXX"
+            className="w-full px-4 py-3.5 rounded-2xl text-white text-center text-lg font-mono tracking-widest focus:outline-none transition-colors"
+            style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+            autoFocus
+            data-testid="partner-activation-code-input"
+          />
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+              <AlertCircle size={14} className="flex-shrink-0" /> {error}
+            </div>
+          )}
+          <button type="submit" disabled={!code.trim() || loading}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
+            style={{ backgroundColor: ACCENT }}
+            data-testid="partner-verify-code-btn">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+            {loading ? 'Vérification...' : 'Accéder à mon espace'}
+          </button>
+          <button type="button" onClick={onLogout}
+            className="w-full py-2 text-sm transition-colors"
+            style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Se déconnecter
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 // ── Status Badge ─────────────────────────────────────────────────────────────
 const StatusBadge = ({ isApproved }) => {
@@ -37,6 +109,14 @@ const PartnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('university');
   const [stats, setStats] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Activation code gate
+  const [codeVerified, setCodeVerified] = useState(() =>
+    sessionStorage.getItem(`partner_code_${user?.id}`) === 'true'
+  );
+
+  // Contract
+  const [contractData, setContractData] = useState(null);
 
   // University state
   const [university, setUniversity] = useState(null);
@@ -89,6 +169,13 @@ const PartnerDashboard = () => {
     } catch (e) {}
   };
 
+  const loadContract = async () => {
+    try {
+      const res = await ax().get(`${API}/partner/contract`);
+      setContractData(res.data);
+    } catch (e) {}
+  };
+
   const loadUniversity = async () => {
     try {
       const res = await ax().get(`${API}/partner/university`);
@@ -125,6 +212,7 @@ const PartnerDashboard = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (tab === 'messages') loadMessages();
+    if (tab === 'contrat') loadContract();
   };
 
   const handleSaveUniversity = async (data) => {
@@ -220,6 +308,17 @@ const PartnerDashboard = () => {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // ── Activation code gate ───────────────────────────────────────────────────
+  if (!codeVerified) {
+    return (
+      <PartnerActivationCodeGate
+        user={user}
+        onVerified={() => setCodeVerified(true)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   // ── Auth loading screen ────────────────────────────────────────────────────
   if (authLoading) {
     return (
@@ -269,6 +368,7 @@ const PartnerDashboard = () => {
     { id: 'university', label: 'Mon Université', icon: Building2 },
     { id: 'offers', label: 'Mes Offres', icon: GraduationCap },
     { id: 'messages', label: 'Messages', icon: MessageSquare, badge: unreadCount },
+    { id: 'contrat', label: 'Contrat', icon: FileText },
   ];
 
   return (
@@ -530,6 +630,53 @@ const PartnerDashboard = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Contrat Tab ── */}
+        {activeTab === 'contrat' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-900">Mon Contrat</h2>
+            {contractData?.contractUrl ? (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <FileText size={28} className="text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900">{contractData.contractName || 'Contrat Partenaire'}</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {contractData.contractUploadedAt
+                        ? `Mis à jour le ${new Date(contractData.contractUploadedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                        : 'Document PDF'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Contrat de partenariat AccessHub Global</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <a href={contractData.contractUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90"
+                    data-testid="view-partner-contract-btn">
+                    <Eye size={15} /> Visualiser
+                  </a>
+                  <a href={contractData.contractUrl} download
+                    className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
+                    data-testid="download-partner-contract-btn">
+                    <Download size={15} /> Télécharger
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                  <FileText size={32} className="text-gray-200" />
+                </div>
+                <p className="text-gray-500 font-medium">Aucun contrat disponible</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                  Votre contrat sera disponible ici une fois que l'administrateur l'aura téléversé.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

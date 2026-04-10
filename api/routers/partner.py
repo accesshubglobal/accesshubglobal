@@ -291,6 +291,57 @@ async def partner_delete_offer(offer_id: str, partner: dict = Depends(get_partne
 
 
 
+# ── Partner verify login code ─────────────────────────────────────────────────
+@router.post("/partner/verify-login-code")
+async def verify_partner_login_code(data: dict, partner: dict = Depends(get_partner_user)):
+    stored_code = partner.get("partnerCode", "")
+    if not stored_code or data.get("code", "").strip().upper() != stored_code.strip().upper():
+        raise HTTPException(status_code=400, detail="Code d'activation incorrect. Vérifiez votre code.")
+    return {"success": True}
+
+
+# ── Partner contract ───────────────────────────────────────────────────────────
+@router.get("/partner/contract")
+async def get_partner_contract(partner: dict = Depends(get_partner_user)):
+    return {
+        "contractUrl": partner.get("contractUrl", ""),
+        "contractName": partner.get("contractName", "Contrat Partenaire"),
+        "contractUploadedAt": partner.get("contractUploadedAt", ""),
+    }
+
+
+# ── Admin: update partner login code ──────────────────────────────────────────
+@router.put("/admin/partners/{partner_id}/login-code")
+async def admin_update_partner_login_code(partner_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    new_code = data.get("partnerCode", "").strip().upper()
+    if not new_code:
+        raise HTTPException(status_code=400, detail="Le code ne peut pas être vide")
+    partner = await db.users.find_one({"id": partner_id, "role": "partenaire"})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    await db.users.update_one({"id": partner_id}, {"$set": {"partnerCode": new_code}})
+    return {"success": True, "partnerCode": new_code}
+
+
+# ── Admin: upload partner contract ────────────────────────────────────────────
+@router.put("/admin/partners/{partner_id}/contract")
+async def admin_upload_partner_contract(partner_id: str, data: dict, admin: dict = Depends(get_principal_admin)):
+    db = get_db()
+    partner = await db.users.find_one({"id": partner_id, "role": "partenaire"})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partenaire non trouvé")
+    await db.users.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "contractUrl": data.get("contractUrl", ""),
+            "contractName": data.get("contractName", "Contrat Partenaire"),
+            "contractUploadedAt": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True}
+
+
 # ============= PARTNER MESSAGING =============
 
 @router.post("/admin/partner-messages")
