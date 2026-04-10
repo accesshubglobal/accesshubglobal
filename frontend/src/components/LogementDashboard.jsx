@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import DashboardShell, { StatCard, AccentBtn } from './DashboardShell';
+import { fixPdfUrl, downloadFile } from '../utils/fileUtils';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -613,17 +614,17 @@ const LogementDashboard = () => {
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
-                <a href={contractData.contractUrl} target="_blank" rel="noopener noreferrer"
+                <a href={fixPdfUrl(contractData.contractUrl)} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-medium hover:opacity-90"
                   style={{ backgroundColor: ACCENT }}
                   data-testid="view-logement-contract-btn">
                   <Eye size={15} /> Visualiser
                 </a>
-                <a href={contractData.contractUrl} download
+                <button onClick={() => downloadFile(contractData.contractUrl, contractData.contractName || 'contrat-logement.pdf')}
                   className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
                   data-testid="download-logement-contract-btn">
                   <Download size={15} /> Télécharger
-                </a>
+                </button>
               </div>
             </div>
           ) : (

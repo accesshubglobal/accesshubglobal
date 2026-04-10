@@ -9,6 +9,7 @@ import {
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { fixPdfUrl, downloadFile } from '../utils/fileUtils';
 
 import DashboardShell, { StatCard, GlassPanel, AccentBtn } from './DashboardShell';
 
@@ -520,16 +521,16 @@ const EmployerDashboard = () => {
                   </div>
                 </div>
                 <div className="flex gap-3 mt-5">
-                  <a href={contractData.contractUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={fixPdfUrl(contractData.contractUrl)} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90"
                     data-testid="view-employer-contract-btn">
                     <Eye size={15} /> Visualiser
                   </a>
-                  <a href={contractData.contractUrl} download
+                  <button onClick={() => downloadFile(contractData.contractUrl, contractData.contractName || 'contrat-employeur.pdf')}
                     className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
                     data-testid="download-employer-contract-btn">
                     <Download size={15} /> Télécharger
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : (

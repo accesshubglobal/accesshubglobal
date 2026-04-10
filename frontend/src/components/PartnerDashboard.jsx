@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X, Key, ShieldCheck, Eye } from 'lucide-react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X, Key, ShieldCheck, Eye, Shield, Upload } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OfferFormModal from './OfferFormModal';
 import UniversityFormModal from './UniversityFormModal';
 import DashboardShell, { StatCard, GlassPanel, AccentBtn } from './DashboardShell';
+import { fixPdfUrl, downloadFile } from '../utils/fileUtils';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const ACCENT = '#10b981';
@@ -654,16 +655,16 @@ const PartnerDashboard = () => {
                   </div>
                 </div>
                 <div className="flex gap-3 mt-5">
-                  <a href={contractData.contractUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={fixPdfUrl(contractData.contractUrl)} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a5f] text-white rounded-xl text-sm font-medium hover:opacity-90"
                     data-testid="view-partner-contract-btn">
                     <Eye size={15} /> Visualiser
                   </a>
-                  <a href={contractData.contractUrl} download
+                  <button onClick={() => downloadFile(contractData.contractUrl, contractData.contractName || 'contrat-partenaire.pdf')}
                     className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
                     data-testid="download-partner-contract-btn">
                     <Download size={15} /> Télécharger
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : (
