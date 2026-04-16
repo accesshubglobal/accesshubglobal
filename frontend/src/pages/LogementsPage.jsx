@@ -64,6 +64,196 @@ const FitBounds = ({ positions }) => {
   return null;
 };
 
+/* ── Property Detail Modal ─────────────────────────────────────────────── */
+const PropertyDetailModal = ({ property, onClose, onContact }) => {
+  const [activeImg, setActiveImg] = useState(0);
+  const imgs = property.images?.length > 0 ? property.images : [];
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[9998] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* ── Image gallery header ── */}
+        <div className="relative flex-shrink-0">
+          {imgs.length > 0 ? (
+            <div className="relative h-64 sm:h-80 bg-gray-100 overflow-hidden">
+              <img
+                src={imgs[activeImg]}
+                alt={property.title}
+                className="w-full h-full object-cover transition-all duration-300"
+              />
+              {/* Nav arrows */}
+              {imgs.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors z-10"
+                    data-testid="gallery-prev">
+                    <ChevronDown size={16} className="rotate-90" />
+                  </button>
+                  <button
+                    onClick={() => setActiveImg(i => (i + 1) % imgs.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors z-10"
+                    data-testid="gallery-next">
+                    <ChevronDown size={16} className="-rotate-90" />
+                  </button>
+                  {/* Dots */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {imgs.map((_, i) => (
+                      <button key={i} onClick={() => setActiveImg(i)}
+                        className={`rounded-full transition-all ${i === activeImg ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/60'}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+              {/* Photo counter */}
+              {imgs.length > 1 && (
+                <div className="absolute top-3 right-12 bg-black/50 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                  {activeImg + 1} / {imgs.length}
+                </div>
+              )}
+              {/* Thumbnail strip */}
+              {imgs.length > 1 && (
+                <div className="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-black/60 to-transparent flex items-end pb-2 px-3 gap-2 overflow-x-auto">
+                  {imgs.map((img, i) => (
+                    <button key={i} onClick={() => setActiveImg(i)}
+                      className={`flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border-2 transition-all ${i === activeImg ? 'border-white scale-105' : 'border-white/30'}`}>
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+              <Home className="w-16 h-16 text-blue-200" />
+            </div>
+          )}
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors z-20"
+            data-testid="detail-close-btn">
+            <X size={16} />
+          </button>
+
+          {/* Availability badge */}
+          <div className="absolute top-3 right-3 z-20">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${property.isAvailable ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+              {property.isAvailable ? 'Disponible' : 'Indisponible'}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Content (scrollable) ── */}
+        <div className="overflow-y-auto flex-1 p-5 sm:p-6">
+          {/* Title + badges */}
+          <div className="flex flex-wrap items-start gap-2 mb-3">
+            <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+              {property.propertyType || 'Logement'}
+            </span>
+            {property.source === 'partner' && property.companyName && (
+              <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
+                {property.companyName}
+              </span>
+            )}
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 leading-tight">{property.title}</h2>
+
+          {/* Location */}
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-5">
+            <MapPin size={14} className="text-[#1a56db] flex-shrink-0" />
+            <span>
+              {[property.location, property.city, property.country].filter(Boolean).join(', ')}
+            </span>
+          </div>
+
+          {/* Key stats row */}
+          {(property.rooms || property.surface) && (
+            <div className="flex gap-4 mb-5 pb-5 border-b border-gray-100">
+              {property.rooms && (
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <BedDouble size={16} className="text-[#1a56db]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">Pièces</p>
+                    <p className="text-sm font-bold text-gray-900">{property.rooms}</p>
+                  </div>
+                </div>
+              )}
+              {property.surface && (
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Maximize size={16} className="text-[#1a56db]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">Surface</p>
+                    <p className="text-sm font-bold text-gray-900">{property.surface} m²</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Description */}
+          {property.description && (
+            <div className="mb-5">
+              <h3 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">Description</h3>
+              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{property.description}</p>
+            </div>
+          )}
+
+          {/* Amenities */}
+          {property.amenities?.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">Équipements & Services</h3>
+              <div className="flex flex-wrap gap-2">
+                {property.amenities.map(a => {
+                  const Icon = AMENITY_ICONS[a];
+                  return (
+                    <span key={a} className="flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full">
+                      {Icon ? <Icon size={12} className="text-[#1a56db]" /> : <CheckCircle size={12} className="text-green-500" />}
+                      {a}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Footer: price + CTA ── */}
+        <div className="flex-shrink-0 flex items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 bg-gray-50/80">
+          <div>
+            {property.price
+              ? <><p className="text-2xl font-black text-[#1a56db] leading-none">{property.price} €</p><p className="text-xs text-gray-400 mt-0.5">/ {property.pricePeriod || 'mois'}</p></>
+              : property.priceRange
+              ? <p className="text-base font-bold text-[#1a56db] leading-tight">{property.priceRange}</p>
+              : <p className="text-sm font-medium text-gray-400">Prix sur demande</p>
+            }
+          </div>
+          <button
+            onClick={() => { onClose(); onContact(property); }}
+            className="flex items-center gap-2 px-6 py-3 bg-[#1a56db] text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-blue-200"
+            data-testid="detail-contact-btn">
+            <Send size={14} /> Contacter le propriétaire
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Inquiry Modal ────────────────────────────────────────────────────── */
 const InquiryModal = ({ property, onClose }) => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
@@ -145,23 +335,40 @@ const InquiryModal = ({ property, onClose }) => {
 };
 
 /* ── Property Card ─────────────────────────────────────────────────────── */
-const PropertyCard = ({ property, onContact, highlighted }) => (
+const PropertyCard = ({ property, onContact, onDetail, highlighted }) => (
   <div
     id={`property-${property.id}`}
-    className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all group ${highlighted ? 'border-[#1a56db] shadow-lg ring-2 ring-[#1a56db]/20' : 'border-gray-100 hover:shadow-lg hover:-translate-y-0.5'}`}
+    onClick={() => onDetail(property)}
+    className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all group cursor-pointer ${highlighted ? 'border-[#1a56db] shadow-lg ring-2 ring-[#1a56db]/20' : 'border-gray-100 hover:shadow-xl hover:-translate-y-1'}`}
     data-testid={`public-property-${property.id}`}
   >
     {property.images?.[0] ? (
       <div className="relative h-48 overflow-hidden">
         <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {property.images.length > 1 && (
+          <div className="absolute top-3 left-3">
+            <span className="bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
+              {property.images.length} photos
+            </span>
+          </div>
+        )}
         <div className="absolute top-3 right-3">
           <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Disponible</span>
         </div>
         <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-[#1a56db]/0 group-hover:bg-[#1a56db]/10 transition-colors duration-300 flex items-center justify-center">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-[#1a56db] font-bold text-xs px-3 py-1.5 rounded-full shadow">
+            Voir les détails
+          </span>
+        </div>
       </div>
     ) : (
-      <div className="relative h-48 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <Home className="w-12 h-12 text-blue-200" />
+      <div className="relative h-48 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
+        <Home className="w-12 h-12 text-blue-200 mb-2" />
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#1a56db] font-bold text-xs px-3 py-1.5 rounded-full bg-white shadow">
+          Voir les détails
+        </span>
         <div className="absolute top-3 right-3">
           <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Disponible</span>
         </div>
@@ -169,7 +376,7 @@ const PropertyCard = ({ property, onContact, highlighted }) => (
     )}
     <div className="p-4">
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[11px] font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">{property.propertyType || property.title}</span>
+        <span className="text-[11px] font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">{property.propertyType || 'Logement'}</span>
         {property.rooms > 0 && <span className="text-[11px] text-gray-500 flex items-center gap-0.5"><BedDouble size={10} /> {property.rooms}p</span>}
         {property.surface > 0 && <span className="text-[11px] text-gray-500 flex items-center gap-0.5"><Maximize size={10} /> {property.surface}m²</span>}
       </div>
@@ -200,7 +407,8 @@ const PropertyCard = ({ property, onContact, highlighted }) => (
             : <p className="text-xs font-medium text-gray-400">Prix sur demande</p>
           }
         </div>
-        <button onClick={() => onContact(property)}
+        <button
+          onClick={e => { e.stopPropagation(); onContact(property); }}
           className="flex items-center gap-1.5 px-3 py-2 bg-[#1a56db] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity"
           data-testid={`contact-property-${property.id}`}>
           <Send size={11} /> Contacter
@@ -211,7 +419,7 @@ const PropertyCard = ({ property, onContact, highlighted }) => (
 );
 
 /* ── Map popup mini-card ───────────────────────────────────────────────── */
-const MapPopupCard = ({ property, onContact }) => (
+const MapPopupCard = ({ property, onDetail }) => (
   <div style={{ width: 220, fontFamily: 'inherit' }}>
     {property.images?.[0] ? (
       <img src={property.images[0]} alt={property.title} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: '8px 8px 0 0', display: 'block' }} />
@@ -239,9 +447,9 @@ const MapPopupCard = ({ property, onContact }) => (
           }
         </div>
         <button
-          onClick={() => onContact(property)}
+          onClick={() => onDetail(property)}
           style={{ padding: '5px 12px', background: '#1a56db', color: 'white', borderRadius: 8, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
-          Contacter
+          Voir détails
         </button>
       </div>
     </div>
@@ -249,7 +457,7 @@ const MapPopupCard = ({ property, onContact }) => (
 );
 
 /* ── Map View Component ────────────────────────────────────────────────── */
-const MapView = ({ properties, onContact, activeId, setActiveId }) => {
+const MapView = ({ properties, onContact, onDetail, activeId, setActiveId }) => {
   const [geoCoords, setGeoCoords] = useState({});
   const [geocoding, setGeocoding] = useState(false);
   const coordsCache = useRef({});
@@ -343,7 +551,7 @@ const MapView = ({ properties, onContact, activeId, setActiveId }) => {
               }}
             >
               <Popup>
-                <MapPopupCard property={p} onContact={onContact} />
+                <MapPopupCard property={p} onDetail={onDetail} />
               </Popup>
             </Marker>
           );
@@ -375,6 +583,7 @@ const LogementsPage = () => {
   const [maxPrice, setMaxPrice] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [inquiryModal, setInquiryModal] = useState(null);
+  const [detailModal, setDetailModal] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
   const [activeId, setActiveId] = useState(null);
 
@@ -546,6 +755,7 @@ const LogementsPage = () => {
             <MapView
               properties={filtered}
               onContact={setInquiryModal}
+              onDetail={setDetailModal}
               activeId={activeId}
               setActiveId={handleActiveId}
             />
@@ -555,7 +765,7 @@ const LogementsPage = () => {
               <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Toutes les annonces</h3>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filtered.map(p => (
-                  <PropertyCard key={p.id} property={p} onContact={setInquiryModal} highlighted={activeId === p.id} />
+                  <PropertyCard key={p.id} property={p} onContact={setInquiryModal} onDetail={setDetailModal} highlighted={activeId === p.id} />
                 ))}
               </div>
             </div>
@@ -564,13 +774,21 @@ const LogementsPage = () => {
           /* ── LIST VIEW ── */
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filtered.map(p => (
-              <PropertyCard key={p.id} property={p} onContact={setInquiryModal} highlighted={activeId === p.id} />
+              <PropertyCard key={p.id} property={p} onContact={setInquiryModal} onDetail={setDetailModal} highlighted={activeId === p.id} />
             ))}
           </div>
         )}
       </div>
 
       <Footer />
+
+      {detailModal && (
+        <PropertyDetailModal
+          property={detailModal}
+          onClose={() => setDetailModal(null)}
+          onContact={(p) => { setInquiryModal(p); }}
+        />
+      )}
 
       {inquiryModal && (
         <InquiryModal property={inquiryModal} onClose={() => setInquiryModal(null)} />
