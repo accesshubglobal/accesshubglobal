@@ -5,7 +5,7 @@ import axios, { API } from './adminApi';
 const HousingFormModal = ({ housing, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(housing || {
-    type: '', location: '', city: '', country: 'Chine', priceRange: '', priceMin: 0, priceMax: 0, currency: 'CNY', image: '', amenities: [], description: ''
+    type: '', location: '', city: '', country: 'Chine', priceRange: '', priceMin: 0, priceMax: 0, currency: 'CNY', image: '', features: [], amenities: [], description: ''
   });
   const [amenityInput, setAmenityInput] = useState('');
 
@@ -22,7 +22,7 @@ const HousingFormModal = ({ housing, onClose, onSuccess }) => {
 
   const addAmenity = () => {
     if (amenityInput.trim()) {
-      setFormData({ ...formData, amenities: [...(formData.amenities || []), amenityInput.trim()] });
+      setFormData({ ...formData, features: [...(formData.features || formData.amenities || []), amenityInput.trim()] });
       setAmenityInput('');
     }
   };
@@ -73,10 +73,10 @@ const HousingFormModal = ({ housing, onClose, onSuccess }) => {
               <button type="button" onClick={addAmenity} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Ajouter</button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {(formData.amenities || []).map((amenity, index) => (
+              {(formData.features || formData.amenities || []).map((amenity, index) => (
                 <span key={index} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm flex items-center gap-1">
                   {amenity}
-                  <button type="button" onClick={() => setFormData({ ...formData, amenities: formData.amenities.filter((_, i) => i !== index) })} className="hover:text-blue-900"><X size={14} /></button>
+                  <button type="button" onClick={() => setFormData({ ...formData, features: (formData.features || formData.amenities || []).filter((_, i) => i !== index) })} className="hover:text-blue-900"><X size={14} /></button>
                 </span>
               ))}
             </div>

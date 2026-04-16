@@ -286,6 +286,66 @@ async def get_housing():
     return housing
 
 
+@router.get("/housing-all")
+async def get_all_housing():
+    """
+    Returns a combined, normalized list of admin-managed housing AND partner housing.
+    Normalized format for the frontend:
+    { id, title, propertyType, city, country, location, isAvailable, images, amenities, price, priceRange, pricePeriod, source }
+    """
+    db = get_db()
+
+    # Admin housing (from housing collection)
+    admin_items = await db.housing.find({"isActive": True}, {"_id": 0}).to_list(200)
+    normalized_admin = []
+    for h in admin_items:
+        normalized_admin.append({
+            "id": h.get("id"),
+            "title": h.get("type", ""),
+            "propertyType": h.get("type", ""),
+            "city": h.get("city", ""),
+            "country": h.get("country", ""),
+            "location": h.get("location", ""),
+            "description": h.get("description", ""),
+            "isAvailable": h.get("isAvailable", True),
+            "images": [h["image"]] if h.get("image") else [],
+            "amenities": h.get("features") or h.get("amenities") or [],
+            "price": None,
+            "priceRange": h.get("priceRange", ""),
+            "pricePeriod": "mois",
+            "source": "admin",
+            "createdAt": h.get("createdAt", ""),
+        })
+
+    # Partner housing (from logement_properties collection)
+    partner_items = await db.logement_properties.find({"isApproved": True, "isAvailable": True}, {"_id": 0}).to_list(200)
+    normalized_partner = []
+    for p in partner_items:
+        normalized_partner.append({
+            "id": p.get("id"),
+            "title": p.get("title", ""),
+            "propertyType": p.get("propertyType", ""),
+            "city": p.get("city", ""),
+            "country": p.get("country", ""),
+            "location": p.get("address", ""),
+            "description": p.get("description", ""),
+            "isAvailable": p.get("isAvailable", True),
+            "images": p.get("images") or [],
+            "amenities": p.get("amenities") or [],
+            "price": p.get("pricePerMonth") or p.get("price"),
+            "priceRange": f"{p.get('pricePerMonth', '')} / mois" if p.get('pricePerMonth') else "",
+            "pricePeriod": p.get("pricePeriod", "mois"),
+            "source": "partner",
+            "partnerId": p.get("partnerId"),
+            "createdAt": p.get("createdAt", ""),
+        })
+
+    combined = normalized_admin + normalized_partner
+    # Sort by creation date descending (most recent first)
+    combined.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+    return combined
+
+
 # ============= MESSAGES ROUTES =============
 
 @router.post("/messages")

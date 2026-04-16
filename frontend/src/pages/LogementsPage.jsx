@@ -185,8 +185,12 @@ const PropertyCard = ({ property, onContact }) => (
       {/* Price + CTA */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <div>
-          <p className="text-xl font-black text-[#1a56db]">{property.price} €</p>
-          <p className="text-xs text-gray-400">/ {property.pricePeriod || 'mois'}</p>
+          {property.price
+            ? <><p className="text-xl font-black text-[#1a56db]">{property.price} €</p><p className="text-xs text-gray-400">/ {property.pricePeriod || 'mois'}</p></>
+            : property.priceRange
+            ? <p className="text-base font-bold text-[#1a56db] leading-tight">{property.priceRange}</p>
+            : <p className="text-sm font-medium text-gray-400">Prix sur demande</p>
+          }
         </div>
         <button
           onClick={() => onContact(property)}
@@ -212,7 +216,7 @@ const LogementsPage = () => {
   const [inquiryModal, setInquiryModal] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API}/housing-partner`).then(r => {
+    axios.get(`${API}/housing-all`).then(r => {
       setProperties(r.data);
       setFiltered(r.data);
     }).catch(() => {}).finally(() => setLoading(false));
@@ -233,7 +237,7 @@ const LogementsPage = () => {
       result = result.filter(p => p.propertyType === selectedType);
     }
     if (maxPrice) {
-      result = result.filter(p => p.price <= parseFloat(maxPrice));
+      result = result.filter(p => !p.price || p.price <= parseFloat(maxPrice));
     }
     setFiltered(result);
   }, [searchCity, selectedType, maxPrice, properties]);

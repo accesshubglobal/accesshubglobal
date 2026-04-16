@@ -13,7 +13,7 @@ const HousingSection = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API}/housing-partner`).then(r => {
+    axios.get(`${API}/housing-all`).then(r => {
       setProperties(r.data.slice(0, 4));
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
@@ -76,7 +76,7 @@ const HousingSection = () => {
                     <span>{p.city}{p.country ? `, ${p.country}` : ''}</span>
                   </div>
                   <div className="text-[#1a56db] font-bold text-lg mb-3">
-                    {p.price} € / {p.pricePeriod || 'mois'}
+                    {p.price ? `${p.price} € / ${p.pricePeriod || 'mois'}` : p.priceRange || 'Sur demande'}
                   </div>
                   {/* Amenities */}
                   {p.amenities?.length > 0 && (
