@@ -317,10 +317,10 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* 1. Personal Information */}
               <SectionHeader icon={User} title="1. Informations Personnelles / Personal Information" />
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Nom de famille (comme sur passeport)" required>
+                <Field label="Nom de famille / Family Name" required>
                   <input type="text" value={formData.lastName} onChange={e => setField('lastName', e.target.value)} className={inputCls} data-testid="input-lastName" />
                 </Field>
-                <Field label="Prénom (comme sur passeport)" required>
+                <Field label="Prénom / Given Name" required>
                   <input type="text" value={formData.firstName} onChange={e => setField('firstName', e.target.value)} className={inputCls} data-testid="input-firstName" />
                 </Field>
                 <Field label="Genre / Gender" required>
@@ -334,13 +334,13 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <Field label="Nationalité / Nationality" required>
                   <input type="text" value={formData.nationality} onChange={e => setField('nationality', e.target.value)} className={inputCls} placeholder="Ex: Camerounais(e)" data-testid="input-nationality" />
                 </Field>
-                <Field label="Pays de naissance / Country of Birth">
+                <Field label="Pays de naissance / Country of Birth" required>
                   <input type="text" value={formData.countryOfBirth} onChange={e => setField('countryOfBirth', e.target.value)} className={inputCls} data-testid="input-countryOfBirth" />
                 </Field>
-                <Field label="Langue maternelle / Native Language">
+                <Field label="Langue maternelle / Native Language" required>
                   <input type="text" value={formData.nativeLanguage} onChange={e => setField('nativeLanguage', e.target.value)} className={inputCls} placeholder="Ex: Français, Anglais" data-testid="input-nativeLanguage" />
                 </Field>
-                <Field label="Religion">
+                <Field label="Religion" required>
                   <select value={formData.religion} onChange={e => setField('religion', e.target.value)} className={selectCls} data-testid="input-religion">
                     <option value="">Sélectionner</option>
                     <option value="christian">Chrétien(ne)</option>
@@ -351,7 +351,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     <option value="none">Aucune</option>
                   </select>
                 </Field>
-                <Field label="Situation matrimoniale / Marital Status">
+                <Field label="Situation matrimoniale / Marital Status" required>
                   <select value={formData.maritalStatus} onChange={e => setField('maritalStatus', e.target.value)} className={selectCls} data-testid="input-maritalStatus">
                     <option value="">Sélectionner</option>
                     <option value="single">Célibataire / Single</option>
@@ -363,10 +363,10 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <Field label="Date de naissance / Date of Birth" required>
                   <input type="date" value={formData.dateOfBirth} onChange={e => setField('dateOfBirth', e.target.value)} className={inputCls} data-testid="input-dob" />
                 </Field>
-                <Field label="Lieu de naissance (Ville, Province) / Place of Birth">
+                <Field label="Lieu de naissance (Ville, Province) / Place of Birth" required>
                   <input type="text" value={formData.placeOfBirth} onChange={e => setField('placeOfBirth', e.target.value)} className={inputCls} placeholder="Ville, Province" data-testid="input-placeOfBirth" />
                 </Field>
-                <Field label="Niveau d'études / Highest Education">
+                <Field label="Niveau d'études / Highest Education" required>
                   <select value={formData.highestEducation} onChange={e => setField('highestEducation', e.target.value)} className={selectCls} data-testid="input-highestEducation">
                     <option value="">Sélectionner</option>
                     <option value="high_school">Lycée / High School</option>
@@ -376,22 +376,22 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     <option value="other">Autre / Other</option>
                   </select>
                 </Field>
-                <Field label="Filière souhaitée en Chine / Major in China">
+                <Field label="Filière souhaitée en Chine / Major in China" required>
                   <input type="text" value={formData.majorInChina} onChange={e => setField('majorInChina', e.target.value)} className={inputCls} placeholder="Ex: Médecine, Ingénierie..." data-testid="input-majorInChina" />
                 </Field>
-                <Field label="Employeur / Institution actuelle / Current Employer">
+                <Field label="Employeur / Institution actuelle / Current Employer" required>
                   <input type="text" value={formData.currentEmployer} onChange={e => setField('currentEmployer', e.target.value)} className={inputCls} data-testid="input-currentEmployer" />
                 </Field>
                 <Field label="Téléphone personnel / Personal Mobile" required>
                   <input type="tel" value={formData.phoneNumber} onChange={e => setField('phoneNumber', e.target.value)} className={inputCls} placeholder="+237 6XX XXX XXX" data-testid="input-phone" />
                 </Field>
-                <Field label="Email personnel / Personal Email">
+                <Field label="Email personnel / Personal Email" required>
                   <input type="email" value={formData.personalEmail} onChange={e => setField('personalEmail', e.target.value)} className={inputCls} data-testid="input-personalEmail" />
                 </Field>
-                <Field label="Profession / Occupation">
+                <Field label="Profession / Occupation" required>
                   <input type="text" value={formData.occupation} onChange={e => setField('occupation', e.target.value)} className={inputCls} data-testid="input-occupation" />
                 </Field>
-                <Field label="Loisirs / Hobby">
+                <Field label="Loisirs / Hobby" required>
                   <input type="text" value={formData.hobby} onChange={e => setField('hobby', e.target.value)} className={inputCls} data-testid="input-hobby" />
                 </Field>
               </div>
@@ -402,13 +402,13 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <Field label="Adresse (Rue, Province, Pays)" required>
                   <input type="text" value={formData.address} onChange={e => setField('address', e.target.value)} className={inputCls} placeholder="Numéro, rue, province, pays" data-testid="input-address" />
                 </Field>
-                <Field label="Adresse détaillée / Detailed Address">
+                <Field label="Adresse détaillée / Detailed Address" required>
                   <input type="text" value={formData.addressDetailed} onChange={e => setField('addressDetailed', e.target.value)} className={inputCls} data-testid="input-addressDetailed" />
                 </Field>
-                <Field label="Téléphone / Mobile No">
+                <Field label="Téléphone / Mobile No" required>
                   <input type="tel" value={formData.addressPhone} onChange={e => setField('addressPhone', e.target.value)} className={inputCls} data-testid="input-addressPhone" />
                 </Field>
-                <Field label="Code postal / Zip Code">
+                <Field label="Code postal / Zip Code" required>
                   <input type="text" value={formData.zipCode} onChange={e => setField('zipCode', e.target.value)} className={inputCls} data-testid="input-zipCode" />
                 </Field>
               </div>
@@ -416,16 +416,16 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* 3. Current Address if different */}
               <SectionHeader icon={null} title="3. Adresse Actuelle (si différente) / Current Address" color="bg-slate-600" />
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Adresse actuelle (Rue, Province, Pays)">
+                <Field label="Adresse actuelle (Rue, Province, Pays)" required>
                   <input type="text" value={formData.currentAddress} onChange={e => setField('currentAddress', e.target.value)} className={inputCls} data-testid="input-currentAddress" />
                 </Field>
-                <Field label="Adresse détaillée / Detailed Address">
+                <Field label="Adresse détaillée / Detailed Address" required>
                   <input type="text" value={formData.currentAddressDetailed} onChange={e => setField('currentAddressDetailed', e.target.value)} className={inputCls} data-testid="input-currentAddressDetailed" />
                 </Field>
-                <Field label="Téléphone / Mobile No">
+                <Field label="Téléphone / Mobile No" required>
                   <input type="tel" value={formData.currentAddressPhone} onChange={e => setField('currentAddressPhone', e.target.value)} className={inputCls} data-testid="input-currentAddressPhone" />
                 </Field>
-                <Field label="Code postal / Zip Code">
+                <Field label="Code postal / Zip Code" required>
                   <input type="text" value={formData.currentAddressZipCode} onChange={e => setField('currentAddressZipCode', e.target.value)} className={inputCls} data-testid="input-currentAddressZipCode" />
                 </Field>
               </div>
@@ -433,16 +433,16 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* 4. Health Status */}
               <SectionHeader icon={Heart} title="4. État de Santé / Health Status" color="bg-rose-700" />
               <div className="grid grid-cols-3 gap-4">
-                <Field label="Groupe sanguin / Blood Group">
+                <Field label="Groupe sanguin / Blood Group" required>
                   <select value={formData.bloodGroup} onChange={e => setField('bloodGroup', e.target.value)} className={selectCls} data-testid="input-bloodGroup">
                     <option value="">Sélectionner</option>
                     {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
                 </Field>
-                <Field label="Taille / Height (cm)">
+                <Field label="Taille / Height (cm)" required>
                   <input type="text" value={formData.height} onChange={e => setField('height', e.target.value)} className={inputCls} placeholder="Ex: 175 cm" data-testid="input-height" />
                 </Field>
-                <Field label="Poids / Weight (kg)">
+                <Field label="Poids / Weight (kg)" required>
                   <input type="text" value={formData.weight} onChange={e => setField('weight', e.target.value)} className={inputCls} placeholder="Ex: 70 kg" data-testid="input-weight" />
                 </Field>
               </div>
@@ -460,22 +460,22 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 </div>
                 {formData.inChinaNow && (
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
-                    <Field label="École/Organisation en Chine">
+                    <Field label="École/Organisation in China">
                       <input type="text" value={formData.chinaSchool} onChange={e => setField('chinaSchool', e.target.value)} className={inputCls} data-testid="input-chinaSchool" />
                     </Field>
-                    <Field label="Type de visa">
+                    <Field label="Type de visa/type of Visa">
                       <input type="text" value={formData.chinaVisaType} onChange={e => setField('chinaVisaType', e.target.value)} className={inputCls} data-testid="input-chinaVisaType" />
                     </Field>
-                    <Field label="Période d'apprentissage — Début">
+                    <Field label="Début/From">
                       <input type="date" value={formData.chinaLearningPeriodStart} onChange={e => setField('chinaLearningPeriodStart', e.target.value)} className={inputCls} data-testid="input-chinaStart" />
                     </Field>
-                    <Field label="Période d'apprentissage — Fin">
+                    <Field label="Fin/End">
                       <input type="date" value={formData.chinaLearningPeriodEnd} onChange={e => setField('chinaLearningPeriodEnd', e.target.value)} className={inputCls} data-testid="input-chinaEnd" />
                     </Field>
-                    <Field label="Numéro de visa">
+                    <Field label="Numéro de visa/Visa N°">
                       <input type="text" value={formData.chinaVisaNo} onChange={e => setField('chinaVisaNo', e.target.value)} className={inputCls} data-testid="input-chinaVisaNo" />
                     </Field>
-                    <Field label="Date d'expiration du visa">
+                    <Field label="Date d'expiration du visa/Visa Expiration">
                       <input type="date" value={formData.chinaVisaExpiry} onChange={e => setField('chinaVisaExpiry', e.target.value)} className={inputCls} data-testid="input-chinaVisaExpiry" />
                     </Field>
                   </div>
@@ -488,10 +488,10 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <Field label="Numéro de passeport / Passport No" required>
                   <input type="text" value={formData.passportNumber} onChange={e => setField('passportNumber', e.target.value)} className={inputCls} data-testid="input-passport" />
                 </Field>
-                <Field label="Date de délivrance / Issued Date">
+                <Field label="Date de délivrance / Issued Date" required>
                   <input type="date" value={formData.passportIssuedDate} onChange={e => setField('passportIssuedDate', e.target.value)} className={inputCls} data-testid="input-passportIssuedDate" />
                 </Field>
-                <Field label="Date d'expiration / Expiry Date">
+                <Field label="Date d'expiration / Expiry Date" required>
                   <input type="date" value={formData.passportExpiryDate} onChange={e => setField('passportExpiryDate', e.target.value)} className={inputCls} data-testid="input-passportExpiryDate" />
                 </Field>
                 <Field label="Ancien numéro de passeport (si applicable)">
@@ -514,7 +514,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     <Field label="Nom de l'établissement / Institute Name">
                       <input type="text" value={edu.instituteName} onChange={e => setArrayField('educationalBackground', idx, 'instituteName', e.target.value)} className={inputCls} data-testid={`edu-${idx}-institute`} />
                     </Field>
-                    <Field label="Niveau d'études / Education Level">
+                    <Field label="Niveau d'études / Education Level" required>
                       <select value={edu.educationLevel} onChange={e => setArrayField('educationalBackground', idx, 'educationLevel', e.target.value)} className={selectCls} data-testid={`edu-${idx}-level`}>
                         <option value="">Sélectionner</option>
                         <option value="primary">Primaire / Primary</option>
@@ -525,14 +525,14 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                         <option value="phd">Doctorat / PhD</option>
                       </select>
                     </Field>
-                    <Field label="Filière / Major / Field of Study">
+                    <Field label="Filière / Major / Field of Study" required>
                       <input type="text" value={edu.fieldOfStudy} onChange={e => setArrayField('educationalBackground', idx, 'fieldOfStudy', e.target.value)} className={inputCls} data-testid={`edu-${idx}-field`} />
                     </Field>
                     <div className="grid grid-cols-2 gap-2">
-                      <Field label="De / From">
+                      <Field label="De / From" required>
                         <input type="date" value={edu.yearsFrom} onChange={e => setArrayField('educationalBackground', idx, 'yearsFrom', e.target.value)} className={inputCls} data-testid={`edu-${idx}-from`} />
                       </Field>
-                      <Field label="À / To">
+                      <Field label="À / To" required>
                         <input type="date" value={edu.yearsTo} onChange={e => setArrayField('educationalBackground', idx, 'yearsTo', e.target.value)} className={inputCls} data-testid={`edu-${idx}-to`} />
                       </Field>
                     </div>
@@ -586,28 +586,28 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 <div key={key} className="border border-gray-200 rounded-lg p-4 mb-3">
                   <p className="text-sm font-semibold text-gray-600 mb-3">{label}</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Nom complet (comme sur pièce d'identité)">
+                    <Field label="Nom complet/Full Name" required>
                       <input type="text" value={formData[key].name} onChange={e => setNestedField(key, 'name', e.target.value)} className={inputCls} data-testid={`${key}-name`} />
                     </Field>
-                    <Field label="Nationalité / Nationality">
+                    <Field label="Nationalité / Nationality" required>
                       <input type="text" value={formData[key].nationality} onChange={e => setNestedField(key, 'nationality', e.target.value)} className={inputCls} data-testid={`${key}-nationality`} />
                     </Field>
-                    <Field label="Date de naissance / Date of Birth">
+                    <Field label="Date de naissance / Date of Birth" required>
                       <input type="date" value={formData[key].dob} onChange={e => setNestedField(key, 'dob', e.target.value)} className={inputCls} data-testid={`${key}-dob`} />
                     </Field>
-                    <Field label="N° Pièce d'identité / National ID / Passport No">
+                    <Field label="N° Pièce d'identité / National ID / Passport No" required>
                       <input type="text" value={formData[key].idNo} onChange={e => setNestedField(key, 'idNo', e.target.value)} className={inputCls} data-testid={`${key}-idNo`} />
                     </Field>
-                    <Field label="Téléphone / Mobile No">
+                    <Field label="Téléphone / Mobile No" required>
                       <input type="tel" value={formData[key].mobile} onChange={e => setNestedField(key, 'mobile', e.target.value)} className={inputCls} data-testid={`${key}-mobile`} />
                     </Field>
-                    <Field label="Email">
+                    <Field label="Email" required>
                       <input type="email" value={formData[key].email} onChange={e => setNestedField(key, 'email', e.target.value)} className={inputCls} data-testid={`${key}-email`} />
                     </Field>
-                    <Field label="Profession / Occupation">
+                    <Field label="Profession / Occupation" required>
                       <input type="text" value={formData[key].occupation} onChange={e => setNestedField(key, 'occupation', e.target.value)} className={inputCls} data-testid={`${key}-occupation`} />
                     </Field>
-                    <Field label="Employeur / Institution actuelle">
+                    <Field label="Employeur / Institution actuelle" required>
                       <input type="text" value={formData[key].employer} onChange={e => setNestedField(key, 'employer', e.target.value)} className={inputCls} data-testid={`${key}-employer`} />
                     </Field>
                   </div>
@@ -617,10 +617,10 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* 10. Financial Sponsor */}
               <SectionHeader icon={null} title="10. Garant Financier / Financial Sponsor (Parents recommandés)" color="bg-green-700" />
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Relation avec l'étudiant / Relationship">
+                <Field label="Relation avec l'étudiant / Relationship" required>
                   <input type="text" value={formData.financialSponsor.relationship} onChange={e => setNestedField('financialSponsor', 'relationship', e.target.value)} className={inputCls} placeholder="Ex: Père, Mère..." data-testid="sponsor-relationship" />
                 </Field>
-                <Field label="Adresse complète / Full Address">
+                <Field label="Adresse complète / Full Address" required>
                   <input type="text" value={formData.financialSponsor.address} onChange={e => setNestedField('financialSponsor', 'address', e.target.value)} className={inputCls} data-testid="sponsor-address" />
                 </Field>
               </div>
@@ -628,31 +628,31 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* 11. Emergency Contact in China */}
               <SectionHeader icon={null} title="11. Contact d'Urgence en Chine / Emergency Contact in China" color="bg-orange-700" />
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Nom complet (comme sur pièce d'identité)">
+                <Field label="Nom complet/Full Name" required>
                   <input type="text" value={formData.emergencyContact.name} onChange={e => setNestedField('emergencyContact', 'name', e.target.value)} className={inputCls} data-testid="emergency-name" />
                 </Field>
-                <Field label="Relation avec l'étudiant">
+                <Field label="Relation avec l'étudiant" required>
                   <input type="text" value={formData.emergencyContact.relationship} onChange={e => setNestedField('emergencyContact', 'relationship', e.target.value)} className={inputCls} data-testid="emergency-relationship" />
                 </Field>
-                <Field label="Profession / Occupation">
+                <Field label="Profession / Occupation" required>
                   <input type="text" value={formData.emergencyContact.occupation} onChange={e => setNestedField('emergencyContact', 'occupation', e.target.value)} className={inputCls} data-testid="emergency-occupation" />
                 </Field>
-                <Field label="Nationalité / Nationality">
+                <Field label="Nationalité / Nationality" required>
                   <input type="text" value={formData.emergencyContact.nationality} onChange={e => setNestedField('emergencyContact', 'nationality', e.target.value)} className={inputCls} data-testid="emergency-nationality" />
                 </Field>
-                <Field label="N° Pièce d'identité / National ID / Passport No">
+                <Field label="N° Pièce d'identité / National ID / Passport No" required>
                   <input type="text" value={formData.emergencyContact.idNo} onChange={e => setNestedField('emergencyContact', 'idNo', e.target.value)} className={inputCls} data-testid="emergency-idNo" />
                 </Field>
-                <Field label="Employeur / Institution actuelle">
+                <Field label="Employeur / Institution actuelle" required>
                   <input type="text" value={formData.emergencyContact.employer} onChange={e => setNestedField('emergencyContact', 'employer', e.target.value)} className={inputCls} data-testid="emergency-employer" />
                 </Field>
-                <Field label="Adresse en Chine / Address in China (Full)">
+                <Field label="Adresse en Chine / Address in China (Full)" required>
                   <input type="text" value={formData.emergencyContact.addressChina} onChange={e => setNestedField('emergencyContact', 'addressChina', e.target.value)} className={inputCls} data-testid="emergency-addressChina" />
                 </Field>
-                <Field label="Téléphone en Chine / Mobile in China">
+                <Field label="Téléphone en Chine / Mobile in China" required>
                   <input type="tel" value={formData.emergencyContact.phone} onChange={e => setNestedField('emergencyContact', 'phone', e.target.value)} className={inputCls} data-testid="emergency-phone" />
                 </Field>
-                <Field label="Email">
+                <Field label="Email" required>
                   <input type="email" value={formData.emergencyContact.email} onChange={e => setNestedField('emergencyContact', 'email', e.target.value)} className={inputCls} data-testid="emergency-email" />
                 </Field>
               </div>
@@ -698,7 +698,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
           {/* ===== STEP 3: TERMS ===== */}
           {currentStep === 3 && (
             <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 mb-4">Conditions générales</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Conditions générales/ General Terms</h3>
               <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto text-sm text-gray-600 space-y-4">
                 {paymentSettings?.termsConditions?.length > 0 ? (
                   paymentSettings.termsConditions.map((term, idx) => (
@@ -723,10 +723,10 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
           {/* ===== STEP 4: PAYMENT ===== */}
           {currentStep === 4 && paymentSettings && (
             <div className="space-y-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Paiement des frais de dossier</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Paiement des frais de dossier/Application Fees</h3>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Frais de dossier à payer :</span>
+                  <span className="text-gray-700">Frais de dossier à payer :/Payment</span>
                   <span className="text-2xl font-bold text-[#1a56db]">{offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}</span>
                 </div>
               </div>
@@ -736,8 +736,8 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   {[
                     { id: 'wechat_alipay', label: 'WeChat / Alipay', icon: '💳' },
                     { id: 'paypal', label: 'PayPal', icon: '🅿️' },
-                    { id: 'bank_transfer', label: 'Virement bancaire', icon: '🏦' },
-                    { id: 'cash', label: 'Espèces', icon: '💵' }
+                    { id: 'bank_transfer', label: 'Virement bancaire/Bank', icon: '🏦' },
+                    { id: 'cash', label: 'Espèces/Cash', icon: '💵' }
                   ].map((method) => (
                     <button key={method.id} type="button" onClick={() => setField('paymentMethod', method.id)}
                       className={`p-4 border-2 rounded-xl text-left transition-all ${formData.paymentMethod === method.id ? 'border-[#1a56db] bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
@@ -758,7 +758,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   )}
                   {formData.paymentMethod === 'paypal' && (
                     <div className="text-center py-4">
-                      <p className="text-gray-600 mb-3">Envoyez le paiement à :</p>
+                      <p className="text-gray-600 mb-3">Envoyez le paiement à / Send the payment to:</p>
                       <div className="flex items-center justify-center gap-2 bg-white px-4 py-3 rounded-lg border">
                         <span className="font-mono text-lg">{paymentSettings.paypalEmail}</span>
                         <button type="button" onClick={() => copyToClipboard(paymentSettings.paypalEmail)} className="p-1 hover:bg-gray-100 rounded"><Copy size={16} className="text-gray-500" /></button>
@@ -768,10 +768,10 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   {formData.paymentMethod === 'bank_transfer' && (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><span className="text-gray-500">Banque :</span><p className="font-medium">{paymentSettings.bankName}</p></div>
-                        <div><span className="text-gray-500">Titulaire :</span><p className="font-medium">{paymentSettings.bankAccountName}</p></div>
+                        <div><span className="text-gray-500">Banque/Bank :</span><p className="font-medium">{paymentSettings.bankName}</p></div>
+                        <div><span className="text-gray-500">Titulaire/Owner :</span><p className="font-medium">{paymentSettings.bankAccountName}</p></div>
                         <div className="col-span-2">
-                          <span className="text-gray-500">Numéro de compte :</span>
+                          <span className="text-gray-500">Numéro de compte/Account Number:</span>
                           <div className="flex items-center gap-2">
                             <p className="font-mono font-medium">{paymentSettings.bankAccountNumber}</p>
                             <button type="button" onClick={() => copyToClipboard(paymentSettings.bankAccountNumber)} className="p-1 hover:bg-gray-200 rounded"><Copy size={14} className="text-gray-500" /></button>
@@ -792,19 +792,19 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               )}
               {formData.paymentMethod && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Preuve de paiement *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Preuve de paiement/Proof of Payment *</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#1a56db] transition-colors">
                     {paymentProofFile ? (
                       <div className="flex items-center justify-center gap-3">
                         <Check size={20} className="text-green-500" />
                         <span className="text-green-600 font-medium">{paymentProofFile.name}</span>
-                        <label className="text-[#1a56db] hover:underline cursor-pointer text-sm">Modifier<input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePaymentProofUpload} /></label>
+                        <label className="text-[#1a56db] hover:underline cursor-pointer text-sm">Modifier/Modify<input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePaymentProofUpload} /></label>
                       </div>
                     ) : (
                       <label className="cursor-pointer">
                         <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePaymentProofUpload} disabled={uploadingProof} data-testid="upload-payment-proof" />
                         {uploadingProof ? <Loader2 size={32} className="mx-auto text-gray-400 animate-spin" /> : (
-                          <><Upload size={32} className="mx-auto text-gray-400 mb-2" /><p className="text-gray-600">Cliquez pour télécharger votre preuve de paiement</p><p className="text-sm text-gray-400 mt-1">Screenshot, photo du reçu, confirmation de virement...</p></>
+                          <><Upload size={32} className="mx-auto text-gray-400 mb-2" /><p className="text-gray-600">Cliquez pour télécharger votre preuve de paiement/Download Proof</p><p className="text-sm text-gray-400 mt-1">Screenshot, photo du reçu, confirmation de virement...</p></>
                         )}
                       </label>
                     )}
@@ -833,7 +833,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="submit-application-btn">
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-              Soumettre la candidature
+              Soumettre la candidature/Submit
             </button>
           )}
         </div>

@@ -343,8 +343,8 @@ const ApplicationsSection = () => {
                           <InfoRow label="De/From" value={formatDate(work.yearsFrom)} />
                           <InfoRow label="À/To" value={formatDate(work.yearsTo)} />
                           <InfoRow label="Personne de contact/Work Contact" value={val(work.contactPerson)} />
-                          <InfoRow label="Tél. contact/Contact Phone" value={val(work.contactPhone)} />
-                          <InfoRow label="Email contact/Email Contact" value={val(work.contactEmail)} />
+                          <InfoRow label="Tél. contact" value={val(work.contactPhone)} />
+                          <InfoRow label="Email contact" value={val(work.contactEmail)} />
                         </div>
                       </div>
                     ))}
