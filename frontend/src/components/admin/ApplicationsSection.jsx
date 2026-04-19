@@ -232,96 +232,96 @@ const ApplicationsSection = () => {
               {/* 1. Personal Information */}
               <SectionBlock title="1. Informations Personnelles" icon={User}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <InfoRow label="Nom de famille/Last Name" value={val(selectedApp.lastName)} />
-                  <InfoRow label="Prénom/Given Name" value={val(selectedApp.firstName)} />
-                  <InfoRow label="Genre/Gender" value={selectedApp.sex === 'male' ? 'Masculin' : selectedApp.sex === 'female' ? 'Féminin' : val(selectedApp.sex)} />
-                  <InfoRow label="Nationalité/Nationality" value={val(selectedApp.nationality)} />
-                  <InfoRow label="Pays de naissance/Country of Birth" value={val(selectedApp.countryOfBirth)} />
-                  <InfoRow label="Langue maternelle/Mother tongue" value={val(selectedApp.nativeLanguage)} />
+                  <InfoRow label="Nom de famille" value={val(selectedApp.lastName)} />
+                  <InfoRow label="Prénom" value={val(selectedApp.firstName)} />
+                  <InfoRow label="Genre" value={selectedApp.sex === 'male' ? 'Masculin' : selectedApp.sex === 'female' ? 'Féminin' : val(selectedApp.sex)} />
+                  <InfoRow label="Nationalité" value={val(selectedApp.nationality)} />
+                  <InfoRow label="Pays de naissance" value={val(selectedApp.countryOfBirth)} />
+                  <InfoRow label="Langue maternelle" value={val(selectedApp.nativeLanguage)} />
                   <InfoRow label="Religion" value={val(selectedApp.religion)} />
-                  <InfoRow label="Situation matrimoniale/Marital Status" value={val(selectedApp.maritalStatus)} />
-                  <InfoRow label="Date de naissance/Birth Date" value={formatDate(selectedApp.dateOfBirth)} />
-                  <InfoRow label="Lieu de naissance/Place of Birth" value={val(selectedApp.placeOfBirth)} />
-                  <InfoRow label="Niveau d'études/Study Level" value={val(selectedApp.highestEducation)} />
-                  <InfoRow label="Filière souhaitéSt/Field of Study Wanted" value={val(selectedApp.majorInChina)} />
-                  <InfoRow label="Employeur/Institution" value={val(selectedApp.currentEmployer)} />
-                  <InfoRow label="Téléphone/Telephone" value={val(selectedApp.phoneNumber)} />
-                  <InfoRow label="Email personnel/Personal Email" value={val(selectedApp.personalEmail || selectedApp.userEmail)} />
+                  <InfoRow label="Situation matrimoniale" value={val(selectedApp.maritalStatus)} />
+                  <InfoRow label="Date de naissance" value={formatDate(selectedApp.dateOfBirth)} />
+                  <InfoRow label="Lieu de naissance" value={val(selectedApp.placeOfBirth)} />
+                  <InfoRow label="Niveau d'études" value={val(selectedApp.highestEducation)} />
+                  <InfoRow label="Filière souhaité" value={val(selectedApp.majorInChina)} />
+                  <InfoRow label="Employeur" value={val(selectedApp.currentEmployer)} />
+                  <InfoRow label="Téléphone" value={val(selectedApp.phoneNumber)} />
+                  <InfoRow label="Email personnel" value={val(selectedApp.personalEmail || selectedApp.userEmail)} />
                   <InfoRow label="Profession" value={val(selectedApp.occupation)} />
-                  <InfoRow label="Loisirs/Hobbies" value={val(selectedApp.hobby)} />
+                  <InfoRow label="Loisirs" value={val(selectedApp.hobby)} />
                 </div>
               </SectionBlock>
 
               {/* 2. Adresse permanente */}
-              <SectionBlock title="2. Adresse Permanente/Permanent Address" icon={MapPin}>
+              <SectionBlock title="2. Adresse Permanente" icon={MapPin}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <InfoRow label="Adresse" value={val(selectedApp.address)} />
-                  <InfoRow label="Adresse détaillée/Detailed Address" value={val(selectedApp.addressDetailed)} />
-                  <InfoRow label="Téléphone/Telephone" value={val(selectedApp.addressPhone)} />
-                  <InfoRow label="Code postal/Postal Code" value={val(selectedApp.zipCode)} />
+                  <InfoRow label="Adresse détaillée" value={val(selectedApp.addressDetailed)} />
+                  <InfoRow label="Téléphone" value={val(selectedApp.addressPhone)} />
+                  <InfoRow label="Code postal" value={val(selectedApp.zipCode)} />
                 </div>
                 {(selectedApp.currentAddress) && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Adresse actuelle/Current Address</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      <InfoRow label="Adresse/Address" value={val(selectedApp.currentAddress)} />
-                      <InfoRow label="Adresse détaillée/Detailed Address" value={val(selectedApp.currentAddressDetailed)} />
-                      <InfoRow label="Téléphone/Telephone" value={val(selectedApp.currentAddressPhone)} />
-                      <InfoRow label="Code postal/Postal Code" value={val(selectedApp.currentAddressZipCode)} />
+                      <InfoRow label="Adresse" value={val(selectedApp.currentAddress)} />
+                      <InfoRow label="Adresse détaillée" value={val(selectedApp.currentAddressDetailed)} />
+                      <InfoRow label="Téléphone" value={val(selectedApp.currentAddressPhone)} />
+                      <InfoRow label="Code postal" value={val(selectedApp.currentAddressZipCode)} />
                     </div>
                   </div>
                 )}
               </SectionBlock>
 
               {/* 3. Health Status */}
-              <SectionBlock title="3. État de Santé/State of Health" icon={Heart} color="text-rose-600">
+              <SectionBlock title="3. État de Santé" icon={Heart} color="text-rose-600">
                 <div className="grid grid-cols-3 gap-4">
-                  <InfoRow label="Groupe sanguin/Blood Group" value={val(selectedApp.bloodGroup)} />
-                  <InfoRow label="Taille/Height" value={val(selectedApp.height)} />
-                  <InfoRow label="Poids/Wight" value={val(selectedApp.weight)} />
+                  <InfoRow label="Groupe sanguin" value={val(selectedApp.bloodGroup)} />
+                  <InfoRow label="Taille" value={val(selectedApp.height)} />
+                  <InfoRow label="Poids" value={val(selectedApp.weight)} />
                 </div>
               </SectionBlock>
 
               {/* 4. China Status */}
-              <SectionBlock title="4. Situation en Chine/Situation in China" icon={Globe} color="text-red-700">
+              <SectionBlock title="4. Situation en Chine" icon={Globe} color="text-red-700">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <InfoRow label="Actuellement en Chine" value={selectedApp.inChinaNow ? 'Oui' : 'Non'} />
                   {selectedApp.inChinaNow && <>
-                    <InfoRow label="École / Organisation" value={val(selectedApp.chinaSchool)} />
-                    <InfoRow label="Période(début)/From" value={formatDate(selectedApp.chinaLearningPeriodStart)} />
-                    <InfoRow label="Période (fin)The End" value={formatDate(selectedApp.chinaLearningPeriodEnd)} />
-                    <InfoRow label="Type de visa/Visa Type" value={val(selectedApp.chinaVisaType)} />
-                    <InfoRow label="N° de visa/Visa N°" value={val(selectedApp.chinaVisaNo)} />
-                    <InfoRow label="Expiration visa/Visa Expiration" value={formatDate(selectedApp.chinaVisaExpiry)} />
+                    <InfoRow label="École" value={val(selectedApp.chinaSchool)} />
+                    <InfoRow label="Période(début)" value={formatDate(selectedApp.chinaLearningPeriodStart)} />
+                    <InfoRow label="Période (fin)" value={formatDate(selectedApp.chinaLearningPeriodEnd)} />
+                    <InfoRow label="Type de visa" value={val(selectedApp.chinaVisaType)} />
+                    <InfoRow label="N° de visa" value={val(selectedApp.chinaVisaNo)} />
+                    <InfoRow label="Expiration visa" value={formatDate(selectedApp.chinaVisaExpiry)} />
                   </>}
                 </div>
               </SectionBlock>
 
               {/* 5. Passport */}
-              <SectionBlock title="5. Informations Passeport/Passport Informations" icon={FileText} color="text-indigo-700">
+              <SectionBlock title="5. Informations Passeport" icon={FileText} color="text-indigo-700">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <InfoRow label="N° Passeport/Passport N°" value={val(selectedApp.passportNumber)} />
-                  <InfoRow label="Date de délivrance/Date of Issue" value={formatDate(selectedApp.passportIssuedDate)} />
-                  <InfoRow label="Date d'expiration/Expiration Date" value={formatDate(selectedApp.passportExpiryDate)} />
-                  <InfoRow label="Ancien N° Passeport/Old Passport N" value={val(selectedApp.oldPassportNo)} />
-                  <InfoRow label="Délivrance (ancien)/Date of Issue" value={formatDate(selectedApp.oldPassportIssuedDate)} />
-                  <InfoRow label="Expiration (ancien)/Expiration Date" value={formatDate(selectedApp.oldPassportExpiryDate)} />
+                  <InfoRow label="N° Passeport" value={val(selectedApp.passportNumber)} />
+                  <InfoRow label="Date de délivrance" value={formatDate(selectedApp.passportIssuedDate)} />
+                  <InfoRow label="Date d'expiration" value={formatDate(selectedApp.passportExpiryDate)} />
+                  <InfoRow label="Ancien N° Passeport" value={val(selectedApp.oldPassportNo)} />
+                  <InfoRow label="Délivrance (ancien)" value={formatDate(selectedApp.oldPassportIssuedDate)} />
+                  <InfoRow label="Expiration (ancien)" value={formatDate(selectedApp.oldPassportExpiryDate)} />
                 </div>
               </SectionBlock>
 
               {/* 6. Educational Background */}
               {selectedApp.educationalBackground?.some(e => e.instituteName) && (
-                <SectionBlock title="6. Formation Académique/Education Background" icon={BookOpen} color="text-teal-700">
+                <SectionBlock title="6. Formation Académique" icon={BookOpen} color="text-teal-700">
                   <div className="space-y-4">
                     {selectedApp.educationalBackground.filter(e => e.instituteName).map((edu, idx) => (
                       <div key={idx} className="bg-gray-50 rounded-xl p-4">
                         <p className="text-xs font-semibold text-gray-500 uppercase mb-3">École {String.fromCharCode(65 + idx)}</p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <InfoRow label="Établissement/School" value={val(edu.instituteName)} />
-                          <InfoRow label="Filière/Field" value={val(edu.fieldOfStudy)} />
-                          <InfoRow label="Niveau/Level" value={val(edu.educationLevel)} />
-                          <InfoRow label="De/From" value={formatDate(edu.yearsFrom)} />
-                          <InfoRow label="À/To" value={formatDate(edu.yearsTo)} />
+                          <InfoRow label="Établissement" value={val(edu.instituteName)} />
+                          <InfoRow label="Filière" value={val(edu.fieldOfStudy)} />
+                          <InfoRow label="Niveau" value={val(edu.educationLevel)} />
+                          <InfoRow label="De" value={formatDate(edu.yearsFrom)} />
+                          <InfoRow label="À" value={formatDate(edu.yearsTo)} />
                         </div>
                       </div>
                     ))}
@@ -331,18 +331,18 @@ const ApplicationsSection = () => {
 
               {/* 7. Work Experience */}
               {selectedApp.workExperience?.some(w => w.companyName) && (
-                <SectionBlock title="7. Expérience Professionnelle/Work Experience" icon={Briefcase} color="text-amber-700">
+                <SectionBlock title="7. Expérience Professionnelle" icon={Briefcase} color="text-amber-700">
                   <div className="space-y-4">
                     {selectedApp.workExperience.filter(w => w.companyName).map((work, idx) => (
                       <div key={idx} className="bg-gray-50 rounded-xl p-4">
                         <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Expérience {String.fromCharCode(65 + idx)}</p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <InfoRow label="Entreprise/Company" value={val(work.companyName)} />
-                          <InfoRow label="Poste/Position" value={val(work.position)} />
-                          <InfoRow label="Secteur/Sector" value={val(work.industryType)} />
-                          <InfoRow label="De/From" value={formatDate(work.yearsFrom)} />
-                          <InfoRow label="À/To" value={formatDate(work.yearsTo)} />
-                          <InfoRow label="Personne de contact/Work Contact" value={val(work.contactPerson)} />
+                          <InfoRow label="Entreprise" value={val(work.companyName)} />
+                          <InfoRow label="Poste" value={val(work.position)} />
+                          <InfoRow label="Secteur" value={val(work.industryType)} />
+                          <InfoRow label="De" value={formatDate(work.yearsFrom)} />
+                          <InfoRow label="À" value={formatDate(work.yearsTo)} />
+                          <InfoRow label="Personne de contact" value={val(work.contactPerson)} />
                           <InfoRow label="Tél. contact" value={val(work.contactPhone)} />
                           <InfoRow label="Email contact" value={val(work.contactEmail)} />
                         </div>
@@ -353,7 +353,7 @@ const ApplicationsSection = () => {
               )}
 
               {/* 8. Family Information */}
-              <SectionBlock title="8. Informations Familiales/Family Informations" icon={Users} color="text-purple-700">
+              <SectionBlock title="8. Informations Familiales" icon={Users} color="text-purple-700">
                 <div className="space-y-4">
                   {[
                     { key: 'fatherInfo', label: 'Père/Father' },
@@ -363,14 +363,14 @@ const ApplicationsSection = () => {
                     <div key={key} className="bg-gray-50 rounded-xl p-4">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{label}</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <InfoRow label="Nom/Name" value={val(selectedApp[key].name)} />
-                        <InfoRow label="Nationalité/Nationality" value={val(selectedApp[key].nationality)} />
-                        <InfoRow label="Date de naissance/Date of Birth" value={formatDate(selectedApp[key].dob)} />
-                        <InfoRow label="N° Pièce d'identité/ID Number" value={val(selectedApp[key].idNo)} />
-                        <InfoRow label="Téléphone/Telephone" value={val(selectedApp[key].mobile)} />
+                        <InfoRow label="Nom" value={val(selectedApp[key].name)} />
+                        <InfoRow label="Nationalité" value={val(selectedApp[key].nationality)} />
+                        <InfoRow label="Date de naissance" value={formatDate(selectedApp[key].dob)} />
+                        <InfoRow label="N° Pièce d'identité" value={val(selectedApp[key].idNo)} />
+                        <InfoRow label="Téléphone" value={val(selectedApp[key].mobile)} />
                         <InfoRow label="Email" value={val(selectedApp[key].email)} />
                         <InfoRow label="Profession" value={val(selectedApp[key].occupation)} />
-                        <InfoRow label="Employeur/Employer" value={val(selectedApp[key].employer)} />
+                        <InfoRow label="Employeur" value={val(selectedApp[key].employer)} />
                       </div>
                     </div>
                   ))}
@@ -379,10 +379,10 @@ const ApplicationsSection = () => {
 
               {/* 9. Financial Sponsor */}
               {selectedApp.financialSponsor?.relationship && (
-                <SectionBlock title="9. Garant Financier/Finamcial Sponsor" icon={CreditCard} color="text-green-700">
+                <SectionBlock title="9. Garant Financier" icon={CreditCard} color="text-green-700">
                   <div className="grid grid-cols-2 gap-4">
                     <InfoRow label="Relation" value={val(selectedApp.financialSponsor.relationship)} />
-                    <InfoRow label="Adresse complète/Full Address" value={val(selectedApp.financialSponsor.address)} />
+                    <InfoRow label="Adresse complète" value={val(selectedApp.financialSponsor.address)} />
                   </div>
                 </SectionBlock>
               )}
@@ -391,14 +391,14 @@ const ApplicationsSection = () => {
               {selectedApp.emergencyContact?.name && (
                 <SectionBlock title="10. Contact d'Urgence en Chine/Emergency Contact" icon={Phone} color="text-orange-700">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <InfoRow label="Nom/Name" value={val(selectedApp.emergencyContact.name)} />
+                    <InfoRow label="Nom" value={val(selectedApp.emergencyContact.name)} />
                     <InfoRow label="Relation" value={val(selectedApp.emergencyContact.relationship)} />
                     <InfoRow label="Profession" value={val(selectedApp.emergencyContact.occupation)} />
-                    <InfoRow label="Nationalité/Nationality" value={val(selectedApp.emergencyContact.nationality)} />
-                    <InfoRow label="N° Pièce d'identité/ ID Number" value={val(selectedApp.emergencyContact.idNo)} />
-                    <InfoRow label="Employeur/Employer" value={val(selectedApp.emergencyContact.employer)} />
-                    <InfoRow label="Adresse en Chine/Address in China" value={val(selectedApp.emergencyContact.addressChina)} />
-                    <InfoRow label="Téléphone/Telephone" value={val(selectedApp.emergencyContact.phone)} />
+                    <InfoRow label="Nationalité" value={val(selectedApp.emergencyContact.nationality)} />
+                    <InfoRow label="N° Pièce d'identité" value={val(selectedApp.emergencyContact.idNo)} />
+                    <InfoRow label="Employeur" value={val(selectedApp.emergencyContact.employer)} />
+                    <InfoRow label="Adresse en Chine" value={val(selectedApp.emergencyContact.addressChina)} />
+                    <InfoRow label="Téléphone" value={val(selectedApp.emergencyContact.phone)} />
                     <InfoRow label="Email" value={val(selectedApp.emergencyContact.email)} />
                   </div>
                 </SectionBlock>
