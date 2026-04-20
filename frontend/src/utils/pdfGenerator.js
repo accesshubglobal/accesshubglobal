@@ -5,8 +5,10 @@
  * @param {Object} params.application - Application data (userName, documents, etc.)
  * @param {Object} [params.offer]     - Offer details (university, city, country, fees...)
  * @param {Object} [params.user]      - Logged-in user (fallback for name/email)
+ * @param {('save'|'base64')} [params.output='save'] - 'save' triggers download; 'base64' returns raw base64 string.
+ * @returns {Promise<string|void>} base64 string (without data-URL prefix) when output='base64'.
  */
-export async function generateApplicationPDF({ application, offer, user }) {
+export async function generateApplicationPDF({ application, offer, user, output = 'save' }) {
   const html2pdf = (await import('html2pdf.js')).default;
 
   const LOGO_URL =
@@ -282,7 +284,14 @@ export async function generateApplicationPDF({ application, offer, user }) {
   };
 
   try {
-    await html2pdf().set(opt).from(element).save();
+    const worker = html2pdf().set(opt).from(element);
+    if (output === 'base64') {
+      const dataUrl = await worker.outputPdf('datauristring');
+      // Return raw base64 (strip "data:application/pdf;base64," prefix)
+      const comma = dataUrl.indexOf(',');
+      return comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+    }
+    await worker.save();
   } finally {
     document.body.removeChild(container);
   }

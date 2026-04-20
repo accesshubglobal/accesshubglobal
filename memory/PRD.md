@@ -98,6 +98,7 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 - [x] **Étape Révision (Step 5) dans ApplicationModal** : Récapitulatif lecture-seule de toutes les sections (Programme, Perso, Passeport, Formation, Famille, Urgence, Documents, Paiement) avant soumission. Bouton Soumettre uniquement à cette étape. (FAIT - 05/2026)
 - [x] **Popup post-soumission** : Après succès, popup gradient vert (`submission-success-modal`) avec `PartyPopper`, message "Candidature envoyée !", boutons "Fermer" et "Se connecter" (redirige vers `/dashboard`). (FAIT - 05/2026)
 - [x] **Redesign PDF candidature** : Nouveau `/app/frontend/src/utils/pdfGenerator.js` — en-tête dégradé avec logo AccessHub Global, slogan, tél `+86 13881130175`, email, site. Bandeau référence + badge statut. Grilles Programme / Candidat / Urgence / Frais / Documents. Footer dark. Fichier `AccessHub-Candidature-<REF>.pdf`. (FAIT - 05/2026)
+- [x] **Email de confirmation automatique** : Après soumission, le candidat reçoit un email Resend `auth.accesshubglobal.com` avec le PDF récapitulatif en pièce jointe et un bouton CTA vers `/dashboard`. Implémenté avec `BackgroundTasks` (non bloquant) + `send_application_confirmation_email()` dans `_helpers.py`. Nouveau champ optionnel `pdfBase64` + `pdfFilename` dans `FullApplicationWithPDF`. `pdfGenerator.generateApplicationPDF({output:'base64'})` retourne le PDF en base64. (FAIT - 05/2026)
 - [ ] Intégration paiement en ligne (Stripe ou autre)
 
 ### P2 - Priorité moyenne

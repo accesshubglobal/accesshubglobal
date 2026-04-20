@@ -10,7 +10,7 @@ from _models import (
     UserCreate, UserLogin, User, UserResponse, TokenResponse,
     OfferCreate, Offer, UniversityCreate, University,
     HousingCreate, Housing, MessageCreate, Message, MessageReply,
-    Application, ApplicationCreate, FullApplicationCreate,
+    Application, ApplicationCreate, FullApplicationCreate, FullApplicationWithPDF,
     PaymentSettings, ChatMessage, NewsletterSubscribe,
     PasswordResetRequest, PasswordResetConfirm,
     BannerSlidesUpdate,
@@ -29,6 +29,7 @@ from _helpers import (
     send_notification, broadcast_to_admins,
     generate_verification_code, send_verification_email, send_password_reset_email,
     broadcast_newsletter_offer, broadcast_newsletter_blog,
+    send_application_confirmation_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -522,7 +523,7 @@ async def get_my_applications(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/applications/full")
-async def create_full_application(app_data: FullApplicationCreate, current_user: dict = Depends(get_current_user)):
+async def create_full_application(app_data: FullApplicationWithPDF, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     db = get_db()
     existing = await db.applications.find_one({
         "userId": current_user["id"],
@@ -531,16 +532,22 @@ async def create_full_application(app_data: FullApplicationCreate, current_user:
     if existing:
         raise HTTPException(status_code=400, detail="Vous avez déjà postulé à cette offre")
 
+    # Strip PDF fields before persisting (they are only for the confirmation email)
+    app_payload = app_data.model_dump()
+    pdf_base64 = app_payload.pop("pdfBase64", None)
+    pdf_filename = app_payload.pop("pdfFilename", None) or "candidature.pdf"
+
     application = Application(
         userId=current_user["id"],
         userName=f"{current_user['firstName']} {current_user['lastName']}",
         userEmail=current_user["email"],
         paymentStatus="submitted",
         status="pending",
-        **app_data.model_dump()
+        **app_payload
     )
 
-    await db.applications.insert_one(serialize_doc(application.model_dump()))
+    app_doc = serialize_doc(application.model_dump())
+    await db.applications.insert_one(app_doc)
 
     await broadcast_to_admins({
         "type": "new_application",
@@ -548,6 +555,16 @@ async def create_full_application(app_data: FullApplicationCreate, current_user:
         "message": f"{app_data.firstName} {app_data.lastName} a postulé à {app_data.offerTitle}",
         "data": {"applicationId": application.id}
     })
+
+    # Fetch offer details (for email context) and enqueue confirmation email
+    offer_doc = await db.offers.find_one({"id": app_data.offerId}, {"_id": 0})
+    background_tasks.add_task(
+        send_application_confirmation_email,
+        app_doc,
+        offer_doc,
+        pdf_base64,
+        pdf_filename,
+    )
 
     return {"message": "Candidature soumise avec succès", "id": application.id}
 

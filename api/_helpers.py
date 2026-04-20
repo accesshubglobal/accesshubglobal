@@ -465,6 +465,125 @@ async def broadcast_newsletter_job(offer: dict):
         logger.error(f"Newsletter job broadcast failed: {e}")
 
 
+def _build_application_confirmation_email(application: dict, offer: dict | None = None) -> str:
+    first = application.get('firstName', '')
+    last = application.get('lastName', '')
+    full_name = f"{first} {last}".strip() or "Candidat(e)"
+    offer_title = application.get('offerTitle') or (offer or {}).get('title') or 'Programme'
+    university = (offer or {}).get('university') or application.get('university') or ''
+    ref_id = (application.get('id') or '')[:8].upper()
+    created_at = application.get('createdAt', '')
+    try:
+        from datetime import datetime as _dt
+        d = _dt.fromisoformat(created_at.replace('Z', '+00:00')) if created_at else _dt.now(timezone.utc)
+        months_fr = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+                     'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+        date_str = f"{d.day} {months_fr[d.month]} {d.year}"
+    except Exception:
+        date_str = created_at[:10] if created_at else ''
+
+    dashboard_url = f"{SITE_URL}/dashboard"
+
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#0f1f35 0%,#1a56db 100%);padding:32px 28px;text-align:center;color:#fff;">
+    <div style="font-size:11px;letter-spacing:3px;color:#93c5fd;text-transform:uppercase;margin-bottom:6px;">AccessHub Global</div>
+    <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;">Candidature reçue ✓</h1>
+    <p style="margin:0;color:#dbeafe;font-size:14px;">Votre dossier a été enregistré avec succès</p>
+  </div>
+
+  <div style="padding:28px 32px;">
+    <p style="color:#111827;font-size:15px;margin:0 0 12px;">Bonjour <strong>{full_name}</strong>,</p>
+    <p style="color:#4b5563;font-size:14px;line-height:1.7;margin:0 0 20px;">
+      Nous accusons réception de votre candidature pour le programme ci-dessous. Notre équipe examinera votre dossier dans les plus brefs délais et vous contactera par email ou via votre tableau de bord.
+    </p>
+
+    <div style="background:#f8fafc;border-left:4px solid #1a56db;border-radius:8px;padding:16px 18px;margin:16px 0 20px;">
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Référence</div>
+      <div style="font-size:16px;font-weight:700;color:#0f1f35;margin-bottom:10px;">#{ref_id}</div>
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Programme</div>
+      <div style="font-size:15px;font-weight:700;color:#1a56db;">{offer_title}</div>
+      {f'<div style="font-size:12px;color:#6b7280;margin-top:4px;">🎓 {university}</div>' if university else ''}
+      {f'<div style="font-size:11px;color:#9ca3af;margin-top:8px;">Soumise le {date_str}</div>' if date_str else ''}
+    </div>
+
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin:16px 0;">
+      <p style="margin:0;color:#1e40af;font-size:13px;line-height:1.6;">
+        📎 Un <strong>récapitulatif PDF</strong> de votre candidature est joint à cet email pour vos archives.
+      </p>
+    </div>
+
+    <div style="text-align:center;margin:26px 0 8px;">
+      <a href="{dashboard_url}" style="display:inline-block;background:linear-gradient(135deg,#0f1f35,#1a56db);color:#ffffff;font-size:15px;font-weight:700;padding:14px 36px;border-radius:50px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 15px rgba(26,86,219,0.4);">
+        Suivre ma candidature →
+      </a>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:8px 0 0;">Connectez-vous à votre tableau de bord pour suivre le statut et échanger avec notre équipe.</p>
+
+    <div style="border-top:1px solid #e5e7eb;margin:24px 0 16px;"></div>
+    <p style="color:#6b7280;font-size:12px;line-height:1.7;margin:0;">
+      <strong style="color:#111827;">Prochaines étapes</strong><br>
+      1. Notre équipe vérifie la complétude de votre dossier (24–72h).<br>
+      2. Vous recevrez une notification dès qu'un statut est attribué.<br>
+      3. Si des pièces sont manquantes, vous pourrez les ajouter depuis votre tableau de bord.
+    </p>
+  </div>
+
+  {_newsletter_footer()}
+</div>
+</body>
+</html>"""
+
+
+async def send_application_confirmation_email(
+    application: dict,
+    offer: dict | None = None,
+    pdf_base64: str | None = None,
+    pdf_filename: str = "candidature.pdf",
+):
+    """Send post-submission confirmation email to the applicant with optional PDF attachment."""
+    try:
+        to_email = application.get("personalEmail") or application.get("userEmail")
+        if not to_email:
+            logger.warning("Application confirmation: no email address available")
+            return None
+
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        sender = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        if not api_key:
+            logger.warning(f"RESEND_API_KEY missing, skipping confirmation email to {to_email}")
+            return None
+
+        html = _build_application_confirmation_email(application, offer)
+        subject = f"Candidature reçue : {application.get('offerTitle', 'Programme')} — AccessHub Global"
+
+        params = {"from": sender, "to": [to_email], "subject": subject, "html": html}
+
+        if pdf_base64:
+            # Strip data-URL prefix if present (e.g. "data:application/pdf;base64,...")
+            b64 = pdf_base64.split(',', 1)[1] if ',' in pdf_base64 else pdf_base64
+            params["attachments"] = [{
+                "filename": pdf_filename or "candidature.pdf",
+                "content": b64,
+            }]
+
+        import resend
+        resend.api_key = api_key
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: resend.Emails.send(params)
+        )
+        logger.info(f"Application confirmation email sent to {to_email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send application confirmation email: {e}")
+        return None
+
+
+
 # ============= DATABASE =============
 
 _client = None

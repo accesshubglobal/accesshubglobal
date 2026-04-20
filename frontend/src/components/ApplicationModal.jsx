@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, Upload, Check, AlertCircle, Loader2, FileText, User, CreditCard, Copy, Plus, Trash2, Heart, BookOpen, Briefcase, Users, ClipboardCheck, LogIn, PartyPopper } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { generateApplicationPDF } from '../utils/pdfGenerator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -229,11 +230,33 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const handleSubmit = async () => {
     setLoading(true); setError('');
     try {
+      // Generate PDF summary (base64) to attach to the confirmation email.
+      // Failure here must not block submission.
+      let pdfBase64 = null;
+      try {
+        const stagedApp = {
+          id: '',
+          offerTitle: offer.title,
+          createdAt: new Date().toISOString(),
+          ...formData,
+        };
+        pdfBase64 = await generateApplicationPDF({
+          application: stagedApp,
+          offer,
+          user,
+          output: 'base64',
+        });
+      } catch (pdfErr) {
+        console.warn('PDF generation failed, submitting without attachment:', pdfErr);
+      }
+
       await axios.post(`${API}/applications/full`, {
         offerId: offer.id,
         offerTitle: offer.title,
         ...formData,
-        paymentAmount: offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || formData.paymentAmount
+        paymentAmount: offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || formData.paymentAmount,
+        pdfBase64,
+        pdfFilename: `AccessHub-Candidature-${(offer?.id || '').substring(0, 8).toUpperCase() || 'recap'}.pdf`,
       }, { headers: { Authorization: `Bearer ${token}` } });
       if (onSuccess) onSuccess();
       setSubmissionSuccess(true);

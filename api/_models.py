@@ -396,6 +396,17 @@ class ApplicationCreate(BaseModel):
 FullApplicationCreate = ApplicationCreate
 
 
+class ApplicationConfirmationEmail(BaseModel):
+    pdfBase64: Optional[str] = None  # data URL or raw base64 of the application summary PDF
+    pdfFilename: Optional[str] = "candidature.pdf"
+
+
+class FullApplicationWithPDF(ApplicationCreate):
+    """Extends ApplicationCreate with an optional PDF attachment for confirmation email."""
+    pdfBase64: Optional[str] = None
+    pdfFilename: Optional[str] = "candidature.pdf"
+
+
 # ============= PAYMENT SETTINGS =============
 
 class PaymentSettings(BaseModel):
