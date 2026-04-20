@@ -583,6 +583,187 @@ async def send_application_confirmation_email(
         return None
 
 
+# ── Application status update notifications ──────────────────────────────────
+
+_STATUS_META = {
+    "pending":    {"label": "En attente",        "color": "#f59e0b", "icon": "⏳", "title": "Candidature en attente"},
+    "reviewing":  {"label": "En cours d'examen", "color": "#3b82f6", "icon": "🔍", "title": "Candidature en cours d'examen"},
+    "accepted":   {"label": "Acceptée",          "color": "#10b981", "icon": "🎉", "title": "Candidature acceptée !"},
+    "rejected":   {"label": "Refusée",           "color": "#ef4444", "icon": "❌", "title": "Candidature refusée"},
+    "modify":     {"label": "À modifier",        "color": "#f97316", "icon": "✏️", "title": "Modifications demandées"},
+}
+
+
+def _build_status_update_email(application: dict, status: str, reason: str | None = None, offer: dict | None = None) -> str:
+    meta = _STATUS_META.get(status, {"label": status, "color": "#6b7280", "icon": "ℹ️", "title": "Mise à jour de candidature"})
+    first = application.get('firstName', '')
+    last = application.get('lastName', '')
+    full_name = f"{first} {last}".strip() or "Candidat(e)"
+    offer_title = application.get('offerTitle') or (offer or {}).get('title') or 'Programme'
+    university = (offer or {}).get('university') or ''
+    ref_id = (application.get('id') or '')[:8].upper()
+
+    body_message = {
+        "accepted":  f"Félicitations {full_name} ! Nous avons le plaisir de vous annoncer que votre candidature a été <strong>acceptée</strong>. Notre équipe vous contactera sous peu pour les prochaines étapes.",
+        "reviewing": f"Bonjour {full_name}, votre dossier est actuellement <strong>en cours d'examen</strong> par nos équipes. Vous recevrez une notification dès qu'une décision sera prise.",
+        "rejected":  f"Bonjour {full_name}, après examen attentif, nous regrettons de vous informer que votre candidature n'a pas été retenue pour ce programme. N'hésitez pas à postuler à d'autres offres disponibles sur la plateforme.",
+        "modify":    f"Bonjour {full_name}, votre candidature nécessite des <strong>modifications</strong> avant validation. Veuillez consulter les détails ci-dessous et mettre à jour votre dossier depuis votre tableau de bord.",
+        "pending":   f"Bonjour {full_name}, votre candidature est bien enregistrée et en attente de traitement.",
+    }.get(status, f"Bonjour {full_name}, le statut de votre candidature a été mis à jour.")
+
+    cta_label = {
+        "accepted":  "Voir les prochaines étapes",
+        "modify":    "Mettre à jour mon dossier",
+        "rejected":  "Découvrir d'autres offres",
+        "reviewing": "Suivre ma candidature",
+        "pending":   "Voir ma candidature",
+    }.get(status, "Accéder à mon tableau de bord")
+
+    dashboard_url = f"{SITE_URL}/dashboard"
+
+    reason_block = ""
+    if reason and status in ("modify", "rejected"):
+        reason_block = f"""
+    <div style="background:#fef3c7;border-left:4px solid {meta['color']};border-radius:8px;padding:14px 18px;margin:16px 0;">
+      <div style="font-size:10px;color:#78350f;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:700;">Motif / Instructions</div>
+      <div style="font-size:13px;color:#92400e;line-height:1.6;white-space:pre-wrap;">{reason}</div>
+    </div>"""
+
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#0f1f35 0%,{meta['color']} 100%);padding:32px 28px;text-align:center;color:#fff;">
+    <div style="font-size:11px;letter-spacing:3px;color:#ffffff;opacity:0.8;text-transform:uppercase;margin-bottom:8px;">AccessHub Global</div>
+    <div style="font-size:40px;margin-bottom:4px;">{meta['icon']}</div>
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;">{meta['title']}</h1>
+    <div style="display:inline-block;padding:6px 16px;background:rgba(255,255,255,0.2);border-radius:999px;font-size:12px;font-weight:700;letter-spacing:0.5px;">{meta['label'].upper()}</div>
+  </div>
+
+  <div style="padding:28px 32px;">
+    <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 18px;">{body_message}</p>
+
+    <div style="background:#f8fafc;border-left:4px solid {meta['color']};border-radius:8px;padding:14px 18px;margin:16px 0;">
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Référence</div>
+      <div style="font-size:15px;font-weight:700;color:#0f1f35;margin-bottom:10px;">#{ref_id}</div>
+      <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Programme</div>
+      <div style="font-size:14px;font-weight:700;color:#1a56db;">{offer_title}</div>
+      {f'<div style="font-size:12px;color:#6b7280;margin-top:4px;">🎓 {university}</div>' if university else ''}
+    </div>
+
+    {reason_block}
+
+    <div style="text-align:center;margin:26px 0 8px;">
+      <a href="{dashboard_url}" style="display:inline-block;background:linear-gradient(135deg,#0f1f35,{meta['color']});color:#ffffff;font-size:15px;font-weight:700;padding:14px 34px;border-radius:50px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 15px rgba(0,0,0,0.15);">
+        {cta_label} →
+      </a>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:8px 0 0;">Vous pouvez suivre l'avancement de votre candidature et échanger avec notre équipe depuis votre tableau de bord.</p>
+  </div>
+
+  {_newsletter_footer()}
+</div>
+</body>
+</html>"""
+
+
+async def send_application_status_update_email(
+    application: dict,
+    status: str,
+    reason: str | None = None,
+    offer: dict | None = None,
+):
+    """Send transactional email when an admin updates an application's status."""
+    try:
+        to_email = application.get("personalEmail") or application.get("userEmail")
+        if not to_email:
+            logger.warning("Status update email: no email on application")
+            return None
+
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        sender = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        if not api_key:
+            logger.warning(f"RESEND_API_KEY missing, skipping status email to {to_email}")
+            return None
+
+        meta = _STATUS_META.get(status, {"label": status, "icon": "ℹ️"})
+        html = _build_status_update_email(application, status, reason, offer)
+        subject = f"{meta['icon']} Candidature {meta.get('label', status).lower()} : {application.get('offerTitle', 'Programme')}"
+
+        import resend
+        resend.api_key = api_key
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: resend.Emails.send({
+                "from": sender, "to": [to_email], "subject": subject, "html": html
+            })
+        )
+        logger.info(f"Status update email ({status}) sent to {to_email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send status update email: {e}")
+        return None
+
+
+_PAYMENT_STATUS_META = {
+    "pending":   {"label": "En attente",  "color": "#f59e0b", "icon": "⏳"},
+    "submitted": {"label": "Soumis",      "color": "#3b82f6", "icon": "📤"},
+    "verified":  {"label": "Vérifié",     "color": "#10b981", "icon": "✅"},
+    "rejected":  {"label": "Rejeté",      "color": "#ef4444", "icon": "⚠️"},
+}
+
+
+async def send_payment_status_email(application: dict, payment_status: str):
+    """Notify the applicant when payment status changes."""
+    try:
+        to_email = application.get("personalEmail") or application.get("userEmail")
+        if not to_email:
+            return None
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        sender = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        if not api_key:
+            return None
+
+        meta = _PAYMENT_STATUS_META.get(payment_status, {"label": payment_status, "color": "#6b7280", "icon": "ℹ️"})
+        offer_title = application.get('offerTitle', 'Programme')
+        ref_id = (application.get('id') or '')[:8].upper()
+        dashboard_url = f"{SITE_URL}/dashboard"
+
+        html = f"""
+<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#0f1f35,{meta['color']});padding:30px;text-align:center;color:#fff;">
+    <div style="font-size:36px;margin-bottom:6px;">{meta['icon']}</div>
+    <h1 style="margin:0;font-size:22px;font-weight:800;">Statut de paiement : {meta['label']}</h1>
+  </div>
+  <div style="padding:28px;">
+    <p style="color:#374151;font-size:14px;line-height:1.7;">Le statut de paiement pour votre candidature <strong>{offer_title}</strong> (réf #{ref_id}) est maintenant <strong style="color:{meta['color']};">{meta['label']}</strong>.</p>
+    <div style="text-align:center;margin:24px 0 8px;">
+      <a href="{dashboard_url}" style="display:inline-block;background:{meta['color']};color:#fff;font-size:14px;font-weight:700;padding:13px 30px;border-radius:50px;text-decoration:none;">Accéder à mon tableau de bord →</a>
+    </div>
+  </div>
+  {_newsletter_footer()}
+</div></body></html>"""
+
+        subject = f"{meta['icon']} Paiement {meta['label'].lower()} — AccessHub Global"
+        import resend
+        resend.api_key = api_key
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: resend.Emails.send({"from": sender, "to": [to_email], "subject": subject, "html": html})
+        )
+        logger.info(f"Payment status email ({payment_status}) sent to {to_email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send payment status email: {e}")
+        return None
+
+
+
+
 
 # ============= DATABASE =============
 

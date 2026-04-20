@@ -30,6 +30,7 @@ from _helpers import (
     send_notification, broadcast_to_admins,
     generate_verification_code, send_verification_email, send_password_reset_email,
     broadcast_newsletter_offer, broadcast_newsletter_blog,
+    send_application_status_update_email, send_payment_status_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -298,12 +299,12 @@ async def admin_get_applications(admin: dict = Depends(get_admin_user)):
 
 
 @router.put("/admin/applications/{app_id}/status")
-async def admin_update_application_status(app_id: str, status: str, reason: Optional[str] = None, admin: dict = Depends(get_admin_user)):
+async def admin_update_application_status(app_id: str, status: str, background_tasks: BackgroundTasks, reason: Optional[str] = None, admin: dict = Depends(get_admin_user)):
     db = get_db()
     if status not in ["pending", "reviewing", "accepted", "rejected", "modify"]:
         raise HTTPException(status_code=400, detail="Statut invalide")
 
-    application = await db.applications.find_one({"id": app_id})
+    application = await db.applications.find_one({"id": app_id}, {"_id": 0})
     if not application:
         raise HTTPException(status_code=404, detail="Candidature non trouvée")
 
@@ -334,16 +335,24 @@ async def admin_update_application_status(app_id: str, status: str, reason: Opti
         data={"applicationId": app_id, "status": status, "reason": reason}
     )
 
+    # Fire-and-forget transactional email with rich status template
+    offer_doc = await db.offers.find_one({"id": application.get("offerId")}, {"_id": 0}) if application.get("offerId") else None
+    updated_app = {**application, **update_data}
+    background_tasks.add_task(
+        send_application_status_update_email,
+        updated_app, status, reason, offer_doc,
+    )
+
     return {"message": f"Statut mis à jour: {status}"}
 
 
 @router.put("/admin/applications/{app_id}/payment-status")
-async def admin_update_payment_status(app_id: str, payment_status: str, admin: dict = Depends(get_admin_user)):
+async def admin_update_payment_status(app_id: str, payment_status: str, background_tasks: BackgroundTasks, admin: dict = Depends(get_admin_user)):
     db = get_db()
     if payment_status not in ["pending", "submitted", "verified", "rejected"]:
         raise HTTPException(status_code=400, detail="Statut de paiement invalide")
 
-    application = await db.applications.find_one({"id": app_id})
+    application = await db.applications.find_one({"id": app_id}, {"_id": 0})
     if not application:
         raise HTTPException(status_code=404, detail="Candidature non trouvée")
 
@@ -361,6 +370,13 @@ async def admin_update_payment_status(app_id: str, payment_status: str, admin: d
         title="Mise à jour du paiement",
         message=f"Le statut de votre paiement pour '{application.get('offerTitle', 'Programme')}' est maintenant {status_labels.get(payment_status, payment_status)}",
         data={"applicationId": app_id, "paymentStatus": payment_status}
+    )
+
+    # Fire-and-forget payment-status email
+    background_tasks.add_task(
+        send_payment_status_email,
+        {**application, "paymentStatus": payment_status},
+        payment_status,
     )
 
     return {"message": f"Statut de paiement mis à jour: {payment_status}"}
