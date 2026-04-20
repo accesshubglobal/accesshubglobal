@@ -976,6 +976,68 @@ async def get_faqs():
 
 # ============= INSTITUTIONAL PAGES (PUBLIC) =============
 
+DEFAULT_PAGES = {
+    "about": {
+        "slug": "about",
+        "title": "À propos d'AccessHub Global",
+        "subtitle": "Votre passerelle vers l'excellence académique internationale",
+        "sections": {
+            "history": {"title": "Notre histoire", "content": "Fondée en 2019 à Guangzhou, AccessHub Global accompagne les étudiants africains et francophones vers les meilleures universités à l'international."},
+            "mission": {"title": "Notre mission", "content": "Rendre l'éducation internationale accessible, transparente et sécurisée pour chaque étudiant.", "pillars": [{"title": "Accessibilité", "desc": "Simplifier les démarches pour tous"}, {"title": "Transparence", "desc": "Des processus clairs et honnêtes"}, {"title": "Excellence", "desc": "Les meilleures universités partenaires"}]},
+            "values": [{"title": "Engagement", "desc": "Investissement personnel dans la réussite de chaque étudiant."}],
+            "team": [{"name": "Mr. MOUNTSOUKA Aaron Depousse", "role": "Fondateur & Directeur Général", "desc": "Passionné par l'éducation internationale."}],
+            "services": [{"title": "Orientation académique", "desc": "Analyse de profil et recommandation de programmes adaptés."}]
+        }
+    },
+    "company": {
+        "slug": "company",
+        "title": "Informations sur l'entreprise",
+        "subtitle": "Découvrez AccessHub Global — structure, équipe et organisation",
+        "sections": {
+            "identity": {"name": "AccessHub Global", "registration": "", "director": "Mr. MOUNTSOUKA Aaron Depousse", "email": "accesshubglobal@gmail.com", "founded": "2019", "sector": "Conseil en mobilité étudiante internationale"},
+            "offices": [{"country": "Chine", "flag": "🇨🇳", "address": "Vanke, Panyu District, Guangdong Province, Guangzhou City, Chine", "label": "Bureau principal"}, {"country": "Congo", "flag": "🇨🇬", "address": "34 rue Lénine, Moungali, Brazzaville, République du Congo", "label": "Bureau Afrique"}],
+            "departments": [{"title": "Admissions", "desc": "Traitement des dossiers et suivi."}, {"title": "Visa & Logistique", "desc": "Assistance visa et installation."}, {"title": "Partenariats", "desc": "Relations avec les universités."}, {"title": "Support Étudiant", "desc": "Accompagnement continu."}],
+            "stats": [{"number": "500+", "label": "Étudiants accompagnés"}, {"number": "50+", "label": "Universités partenaires"}, {"number": "5+", "label": "Années d'expérience"}, {"number": "3", "label": "Pays d'opération"}],
+            "clients": [],
+            "partners": []
+        }
+    },
+    "legal": {
+        "slug": "legal",
+        "title": "Mentions Légales",
+        "subtitle": "Informations légales relatives au site AccessHub Global",
+        "sections": [
+            {"heading": "1. Éditeur du site", "content": "Raison sociale : AccessHub Global\nDirecteur : Mr. MOUNTSOUKA Aaron Depousse\nEmail : accesshubglobal@gmail.com"},
+            {"heading": "2. Hébergement", "content": "Le site est hébergé par Vercel Inc., États-Unis."},
+            {"heading": "3. Propriété intellectuelle", "content": "Tout le contenu est la propriété exclusive d'AccessHub Global."},
+            {"heading": "4. Contact", "content": "accesshubglobal@gmail.com"}
+        ]
+    },
+    "privacy": {
+        "slug": "privacy",
+        "title": "Politique de confidentialité",
+        "subtitle": "Comment nous collectons, utilisons et protégeons vos données personnelles",
+        "sections": [
+            {"heading": "1. Données collectées", "content": "Nous collectons les informations que vous nous fournissez : nom, email, documents académiques."},
+            {"heading": "2. Utilisation", "content": "Vos données sont utilisées exclusivement pour le traitement de votre dossier. Elles ne sont jamais vendues."},
+            {"heading": "3. Vos droits", "content": "Vous disposez des droits d'accès, rectification et suppression. Contactez-nous : accesshubglobal@gmail.com"},
+            {"heading": "4. Contact", "content": "accesshubglobal@gmail.com"}
+        ]
+    },
+    "terms": {
+        "slug": "terms",
+        "title": "Conditions d'utilisation",
+        "subtitle": "Règles et conditions régissant l'utilisation de la plateforme AccessHub Global",
+        "sections": [
+            {"heading": "1. Acceptation", "content": "En utilisant la plateforme, vous acceptez ces conditions."},
+            {"heading": "2. Service", "content": "AccessHub Global est une plateforme de conseil en mobilité étudiante internationale."},
+            {"heading": "3. Obligations", "content": "Fournir des informations exactes, respecter les droits de propriété intellectuelle."},
+            {"heading": "4. Limitation de responsabilité", "content": "AccessHub Global agit en qualité d'intermédiaire. Les décisions d'admission restent de la compétence des établissements."},
+            {"heading": "5. Contact", "content": "accesshubglobal@gmail.com"}
+        ]
+    }
+}
+
 @router.get("/pages/{slug}")
 async def get_page(slug: str):
     db = get_db()
