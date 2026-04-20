@@ -170,11 +170,17 @@ const PropertyDetailModal = ({ property, onClose, onContact }) => {
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 leading-tight">{property.title}</h2>
 
           {/* Location */}
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-5">
-            <MapPin size={14} className="text-[#1a56db] flex-shrink-0" />
-            <span>
-              {[property.location, property.city, property.country].filter(Boolean).join(', ')}
-            </span>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2 text-gray-500 text-sm">
+              <MapPin size={14} className="text-[#1a56db] flex-shrink-0" />
+              <span>
+                {[property.location, property.city, property.country].filter(Boolean).join(', ')}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2.5 py-1">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">ID</span>
+              <span className="text-[11px] font-mono font-bold text-gray-700">{property.id?.substring(0, 8).toUpperCase()}</span>
+            </div>
           </div>
 
           {/* Key stats row */}
@@ -602,7 +608,8 @@ const LogementsPage = () => {
       result = result.filter(p =>
         p.city?.toLowerCase().includes(q) ||
         p.country?.toLowerCase().includes(q) ||
-        p.title?.toLowerCase().includes(q)
+        p.title?.toLowerCase().includes(q) ||
+        p.id?.substring(0, 8).toLowerCase().includes(q)
       );
     }
     if (selectedType !== 'Tous') {

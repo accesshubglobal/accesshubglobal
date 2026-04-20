@@ -103,6 +103,7 @@ const AdminSidebar = ({
         ...(isPrincipalAdmin ? [{ id: 'banners', label: 'Bannières', icon: Image }] : []),
         { id: 'testimonials', label: 'Témoignages', icon: Star },
         { id: 'faqs', label: 'FAQ', icon: HelpCircle },
+        { id: 'certificates', label: 'Certificats & Admissions', icon: Award },
       ],
     },
     {

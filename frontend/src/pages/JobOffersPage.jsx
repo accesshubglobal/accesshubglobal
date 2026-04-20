@@ -35,7 +35,7 @@ const JobOffersPage = () => {
 
   const filtered = offers.filter(o => {
     const q = search.toLowerCase();
-    const matchSearch = !search || o.title?.toLowerCase().includes(q) || o.companyName?.toLowerCase().includes(q) || o.location?.toLowerCase().includes(q) || o.sector?.toLowerCase().includes(q);
+    const matchSearch = !search || o.title?.toLowerCase().includes(q) || o.companyName?.toLowerCase().includes(q) || o.location?.toLowerCase().includes(q) || o.sector?.toLowerCase().includes(q) || o.id?.substring(0, 8).toLowerCase().includes(q);
     const matchContract = !filters.contractType || o.contractType === filters.contractType;
     const matchSector = !filters.sector || o.sector === filters.sector;
     const matchCountry = !filters.country || o.country?.toLowerCase().includes(filters.country.toLowerCase());

@@ -140,7 +140,7 @@ const OfferDetailModal = ({ offer, isOpen, onClose, onOpenAuth }) => {
                   ))}
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">{offer.title}</h2>
-                <div className="flex items-center gap-4 text-white/80 text-sm">
+                <div className="flex items-center gap-4 text-white/80 text-sm flex-wrap">
                   <span className="flex items-center gap-1">
                     <GraduationCap size={16} />
                     {offer.university}
@@ -149,6 +149,11 @@ const OfferDetailModal = ({ offer, isOpen, onClose, onOpenAuth }) => {
                     <MapPin size={16} />
                     {offer.city}, {offer.country}
                   </span>
+                  {offer.id && (
+                    <span className="flex items-center gap-1 font-mono bg-white/20 px-2 py-0.5 rounded-lg text-xs font-bold">
+                      #{offer.id.substring(0, 8).toUpperCase()}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

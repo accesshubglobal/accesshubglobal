@@ -988,3 +988,20 @@ async def get_page(slug: str):
         raise HTTPException(status_code=404, detail="Page non trouvee")
     return page
 
+
+
+
+# ============= CERTIFICATES & ADMISSIONS (PUBLIC) =============
+
+@router.get("/certificates")
+async def get_certificates():
+    db = get_db()
+    items = await db.certificates.find({}, {"_id": 0}).sort("createdAt", -1).to_list(100)
+    return items
+
+
+@router.get("/admissions")
+async def get_admissions():
+    db = get_db()
+    items = await db.admissions.find({}, {"_id": 0}).sort("createdAt", -1).to_list(100)
+    return items

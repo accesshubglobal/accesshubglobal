@@ -984,3 +984,68 @@ async def admin_update_agent_login_code(agent_id: str, data: dict, admin: dict =
         raise HTTPException(status_code=404, detail="Agent non trouvé")
     await db.users.update_one({"id": agent_id}, {"$set": {"agentCode": new_code}})
     return {"success": True, "agentCode": new_code}
+
+
+
+# ============= CERTIFICATES & ADMISSIONS (ADMIN) =============
+
+@router.get("/admin/certificates")
+async def admin_get_certificates(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    items = await db.certificates.find({}, {"_id": 0}).sort("createdAt", -1).to_list(100)
+    return items
+
+
+@router.post("/admin/certificates")
+async def admin_add_certificate(data: dict, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    item = {
+        "id": str(uuid.uuid4()),
+        "title": data.get("title", ""),
+        "description": data.get("description", ""),
+        "imageUrl": data.get("imageUrl", ""),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.certificates.insert_one(item)
+    return {k: v for k, v in item.items() if k != "_id"}
+
+
+@router.delete("/admin/certificates/{cert_id}")
+async def admin_delete_certificate(cert_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.certificates.delete_one({"id": cert_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Certificat non trouvé")
+    return {"success": True}
+
+
+@router.get("/admin/admissions")
+async def admin_get_admissions(admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    items = await db.admissions.find({}, {"_id": 0}).sort("createdAt", -1).to_list(100)
+    return items
+
+
+@router.post("/admin/admissions")
+async def admin_add_admission(data: dict, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    item = {
+        "id": str(uuid.uuid4()),
+        "title": data.get("title", ""),
+        "description": data.get("description", ""),
+        "imageUrl": data.get("imageUrl", ""),
+        "university": data.get("university", ""),
+        "year": data.get("year", ""),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.admissions.insert_one(item)
+    return {k: v for k, v in item.items() if k != "_id"}
+
+
+@router.delete("/admin/admissions/{admission_id}")
+async def admin_delete_admission(admission_id: str, admin: dict = Depends(get_admin_user)):
+    db = get_db()
+    result = await db.admissions.delete_one({"id": admission_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admission non trouvée")
+    return {"success": True}

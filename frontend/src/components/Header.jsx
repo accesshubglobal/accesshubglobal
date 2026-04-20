@@ -43,7 +43,7 @@ const Header = ({ onOpenAuth }) => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
-            <a href="#programs" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Bourse</a>
+            <a href="/etudes" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Études</a>
             <a href="#emploi" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">Emploi</a>
             <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.housing')}</a>
             <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium transition-colors">{t('header.services')}</a>
@@ -227,7 +227,7 @@ const Header = ({ onOpenAuth }) => {
         {mobileMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t border-gray-100 pt-4">
             <nav className="flex flex-col gap-3">
-              <a href="#programs" className="text-gray-700 hover:text-[#1a56db] font-medium">Bourse</a>
+              <a href="/etudes" className="text-gray-700 hover:text-[#1a56db] font-medium">Études</a>
               <a href="#emploi" className="text-gray-700 hover:text-[#1a56db] font-medium">Emploi</a>
               <a href="#housing" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.housing')}</a>
               <a href="#services" className="text-gray-700 hover:text-[#1a56db] font-medium">{t('header.services')}</a>

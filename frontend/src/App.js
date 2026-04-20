@@ -42,6 +42,10 @@ import AboutPage from "./pages/AboutPage";
 import CompanyInfoPage from "./pages/CompanyInfoPage";
 import LogementsPage from "./pages/LogementsPage";
 import { LegalNoticePage, PrivacyPolicyPage, TermsOfUsePage } from "./pages/LegalPages";
+import EtudesPage from "./pages/EtudesPage";
+import ChinePage from "./pages/ChinePage";
+import FrancePage from "./pages/FrancePage";
+import CanadaPage from "./pages/CanadaPage";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = false, requireEmployer = false, requireLogement = false }) => {
@@ -154,6 +158,10 @@ function App() {
               <Route path="/legal" element={<LegalNoticePage />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsOfUsePage />} />
+              <Route path="/etudes" element={<EtudesPage />} />
+              <Route path="/etudes/chine" element={<ChinePage />} />
+              <Route path="/etudes/france" element={<FrancePage />} />
+              <Route path="/etudes/canada" element={<CanadaPage />} />
               <Route 
                 path="/dashboard" 
                 element={

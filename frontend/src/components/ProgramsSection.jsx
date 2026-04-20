@@ -214,7 +214,8 @@ const ProgramsSection = ({ onOpenAuth }) => {
         o.title?.toLowerCase().includes(q) ||
         o.university?.toLowerCase().includes(q) ||
         o.city?.toLowerCase().includes(q) ||
-        o.description?.toLowerCase().includes(q)
+        o.description?.toLowerCase().includes(q) ||
+        o.id?.substring(0, 8).toLowerCase().includes(q)
       );
     }
     if (category) results = results.filter(o => o.category === category);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Target, Heart, Users, Award, Globe, BookOpen, Briefcase, TrendingUp, Shield } from 'lucide-react';
+import { ArrowLeft, Target, Heart, Users, Award, Globe, BookOpen, Briefcase, TrendingUp, Shield, GraduationCap, ImageIcon } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -10,9 +10,20 @@ const AboutPage = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [certificates, setCertificates] = useState([]);
+  const [admissions, setAdmissions] = useState([]);
 
   useEffect(() => {
-    fetch(`${API}/pages/about`).then(r => r.json()).then(d => { setPage(d); setLoading(false); }).catch(() => setLoading(false));
+    Promise.all([
+      fetch(`${API}/pages/about`).then(r => r.json()).catch(() => null),
+      fetch(`${API}/certificates`).then(r => r.json()).catch(() => []),
+      fetch(`${API}/admissions`).then(r => r.json()).catch(() => []),
+    ]).then(([p, c, a]) => {
+      setPage(p);
+      setCertificates(Array.isArray(c) ? c : []);
+      setAdmissions(Array.isArray(a) ? a : []);
+      setLoading(false);
+    });
   }, []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-[#1a56db] border-t-transparent rounded-full"></div></div>;
@@ -128,6 +139,79 @@ const AboutPage = () => {
                 <div key={i} className="flex gap-4 p-5 rounded-xl border border-gray-100 hover:border-[#1a56db]/20 hover:shadow-sm transition-all">
                   <div className="w-8 h-8 bg-[#1a56db]/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"><TrendingUp size={16} className="text-[#1a56db]" /></div>
                   <div><h3 className="font-semibold text-gray-900 mb-1">{service.title}</h3><p className="text-sm text-gray-600 leading-relaxed">{service.desc}</p></div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Certificats ── */}
+        {certificates.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <Award size={20} className="text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Nos Certificats</h2>
+                <p className="text-gray-500 text-sm">Certifications d'honneur, d'excellence et d'appréciation</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {certificates.map(cert => (
+                <div key={cert.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group hover:-translate-y-1">
+                  {cert.imageUrl ? (
+                    <div className="h-52 bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center p-4 overflow-hidden">
+                      <img src={cert.imageUrl} alt={cert.title} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                  ) : (
+                    <div className="h-52 bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
+                      <Award size={48} className="text-amber-200" />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{cert.title}</h3>
+                    {cert.description && <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{cert.description}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Admissions ── */}
+        {admissions.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <GraduationCap size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Admissions obtenues</h2>
+                <p className="text-gray-500 text-sm">Les succès de nos étudiants dans les meilleures universités mondiales</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {admissions.map(adm => (
+                <div key={adm.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group hover:-translate-y-1">
+                  {adm.imageUrl ? (
+                    <div className="h-52 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4 overflow-hidden">
+                      <img src={adm.imageUrl} alt={adm.title} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                  ) : (
+                    <div className="h-52 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+                      <GraduationCap size={48} className="text-blue-200" />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{adm.title}</h3>
+                    {adm.university && (
+                      <p className="text-xs text-blue-600 font-semibold mb-1">
+                        {adm.university}{adm.year ? ` — ${adm.year}` : ''}
+                      </p>
+                    )}
+                    {adm.description && <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{adm.description}</p>}
+                  </div>
                 </div>
               ))}
             </div>

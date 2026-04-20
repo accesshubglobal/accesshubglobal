@@ -297,7 +297,11 @@ export const JobDetailModal = ({ offer, onClose, onApply }) => {
           <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-xl"><X size={18} /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Quick info */}
+          {/* ID de référence */}
+          <div className="flex items-center gap-2 pb-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Référence :</span>
+            <span className="font-mono text-xs font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg">{offer.id?.substring(0, 8).toUpperCase()}</span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
               { icon: MapPin, label: 'Localisation', value: `${offer.location}, ${offer.country}` },
