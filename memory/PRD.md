@@ -94,6 +94,10 @@ Application full-stack (React + FastAPI + MongoDB) pour AccessHub Global (ancien
 |- [x] **Modal de revue pré-approbation** : Avant d'approuver un Employeur ou Partenaire Universitaire, l'admin voit un modal `ReviewModal.jsx` avec toutes les infos (personnelles, entreprise, documents téléchargeables) + warning "Dossier incomplet" si données manquantes. (FAIT - 04/2026)
 |- [x] **Duplication d'offres** : Bouton Dupliquer (icône Copy, amber) dans Offres, Bourses, Universités et Logements. Endpoints backend `/api/admin/{type}/{id}/duplicate`. (FAIT - 04/2026)
 |- [x] **Fix Bug PDF Contrat** : `fixPdfUrl` retourne l'URL inchangée (plus de conversion `/image/upload/` → `/raw/upload/` qui créait des 404 pour les anciens uploads). `downloadFile` ajoute `fl_attachment` correctement (FAIT - 04/2026)
+- [x] **Fix Bug 403 upload candidature (user)** : `ApplicationModal.jsx` — `uploadFile()` détecte PDFs/docs et route directement vers backend `/api/upload` (`resource_type='raw'`). Plus de blocage Cloudinary `/auto/upload` pour PDF sur plan free. Fallback backend aussi sur échec Cloudinary images. (FAIT - 05/2026)
+- [x] **Étape Révision (Step 5) dans ApplicationModal** : Récapitulatif lecture-seule de toutes les sections (Programme, Perso, Passeport, Formation, Famille, Urgence, Documents, Paiement) avant soumission. Bouton Soumettre uniquement à cette étape. (FAIT - 05/2026)
+- [x] **Popup post-soumission** : Après succès, popup gradient vert (`submission-success-modal`) avec `PartyPopper`, message "Candidature envoyée !", boutons "Fermer" et "Se connecter" (redirige vers `/dashboard`). (FAIT - 05/2026)
+- [x] **Redesign PDF candidature** : Nouveau `/app/frontend/src/utils/pdfGenerator.js` — en-tête dégradé avec logo AccessHub Global, slogan, tél `+86 13881130175`, email, site. Bandeau référence + badge statut. Grilles Programme / Candidat / Urgence / Frais / Documents. Footer dark. Fichier `AccessHub-Candidature-<REF>.pdf`. (FAIT - 05/2026)
 - [ ] Intégration paiement en ligne (Stripe ou autre)
 
 ### P2 - Priorité moyenne
