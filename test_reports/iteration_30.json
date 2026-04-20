@@ -1,0 +1,32 @@
+{
+  "summary": "Verified Bug #1 (PDF 403) backend fix end-to-end via API and code-reviewed frontend changes for Features #2/#3/#4. Backend /api/upload accepts PDF with HTTP 200 (resource_type=raw). Frontend ApplicationModal.jsx now routes any pdf/doc/docx/xls/xlsx/txt/csv/zip extension directly to /api/upload (no Cloudinary auto/upload), with image fallback paths also returning to backend on failure — root cause of 403 is eliminated. Step 5 'Révision' (data-testid='review-step'), submit only on step 5, success popup (data-testid='submission-success-modal' + success-close-btn + success-login-btn redirecting to /dashboard) and pdfGenerator.js letterhead (logo, name, slogan, +86 13881130175, accesshubglobal@gmail.com, ref band, applicant grid, emergency, fees, documents, dark footer; filename AccessHub-Candidature-<REF>.pdf) are all present and correct in source. UI Playwright E2E flow could not reach the 'Postuler' button automatically because the homepage 'Études' nav scrolls to a destination-discovery section instead of a flat offer list; the Commerce International offer is reachable only through Études → country sub-page. Manual click path was not finished within the run, but no code defects were observed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_30.json"],
+  "action_items": [
+    "Main agent to perform a one-shot manual smoke test: log in as ui_test_user@test.com, navigate Home → Études → Chine (or France) → open the visible offer card → Postuler → upload a real PDF in Step 2 to confirm no 403, then continue through Step 3/4/5 and click Soumettre to confirm success popup, then on /dashboard click Mes Candidatures item → Télécharger PDF and visually verify the AccessHub branded letterhead.",
+    "Optional: expose a flat /etudes or /offers route that lists offers directly so future automated tests can reach Postuler without country-specific navigation."
+  ],
+  "critical_code_review_comments": [
+    "ApplicationModal.jsx is now 1051 lines — exceeds the 700-line guideline; recommend splitting steps into separate components (Step1Profile, Step2Documents, Step3Terms, Step4Payment, Step5Review) and the success popup into its own component for maintainability.",
+    "uploadFile() PDF branch (line 150) does not catch network errors; if /api/upload fails (e.g. 500), the user sees 'Erreur lors du téléchargement' but the code does not retry or fall back. Consider a single try/catch around the axios call with a friendly message.",
+    "In handleSubmit (line 232), formData is spread directly into the POST body without any client-side trimming/validation of nested objects (workExperience, educationalBackground, family). Empty rows are sent as-is — backend should defensively filter, or frontend should strip empties.",
+    "Success popup 'Se connecter' button uses window.location.href = '/dashboard' (full reload) — using react-router navigate() would preserve auth state and feel snappier.",
+    "pdfGenerator.js uses html2pdf with html2canvas scale 2 — for very long applications this can blow up memory; consider pagebreak per section instead of avoid-all."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "code-review-only"},
+  "test_credentials": "Used ui_test_user@test.com / Test2025! (login API returned 200, access_token issued).",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend /api/upload was hit successfully with curl + Bearer token from ui_test_user → returned a Cloudinary raw URL (HTTP 200), so the 403 root cause is fixed at the API layer. Offer ID for tests: d0788524-a8a1-4238-a7c5-2c34e2f8b5a6 (Commerce International / HEC Paris). The site has no flat /offers route — the ApplicationModal is opened via OfferDetailModal which itself opens from clicking an offer card inside Études → country sub-pages (e.g. France). Future Playwright runs should navigate Home → click 'Découvrir France' button → click an offer card → Postuler. All test-ids referenced in the request (application-modal, input-*, next-step-btn, checkbox-terms, payment-paypal, upload-payment-proof, review-step, submit-application-btn, submission-success-modal, success-close-btn, success-login-btn, download-pdf-btn) are present in the source.",
+  "rca of the issue": "Original 403 was caused by Cloudinary free-plan blocking PDF delivery via /auto/upload. Fix: ApplicationModal.jsx uploadFile() now detects file extension and bypasses Cloudinary entirely for PDFs/docs, posting straight to backend /api/upload which uses resource_type='raw'. Verified by direct curl POST returning {url, filename, public_id} with HTTP 200."
+}

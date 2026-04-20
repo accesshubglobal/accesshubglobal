@@ -7,6 +7,7 @@ import {
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import ApplicationModal from './ApplicationModal';
+import { generateApplicationPDF } from '../utils/pdfGenerator';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -152,18 +153,19 @@ const UserDashboard = ({ onClose }) => {
     setResubmitting(false);
   };
 
-  // Download PDF
+  // Download PDF — branded AccessHub Global letterhead + structured data
   const handleDownloadPDF = async () => {
-    const html2pdf = (await import('html2pdf.js')).default;
-    const element = document.getElementById('application-detail-content');
-    const opt = {
-      margin: 10,
-      filename: `candidature-${selectedApplication.id?.substring(0, 8)}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(element).save();
+    if (!selectedApplication) return;
+    try {
+      await generateApplicationPDF({
+        application: selectedApplication,
+        offer: applicationOfferDetails,
+        user,
+      });
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+    }
   };
 
   // Remove from favorites

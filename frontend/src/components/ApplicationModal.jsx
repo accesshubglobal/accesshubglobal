@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Upload, Check, AlertCircle, Loader2, FileText, User, CreditCard, Copy, Plus, Trash2, Heart, BookOpen, Briefcase, Users } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Upload, Check, AlertCircle, Loader2, FileText, User, CreditCard, Copy, Plus, Trash2, Heart, BookOpen, Briefcase, Users, ClipboardCheck, LogIn, PartyPopper } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -112,6 +112,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const [uploadingDoc, setUploadingDoc] = useState(null);
   const [paymentProofFile, setPaymentProofFile] = useState(null);
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && offer) {
@@ -141,6 +142,21 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   };
 
   const uploadFile = async (file) => {
+    const fileExt = (file.name || '').split('.').pop().toLowerCase();
+    const isPdfOrDoc = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'].includes(fileExt);
+
+    // PDFs/docs: always route through backend (Cloudinary blocks direct PDF delivery on free plans → 403).
+    // Images: try Cloudinary signed direct upload first for bandwidth, fallback to backend on any error.
+    if (isPdfOrDoc) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const response = await axios.post(`${API}/upload`, fd, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        timeout: 60000,
+      });
+      return { url: response.data.url, filename: file.name };
+    }
+
     let sigData;
     try {
       const sigRes = await axios.get(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -166,8 +182,11 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     cloudFormData.append('folder', folder);
     const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, { method: 'POST', body: cloudFormData });
     if (!cloudRes.ok) {
-      const errData = await cloudRes.json().catch(() => ({}));
-      throw new Error(errData?.error?.message || 'Erreur Cloudinary');
+      // Cloudinary failed (e.g. PDF restriction) → fallback to backend
+      const fd = new FormData();
+      fd.append('file', file);
+      const response = await axios.post(`${API}/upload`, fd, { headers: { 'Authorization': `Bearer ${token}` }, timeout: 60000 });
+      return { url: response.data.url, filename: file.name };
     }
     const cloudData = await cloudRes.json();
     return { url: cloudData.secure_url, filename: file.name };
@@ -217,7 +236,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
         paymentAmount: offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || formData.paymentAmount
       }, { headers: { Authorization: `Bearer ${token}` } });
       if (onSuccess) onSuccess();
-      onClose();
+      setSubmissionSuccess(true);
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de la soumission');
     }
@@ -244,6 +263,66 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
 
   if (!isOpen || !offer) return null;
 
+  // ───── Success Popup ─────
+  if (submissionSuccess) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" data-testid="submission-success-modal">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="relative bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+          {/* Confetti-like gradient header */}
+          <div className="bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 p-8 text-center text-white">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-white/30">
+              <PartyPopper size={40} strokeWidth={2} />
+            </div>
+            <h2 className="text-2xl font-bold mb-1">Candidature envoyée !</h2>
+            <p className="text-white/90 text-sm">Félicitations, votre dossier a été soumis avec succès.</p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
+              <LogIn size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm text-blue-900">Suivez l'avancement de votre candidature</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Connectez-vous à votre espace personnel pour suivre le statut, recevoir les messages de l'équipe et téléverser de nouveaux documents si nécessaire.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                data-testid="success-close-btn"
+                onClick={() => { setSubmissionSuccess(false); onClose(); }}
+                className="px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Fermer
+              </button>
+              <button
+                type="button"
+                data-testid="success-login-btn"
+                onClick={() => {
+                  setSubmissionSuccess(false);
+                  onClose();
+                  // Redirect to dashboard if user is logged in, otherwise open login
+                  if (user) {
+                    window.location.href = '/dashboard';
+                  } else {
+                    window.location.href = '/?auth=login';
+                  }
+                }}
+                className="px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#1a56db] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <LogIn size={16} />
+                Se connecter
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (deadlineStatus && !deadlineStatus.isOpen) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -264,7 +343,8 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     { num: 1, label: 'Profil', icon: User },
     { num: 2, label: 'Documents', icon: FileText },
     { num: 3, label: 'Conditions', icon: Check },
-    { num: 4, label: 'Paiement', icon: CreditCard }
+    { num: 4, label: 'Paiement', icon: CreditCard },
+    { num: 5, label: 'Révision', icon: ClipboardCheck }
   ];
 
   return (
@@ -294,7 +374,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     </div>
                     <span className={`text-xs mt-1 ${isActive ? 'text-[#1a56db] font-medium' : 'text-gray-500'}`}>{step.label}</span>
                   </div>
-                  {index < 3 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.num ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                  {index < 4 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.num ? 'bg-green-500' : 'bg-gray-200'}`} />}
                 </React.Fragment>
               );
             })}
@@ -813,6 +893,131 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               )}
             </div>
           )}
+
+          {/* ===== STEP 5: REVIEW ===== */}
+          {currentStep === 5 && (
+            <div className="space-y-4" data-testid="review-step">
+              <div className="bg-gradient-to-r from-[#1e3a5f] to-[#1a56db] text-white rounded-xl p-5 mb-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <ClipboardCheck size={24} />
+                  <h3 className="text-lg font-bold">Révision finale / Final Review</h3>
+                </div>
+                <p className="text-white/80 text-sm">Vérifiez attentivement toutes les informations avant de soumettre votre candidature. Cliquez sur "Précédent" pour corriger une section.</p>
+              </div>
+
+              {/* Programme */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-[#1e3a5f] text-white px-4 py-2 font-semibold text-sm">📘 Programme</div>
+                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500 text-xs">Offre :</span><p className="font-medium">{offer.title}</p></div>
+                  <div><span className="text-gray-500 text-xs">Université :</span><p className="font-medium">{offer.university || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Ville :</span><p className="font-medium">{offer.city || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Frais de dossier :</span><p className="font-medium text-[#1a56db]">{offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}</p></div>
+                </div>
+              </div>
+
+              {/* Informations personnelles */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-700 text-white px-4 py-2 font-semibold text-sm">👤 Informations personnelles</div>
+                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.lastName || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Prénom :</span><p className="font-medium">{formData.firstName || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Sexe :</span><p className="font-medium">{formData.sex || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Nationalité :</span><p className="font-medium">{formData.nationality || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Date de naissance :</span><p className="font-medium">{formData.dateOfBirth || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Lieu de naissance :</span><p className="font-medium">{formData.placeOfBirth || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Pays de naissance :</span><p className="font-medium">{formData.countryOfBirth || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Langue maternelle :</span><p className="font-medium">{formData.nativeLanguage || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.phoneNumber || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Email :</span><p className="font-medium">{formData.personalEmail || '—'}</p></div>
+                  <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse :</span><p className="font-medium">{formData.address || '—'} {formData.addressDetailed && `, ${formData.addressDetailed}`}</p></div>
+                </div>
+              </div>
+
+              {/* Passeport */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-indigo-700 text-white px-4 py-2 font-semibold text-sm">🛂 Passeport</div>
+                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500 text-xs">Numéro :</span><p className="font-medium">{formData.passportNumber || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Délivrance :</span><p className="font-medium">{formData.passportIssuedDate || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Expiration :</span><p className="font-medium">{formData.passportExpiryDate || '—'}</p></div>
+                </div>
+              </div>
+
+              {/* Éducation */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-teal-700 text-white px-4 py-2 font-semibold text-sm">🎓 Formation académique</div>
+                <div className="p-4 space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><span className="text-gray-500 text-xs">Niveau le plus élevé :</span><p className="font-medium">{formData.highestEducation || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Filière souhaitée :</span><p className="font-medium">{formData.majorInChina || '—'}</p></div>
+                  </div>
+                  {formData.educationalBackground.filter(e => e.instituteName).map((edu, i) => (
+                    <div key={i} className="bg-gray-50 rounded p-2 text-xs">
+                      <strong>{edu.instituteName}</strong> · {edu.educationLevel} · {edu.fieldOfStudy} ({edu.yearsFrom} → {edu.yearsTo})
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Famille */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-purple-700 text-white px-4 py-2 font-semibold text-sm">👨‍👩‍👧 Famille</div>
+                <div className="p-4 space-y-2 text-sm">
+                  {[['Père', formData.fatherInfo], ['Mère', formData.motherInfo], ['Conjoint(e)', formData.spouseInfo]].filter(([, info]) => info.name).map(([label, info], i) => (
+                    <div key={i} className="bg-gray-50 rounded p-2 text-xs">
+                      <strong>{label}:</strong> {info.name} · {info.mobile || '—'} · {info.email || '—'}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contact urgence */}
+              {formData.emergencyContact.name && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="bg-orange-700 text-white px-4 py-2 font-semibold text-sm">🚨 Contact d'urgence</div>
+                  <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.emergencyContact.name}</p></div>
+                    <div><span className="text-gray-500 text-xs">Relation :</span><p className="font-medium">{formData.emergencyContact.relationship || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.emergencyContact.phone || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Email :</span><p className="font-medium">{formData.emergencyContact.email || '—'}</p></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-blue-700 text-white px-4 py-2 font-semibold text-sm">📄 Documents soumis ({formData.documents.length})</div>
+                <div className="p-4 space-y-1 text-sm">
+                  {formData.documents.length === 0 ? (
+                    <p className="text-gray-500 italic">Aucun document téléversé</p>
+                  ) : (
+                    formData.documents.map((doc, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <Check size={14} className="text-green-500" />
+                        <span className="font-medium">{doc.name}</span>
+                        <span className="text-gray-400">· {doc.filename}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Paiement */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-green-700 text-white px-4 py-2 font-semibold text-sm">💳 Paiement</div>
+                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500 text-xs">Méthode :</span><p className="font-medium capitalize">{formData.paymentMethod.replace('_', ' ') || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Montant :</span><p className="font-medium text-[#1a56db]">{offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}</p></div>
+                  <div className="col-span-2"><span className="text-gray-500 text-xs">Preuve de paiement :</span><p className="font-medium text-green-700 text-xs">{paymentProofFile?.name || '—'}</p></div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                ⚠️ <strong>Important :</strong> Une fois soumise, votre candidature ne pourra être modifiée que sur demande. Assurez-vous que toutes les informations sont correctes.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer Navigation */}
@@ -821,9 +1026,9 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
             <ChevronLeft size={18} />
             {currentStep > 1 ? 'Précédent' : 'Annuler'}
           </button>
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <button type="button" onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={(currentStep === 1 && !canProceedStep1) || (currentStep === 3 && !canProceedStep3)}
+              disabled={(currentStep === 1 && !canProceedStep1) || (currentStep === 3 && !canProceedStep3) || (currentStep === 4 && !canSubmit)}
               className="flex items-center gap-2 px-6 py-2 bg-[#1a56db] text-white rounded-lg font-medium hover:bg-[#1648b8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="next-step-btn">
               Suivant <ChevronRight size={18} />
