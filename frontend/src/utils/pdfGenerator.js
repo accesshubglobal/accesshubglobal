@@ -58,6 +58,12 @@ export async function generateApplicationPDF({ application, offer, user, output 
   const email = fmt(application.userEmail || application.personalEmail || user?.email);
   const refId = (application.id || '').substring(0, 8).toUpperCase();
 
+  // Extract ID photo URL from documents array (if present)
+  const idPhotoDoc = (application.documents || []).find(
+    (d) => d && typeof d === 'object' && (d.name === "Photo d'identité" || d.name === 'Photo identité')
+  );
+  const idPhotoUrl = idPhotoDoc?.url || '';
+
   const docsRows = (application.documents || [])
     .map((doc, i) => {
       const name = typeof doc === 'object' ? doc?.name || doc?.filename || `Document ${i + 1}` : `Document ${i + 1}`;
@@ -159,6 +165,14 @@ export async function generateApplicationPDF({ application, offer, user, output 
     <!-- APPLICANT -->
     <div style="margin-bottom:24px;">
       <div style="font-size:12px;font-weight:700;color:#1a56db;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a56db;padding-bottom:6px;margin-bottom:12px;">Informations du candidat</div>
+      ${idPhotoUrl ? `
+      <div style="display:flex;align-items:center;gap:16px;padding:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:12px;">
+        <img src="${idPhotoUrl}" alt="Photo d'identité" crossorigin="anonymous" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;"/>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#0f1f35;">${firstName} ${lastName}</div>
+          <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">Photo d'identité</div>
+        </div>
+      </div>` : ''}
       <table style="width:100%;border-collapse:collapse;">
         ${[
           ['Nom', lastName],

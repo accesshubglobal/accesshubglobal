@@ -279,8 +279,11 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const canProceedStep1 = formData.firstName && formData.lastName && formData.nationality &&
     formData.sex && formData.passportNumber && formData.dateOfBirth && formData.phoneNumber && formData.address;
 
-  const requiredDocs = offer?.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer?.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV'];
-  const canProceedStep2 = requiredDocs.length === 0 || formData.documents.length >= 1;
+  const ID_PHOTO_LABEL = "Photo d'identité";
+  // Always require an ID photo on top of the offer's document list
+  const offerDocs = offer?.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer?.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV'];
+  const requiredDocs = [ID_PHOTO_LABEL, ...offerDocs.filter(d => d !== ID_PHOTO_LABEL)];
+  const canProceedStep2 = !!uploadedDocs[ID_PHOTO_LABEL] && formData.documents.length >= 1;
   const canProceedStep3 = formData.termsAccepted;
   const canSubmit = formData.paymentMethod && formData.paymentProof;
 
@@ -769,8 +772,42 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 mb-4">Documents requis</h3>
               <p className="text-sm text-gray-600 mb-6">Veuillez télécharger les documents suivants. Tous les documents doivent être en PDF ou image (JPG, PNG).</p>
-              <div className="space-y-3">
-                {requiredDocs.map((doc, index) => (
+
+              {/* Highlighted ID Photo card — always required */}
+              <div className={`rounded-xl p-4 border-2 border-dashed transition-all ${uploadedDocs[ID_PHOTO_LABEL] ? 'border-green-300 bg-green-50' : 'border-[#1a56db]/40 bg-blue-50'}`} data-testid="id-photo-card">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    {uploadedDocs[ID_PHOTO_LABEL] ? (
+                      <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-green-400 shadow-sm bg-white">
+                        <img src={uploadedDocs[ID_PHOTO_LABEL].url} alt="Photo d'identité" className="w-full h-full object-cover" data-testid="id-photo-preview" />
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-xl bg-white border-2 border-dashed border-[#1a56db]/30 flex items-center justify-center text-[#1a56db]">
+                        <User size={36} strokeWidth={1.2} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-gray-900">Photo d'identité <span className="text-red-500">*</span></p>
+                      {uploadedDocs[ID_PHOTO_LABEL] && <Check size={16} className="text-green-600" />}
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">Photo récente sur fond clair, visage dégagé. Formats : JPG, JPEG, PNG. Taille max : 10 Mo.</p>
+                    {uploadedDocs[ID_PHOTO_LABEL] && <p className="text-xs text-green-700 font-medium mb-2 truncate">✓ {uploadedDocs[ID_PHOTO_LABEL].name}</p>}
+                    <label className="cursor-pointer inline-block">
+                      <input type="file" className="hidden" accept="image/jpeg,image/jpg,image/png" onChange={(e) => handleDocUpload(e, ID_PHOTO_LABEL)} disabled={uploadingDoc === ID_PHOTO_LABEL} data-testid="id-photo-input" />
+                      <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadedDocs[ID_PHOTO_LABEL] ? 'bg-white border border-green-300 text-green-700 hover:bg-green-50' : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'}`}>
+                        {uploadingDoc === ID_PHOTO_LABEL ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        {uploadedDocs[ID_PHOTO_LABEL] ? 'Modifier la photo' : 'Téléverser ma photo'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Autres documents requis</p>
+                {requiredDocs.filter(d => d !== ID_PHOTO_LABEL).map((doc, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-[#1a56db]/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -942,8 +979,18 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* Informations personnelles */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-slate-700 text-white px-4 py-2 font-semibold text-sm">👤 Informations personnelles</div>
-                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.lastName || '—'}</p></div>
+                <div className="p-4 text-sm">
+                  {uploadedDocs[ID_PHOTO_LABEL] && (
+                    <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-100">
+                      <img src={uploadedDocs[ID_PHOTO_LABEL].url} alt="Photo d'identité" className="w-20 h-20 rounded-lg object-cover border border-gray-200 shadow-sm" data-testid="review-id-photo" />
+                      <div>
+                        <p className="font-semibold text-gray-900">{formData.firstName} {formData.lastName}</p>
+                        <p className="text-xs text-gray-500">Photo d'identité téléversée</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.lastName || '—'}</p></div>
                   <div><span className="text-gray-500 text-xs">Prénom :</span><p className="font-medium">{formData.firstName || '—'}</p></div>
                   <div><span className="text-gray-500 text-xs">Sexe :</span><p className="font-medium">{formData.sex || '—'}</p></div>
                   <div><span className="text-gray-500 text-xs">Nationalité :</span><p className="font-medium">{formData.nationality || '—'}</p></div>
@@ -954,6 +1001,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.phoneNumber || '—'}</p></div>
                   <div><span className="text-gray-500 text-xs">Email :</span><p className="font-medium">{formData.personalEmail || '—'}</p></div>
                   <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse :</span><p className="font-medium">{formData.address || '—'} {formData.addressDetailed && `, ${formData.addressDetailed}`}</p></div>
+                  </div>
                 </div>
               </div>
 
@@ -1051,7 +1099,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
           </button>
           {currentStep < 5 ? (
             <button type="button" onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={(currentStep === 1 && !canProceedStep1) || (currentStep === 3 && !canProceedStep3) || (currentStep === 4 && !canSubmit)}
+              disabled={(currentStep === 1 && !canProceedStep1) || (currentStep === 2 && !canProceedStep2) || (currentStep === 3 && !canProceedStep3) || (currentStep === 4 && !canSubmit)}
               className="flex items-center gap-2 px-6 py-2 bg-[#1a56db] text-white rounded-lg font-medium hover:bg-[#1648b8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="next-step-btn">
               Suivant <ChevronRight size={18} />

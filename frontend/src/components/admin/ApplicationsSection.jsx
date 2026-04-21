@@ -409,6 +409,24 @@ const ApplicationsSection = () => {
 
               {/* Documents (excluded from PDF) */}
               <SectionBlock title="Documents soumis/Documents" icon={Paperclip}>
+                {(() => {
+                  const idPhoto = (selectedApp.documents || []).find(
+                    d => d && typeof d === 'object' && (d.name === "Photo d'identité" || d.name === 'Photo identité')
+                  );
+                  return idPhoto?.url ? (
+                    <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex items-center gap-4" data-testid="admin-id-photo-block">
+                      <img src={idPhoto.url} alt="Photo d'identité" className="w-24 h-24 rounded-xl object-cover border-2 border-white shadow-md" data-testid="admin-id-photo" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#1e3a5f] uppercase tracking-wide mb-1">Photo d'identité du candidat</p>
+                        <p className="text-sm font-medium text-gray-800 truncate">{selectedApp.firstName} {selectedApp.lastName}</p>
+                        <div className="flex gap-2 mt-2">
+                          <a href={idPhoto.url} target="_blank" rel="noopener noreferrer" data-testid="admin-id-photo-view" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-[#1e3a5f] hover:bg-blue-50"><Eye size={12} /> Agrandir</a>
+                          <a href={idPhoto.url} download data-testid="admin-id-photo-download" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3a5f] text-white rounded-lg text-xs font-medium hover:bg-[#0f1f35]"><Download size={12} /> Télécharger</a>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 {selectedApp.documents?.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {selectedApp.documents.map((doc, i) => {
