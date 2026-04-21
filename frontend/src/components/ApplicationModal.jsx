@@ -309,7 +309,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const offerDocs = offer?.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer?.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV'];
   const customDocNames = customDocs.map(d => d.name).filter(Boolean);
   const requiredDocs = [ID_PHOTO_LABEL, ...offerDocs.filter(d => d !== ID_PHOTO_LABEL), ...customDocNames];
-  const canProceedStep2 = !!uploadedDocs[ID_PHOTO_LABEL] && formData.documents.length >= 1;
+  const canProceedStep2 = requiredDocs.every((d) => !!uploadedDocs[d]);
   const canProceedStep3 = formData.termsAccepted;
   const canSubmit = formData.paymentMethod && formData.paymentProof;
 
@@ -1205,7 +1205,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                 </div>
               </div>
 
-              {/* Informations personnelles */}
+              {/* Informations personnelles — TOUS les champs obligatoires */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-slate-700 text-white px-4 py-2 font-semibold text-sm">👤 Informations personnelles</div>
                 <div className="p-4 text-sm">
@@ -1220,65 +1220,184 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                   )}
                   <div className="grid grid-cols-2 gap-3">
                     <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.lastName || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Prénom :</span><p className="font-medium">{formData.firstName || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Sexe :</span><p className="font-medium">{formData.sex || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Nationalité :</span><p className="font-medium">{formData.nationality || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Date de naissance :</span><p className="font-medium">{formData.dateOfBirth || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Lieu de naissance :</span><p className="font-medium">{formData.placeOfBirth || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Pays de naissance :</span><p className="font-medium">{formData.countryOfBirth || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Langue maternelle :</span><p className="font-medium">{formData.nativeLanguage || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.phoneNumber || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Email :</span><p className="font-medium">{formData.personalEmail || '—'}</p></div>
-                  <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse :</span><p className="font-medium">{formData.address || '—'} {formData.addressDetailed && `, ${formData.addressDetailed}`}</p></div>
+                    <div><span className="text-gray-500 text-xs">Prénom :</span><p className="font-medium">{formData.firstName || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Sexe :</span><p className="font-medium">{formData.sex || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Nationalité :</span><p className="font-medium">{formData.nationality || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Pays de naissance :</span><p className="font-medium">{formData.countryOfBirth || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Langue maternelle :</span><p className="font-medium">{formData.nativeLanguage || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Religion :</span><p className="font-medium">{formData.religion || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Situation matrimoniale :</span><p className="font-medium">{formData.maritalStatus || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Date de naissance :</span><p className="font-medium">{formData.dateOfBirth || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Lieu de naissance :</span><p className="font-medium">{formData.placeOfBirth || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Niveau d'études :</span><p className="font-medium">{formData.highestEducation || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Filière souhaitée :</span><p className="font-medium">{formData.majorInChina || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Employeur / Institution :</span><p className="font-medium">{formData.currentEmployer || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Profession :</span><p className="font-medium">{formData.occupation || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Loisir :</span><p className="font-medium">{formData.hobby || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.phoneNumber || '—'}</p></div>
+                    <div className="col-span-2"><span className="text-gray-500 text-xs">Email personnel :</span><p className="font-medium">{formData.personalEmail || '—'}</p></div>
                   </div>
+                </div>
+              </div>
+
+              {/* Adresses */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-cyan-700 text-white px-4 py-2 font-semibold text-sm">🏠 Adresses</div>
+                <div className="p-4 text-sm space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Adresse permanente</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse :</span><p className="font-medium">{formData.address || '—'}</p></div>
+                      <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse détaillée :</span><p className="font-medium">{formData.addressDetailed || '—'}</p></div>
+                      <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.addressPhone || '—'}</p></div>
+                      <div><span className="text-gray-500 text-xs">Code postal :</span><p className="font-medium">{formData.zipCode || '—'}</p></div>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Adresse actuelle</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse :</span><p className="font-medium">{formData.currentAddress || '—'}</p></div>
+                      <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse détaillée :</span><p className="font-medium">{formData.currentAddressDetailed || '—'}</p></div>
+                      <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.currentAddressPhone || '—'}</p></div>
+                      <div><span className="text-gray-500 text-xs">Code postal :</span><p className="font-medium">{formData.currentAddressZipCode || '—'}</p></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* État de santé */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-rose-700 text-white px-4 py-2 font-semibold text-sm">🩺 État de santé</div>
+                <div className="p-4 grid grid-cols-3 gap-3 text-sm">
+                  <div><span className="text-gray-500 text-xs">Groupe sanguin :</span><p className="font-medium">{formData.bloodGroup || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Taille (cm) :</span><p className="font-medium">{formData.height || '—'}</p></div>
+                  <div><span className="text-gray-500 text-xs">Poids (kg) :</span><p className="font-medium">{formData.weight || '—'}</p></div>
                 </div>
               </div>
 
               {/* Passeport */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-indigo-700 text-white px-4 py-2 font-semibold text-sm">🛂 Passeport</div>
-                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500 text-xs">Numéro :</span><p className="font-medium">{formData.passportNumber || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Délivrance :</span><p className="font-medium">{formData.passportIssuedDate || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Expiration :</span><p className="font-medium">{formData.passportExpiryDate || '—'}</p></div>
+                <div className="p-4 text-sm space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div><span className="text-gray-500 text-xs">Numéro :</span><p className="font-medium">{formData.passportNumber || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Délivrance :</span><p className="font-medium">{formData.passportIssuedDate || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Expiration :</span><p className="font-medium">{formData.passportExpiryDate || '—'}</p></div>
+                  </div>
+                  {(formData.oldPassportNo || formData.oldPassportIssuedDate || formData.oldPassportExpiryDate) && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Ancien passeport</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div><span className="text-gray-500 text-xs">Numéro :</span><p className="font-medium">{formData.oldPassportNo || '—'}</p></div>
+                        <div><span className="text-gray-500 text-xs">Délivrance :</span><p className="font-medium">{formData.oldPassportIssuedDate || '—'}</p></div>
+                        <div><span className="text-gray-500 text-xs">Expiration :</span><p className="font-medium">{formData.oldPassportExpiryDate || '—'}</p></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Éducation */}
+              {/* Séjour en Chine (si applicable) */}
+              {formData.inChinaNow && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="bg-red-700 text-white px-4 py-2 font-semibold text-sm">🇨🇳 Séjour en Chine</div>
+                  <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-gray-500 text-xs">École / Organisation :</span><p className="font-medium">{formData.chinaSchool || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Type de visa :</span><p className="font-medium">{formData.chinaVisaType || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">N° Visa :</span><p className="font-medium">{formData.chinaVisaNo || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Expiration visa :</span><p className="font-medium">{formData.chinaVisaExpiry || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Du :</span><p className="font-medium">{formData.chinaLearningPeriodStart || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Au :</span><p className="font-medium">{formData.chinaLearningPeriodEnd || '—'}</p></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Formation académique — toutes les écoles */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-teal-700 text-white px-4 py-2 font-semibold text-sm">🎓 Formation académique</div>
                 <div className="p-4 space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><span className="text-gray-500 text-xs">Niveau le plus élevé :</span><p className="font-medium">{formData.highestEducation || '—'}</p></div>
-                    <div><span className="text-gray-500 text-xs">Filière souhaitée :</span><p className="font-medium">{formData.majorInChina || '—'}</p></div>
-                  </div>
-                  {formData.educationalBackground.filter(e => e.instituteName).map((edu, i) => (
-                    <div key={i} className="bg-gray-50 rounded p-2 text-xs">
-                      <strong>{edu.instituteName}</strong> · {edu.educationLevel} · {edu.fieldOfStudy} ({edu.yearsFrom} → {edu.yearsTo})
+                  {formData.educationalBackground.filter(e => e.instituteName || e.educationLevel || e.fieldOfStudy).map((edu, i) => (
+                    <div key={i} className="bg-gray-50 rounded p-3 text-xs space-y-1">
+                      <p className="font-semibold text-gray-900">École {String.fromCharCode(65 + i)}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><span className="text-gray-500">Établissement :</span> <span className="font-medium">{edu.instituteName || '—'}</span></div>
+                        <div><span className="text-gray-500">Niveau :</span> <span className="font-medium">{edu.educationLevel || '—'}</span></div>
+                        <div><span className="text-gray-500">Filière :</span> <span className="font-medium">{edu.fieldOfStudy || '—'}</span></div>
+                        <div><span className="text-gray-500">Période :</span> <span className="font-medium">{edu.yearsFrom || '—'} → {edu.yearsTo || '—'}</span></div>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Famille */}
+              {/* Expérience professionnelle */}
+              {formData.workExperience.some(w => w.companyName || w.position) && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="bg-amber-700 text-white px-4 py-2 font-semibold text-sm">💼 Expérience professionnelle</div>
+                  <div className="p-4 space-y-2 text-sm">
+                    {formData.workExperience.filter(w => w.companyName || w.position).map((w, i) => (
+                      <div key={i} className="bg-gray-50 rounded p-3 text-xs space-y-1">
+                        <p className="font-semibold text-gray-900">Expérience {String.fromCharCode(65 + i)}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div><span className="text-gray-500">Entreprise :</span> <span className="font-medium">{w.companyName || '—'}</span></div>
+                          <div><span className="text-gray-500">Poste :</span> <span className="font-medium">{w.position || '—'}</span></div>
+                          <div><span className="text-gray-500">Secteur :</span> <span className="font-medium">{w.industryType || '—'}</span></div>
+                          <div><span className="text-gray-500">Période :</span> <span className="font-medium">{w.yearsFrom || '—'} → {w.yearsTo || '—'}</span></div>
+                          {(w.contactPerson || w.contactPhone || w.contactEmail) && (
+                            <div className="col-span-2"><span className="text-gray-500">Référence :</span> <span className="font-medium">{[w.contactPerson, w.contactPhone, w.contactEmail].filter(Boolean).join(' · ') || '—'}</span></div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Famille — complète */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-purple-700 text-white px-4 py-2 font-semibold text-sm">👨‍👩‍👧 Famille</div>
                 <div className="p-4 space-y-2 text-sm">
                   {[['Père', formData.fatherInfo], ['Mère', formData.motherInfo], ['Conjoint(e)', formData.spouseInfo]].filter(([, info]) => info.name).map(([label, info], i) => (
-                    <div key={i} className="bg-gray-50 rounded p-2 text-xs">
-                      <strong>{label}:</strong> {info.name} · {info.mobile || '—'} · {info.email || '—'}
+                    <div key={i} className="bg-gray-50 rounded p-3 text-xs space-y-1">
+                      <p className="font-semibold text-gray-900">{label}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><span className="text-gray-500">Nom :</span> <span className="font-medium">{info.name || '—'}</span></div>
+                        <div><span className="text-gray-500">Nationalité :</span> <span className="font-medium">{info.nationality || '—'}</span></div>
+                        <div><span className="text-gray-500">Date de naissance :</span> <span className="font-medium">{info.dob || '—'}</span></div>
+                        <div><span className="text-gray-500">Pièce d'identité :</span> <span className="font-medium">{info.idNo || '—'}</span></div>
+                        <div><span className="text-gray-500">Téléphone :</span> <span className="font-medium">{info.mobile || '—'}</span></div>
+                        <div><span className="text-gray-500">Email :</span> <span className="font-medium">{info.email || '—'}</span></div>
+                        <div><span className="text-gray-500">Profession :</span> <span className="font-medium">{info.occupation || '—'}</span></div>
+                        <div><span className="text-gray-500">Employeur :</span> <span className="font-medium">{info.employer || '—'}</span></div>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Contact urgence */}
+              {/* Garant financier */}
+              {(formData.financialSponsor.relationship || formData.financialSponsor.address) && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="bg-green-700 text-white px-4 py-2 font-semibold text-sm">💰 Garant financier</div>
+                  <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-gray-500 text-xs">Relation :</span><p className="font-medium">{formData.financialSponsor.relationship || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Adresse :</span><p className="font-medium">{formData.financialSponsor.address || '—'}</p></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Contact urgence — complet */}
               {formData.emergencyContact.name && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="bg-orange-700 text-white px-4 py-2 font-semibold text-sm">🚨 Contact d'urgence</div>
+                  <div className="bg-orange-700 text-white px-4 py-2 font-semibold text-sm">🚨 Contact d'urgence en Chine</div>
                   <div className="p-4 grid grid-cols-2 gap-3 text-sm">
-                    <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.emergencyContact.name}</p></div>
+                    <div><span className="text-gray-500 text-xs">Nom :</span><p className="font-medium">{formData.emergencyContact.name || '—'}</p></div>
                     <div><span className="text-gray-500 text-xs">Relation :</span><p className="font-medium">{formData.emergencyContact.relationship || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Profession :</span><p className="font-medium">{formData.emergencyContact.occupation || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Nationalité :</span><p className="font-medium">{formData.emergencyContact.nationality || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Pièce d'identité :</span><p className="font-medium">{formData.emergencyContact.idNo || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Employeur :</span><p className="font-medium">{formData.emergencyContact.employer || '—'}</p></div>
+                    <div className="col-span-2"><span className="text-gray-500 text-xs">Adresse en Chine :</span><p className="font-medium">{formData.emergencyContact.addressChina || '—'}</p></div>
                     <div><span className="text-gray-500 text-xs">Téléphone :</span><p className="font-medium">{formData.emergencyContact.phone || '—'}</p></div>
                     <div><span className="text-gray-500 text-xs">Email :</span><p className="font-medium">{formData.emergencyContact.email || '—'}</p></div>
                   </div>
