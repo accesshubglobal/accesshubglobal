@@ -265,8 +265,44 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     return { ...prev, [arrayKey]: arr };
   });
 
-  const canProceedStep1 = formData.firstName && formData.lastName && formData.nationality &&
-    formData.sex && formData.passportNumber && formData.dateOfBirth && formData.phoneNumber && formData.address;
+  // Exhaustive validation of all fields marked with * (red asterisk) on Step 1.
+  // Must block "Suivant" unless every single required field is filled — as it used to work.
+  const _f = formData;
+  const _fill = (v) => v !== undefined && v !== null && String(v).trim() !== '';
+  const _familyOk = (p) =>
+    _fill(p?.name) && _fill(p?.nationality) && _fill(p?.dob) && _fill(p?.idNo)
+    && _fill(p?.mobile) && _fill(p?.email) && _fill(p?.occupation) && _fill(p?.employer);
+  const _eduOk = (e) =>
+    _fill(e?.educationLevel) && _fill(e?.fieldOfStudy) && _fill(e?.yearsFrom) && _fill(e?.yearsTo);
+  const canProceedStep1 =
+    // Personal identity
+    _fill(_f.firstName) && _fill(_f.lastName) && _fill(_f.sex) && _fill(_f.nationality)
+    && _fill(_f.countryOfBirth) && _fill(_f.nativeLanguage) && _fill(_f.religion)
+    && _fill(_f.maritalStatus) && _fill(_f.dateOfBirth) && _fill(_f.placeOfBirth)
+    && _fill(_f.highestEducation) && _fill(_f.majorInChina) && _fill(_f.occupation)
+    && _fill(_f.hobby) && _fill(_f.phoneNumber) && _fill(_f.personalEmail)
+    // Permanent address
+    && _fill(_f.address) && _fill(_f.addressDetailed) && _fill(_f.addressPhone) && _fill(_f.zipCode)
+    // Current address
+    && _fill(_f.currentAddress) && _fill(_f.currentAddressDetailed)
+    && _fill(_f.currentAddressPhone) && _fill(_f.currentAddressZipCode)
+    // Health
+    && _fill(_f.bloodGroup) && _fill(_f.height) && _fill(_f.weight)
+    // Passport (new only — old passport is optional)
+    && _fill(_f.passportNumber) && _fill(_f.passportIssuedDate) && _fill(_f.passportExpiryDate)
+    // At least one full educational background entry
+    && (_f.educationalBackground || []).some(_eduOk)
+    // Family — father, mother, and spouse only if married
+    && _familyOk(_f.fatherInfo) && _familyOk(_f.motherInfo)
+    && (_f.maritalStatus !== 'married' || _familyOk(_f.spouseInfo))
+    // Financial sponsor
+    && _fill(_f.financialSponsor?.relationship) && _fill(_f.financialSponsor?.address)
+    // Emergency contact in China
+    && _fill(_f.emergencyContact?.name) && _fill(_f.emergencyContact?.relationship)
+    && _fill(_f.emergencyContact?.occupation) && _fill(_f.emergencyContact?.nationality)
+    && _fill(_f.emergencyContact?.idNo) && _fill(_f.emergencyContact?.employer)
+    && _fill(_f.emergencyContact?.addressChina) && _fill(_f.emergencyContact?.phone)
+    && _fill(_f.emergencyContact?.email);
 
   const ID_PHOTO_LABEL = "Photo d'identité";
   // Always require an ID photo on top of the offer's document list
