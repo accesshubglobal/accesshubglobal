@@ -968,11 +968,90 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
               {/* Programme */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="bg-[#1e3a5f] text-white px-4 py-2 font-semibold text-sm">📘 Programme</div>
-                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500 text-xs">Offre :</span><p className="font-medium">{offer.title}</p></div>
-                  <div><span className="text-gray-500 text-xs">Université :</span><p className="font-medium">{offer.university || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Ville :</span><p className="font-medium">{offer.city || '—'}</p></div>
-                  <div><span className="text-gray-500 text-xs">Frais de dossier :</span><p className="font-medium text-[#1a56db]">{offer?.fees?.applicationFee || offer?.serviceFee || paymentSettings?.applicationFee || 0} {offer?.currency || paymentSettings?.currency || 'EUR'}</p></div>
+                <div className="p-4 text-sm space-y-4">
+                  {/* Titre & localisation */}
+                  <div className="pb-3 border-b border-gray-100">
+                    <p className="font-bold text-gray-900 text-base">{offer.title}</p>
+                    <p className="text-xs text-gray-600 mt-1">🎓 {offer.university || '—'} · 📍 {offer.city || '—'}{offer.country ? `, ${offer.country}` : ''}</p>
+                    {offer.categoryLabel && <p className="text-xs text-gray-500 mt-1">Catégorie : {offer.categoryLabel}</p>}
+                  </div>
+
+                  {/* Grille détails clés */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div><span className="text-gray-500 text-xs">Diplôme :</span><p className="font-medium">{offer.degree || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Durée :</span><p className="font-medium">{offer.duration || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Langue :</span><p className="font-medium">{offer.teachingLanguage || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Rentrée :</span><p className="font-medium">{offer.intake || '—'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Date limite :</span><p className="font-medium">{offer.deadline || 'Ouvert'}</p></div>
+                    <div><span className="text-gray-500 text-xs">Bourse :</span><p className={`font-medium ${offer.hasScholarship ? 'text-green-700' : ''}`}>{offer.hasScholarship ? (offer.scholarshipType || 'Disponible') : 'Non'}</p></div>
+                  </div>
+
+                  {/* Description */}
+                  {offer.description && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Description</span>
+                      <p className="mt-1 text-gray-700 whitespace-pre-wrap text-xs leading-relaxed">{offer.description}</p>
+                    </div>
+                  )}
+
+                  {/* Frais */}
+                  {(() => {
+                    const cur = offer.currency || paymentSettings?.currency || 'EUR';
+                    const fees = offer.fees || {};
+                    const rows = [
+                      ['Frais de scolarité', fees.originalTuition],
+                      ['Scolarité après bourse', fees.scholarshipTuition],
+                      ['Hébergement (double)', fees.accommodationDouble],
+                      ['Hébergement (single)', fees.accommodationSingle],
+                      ["Frais d'inscription", fees.registrationFee],
+                      ['Assurance', fees.insuranceFee],
+                      ['Frais de dossier', fees.applicationFee || offer.serviceFee || paymentSettings?.applicationFee],
+                      ['Frais de service', offer.serviceFee],
+                    ].filter(([, v]) => v && Number(v) > 0);
+                    return rows.length > 0 ? (
+                      <div className="pt-3 border-t border-gray-100">
+                        <span className="text-gray-500 text-xs uppercase tracking-wide">Frais et tarifs</span>
+                        <div className="mt-2 bg-amber-50 rounded-lg p-2 space-y-1">
+                          {rows.map(([label, amount]) => (
+                            <div key={label} className="flex justify-between items-center text-xs">
+                              <span className="text-gray-600">{label}</span>
+                              <span className={`font-semibold ${label === 'Frais de dossier' ? 'text-[#1a56db]' : 'text-gray-900'}`}>{Number(amount).toLocaleString('fr-FR')} {cur}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* Conditions d'admission */}
+                  {offer.admissionConditions?.length > 0 && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Conditions d'admission</span>
+                      <ul className="mt-2 space-y-1">
+                        {offer.admissionConditions.map((cond, idx) => (
+                          <li key={idx} className="text-xs text-gray-700 flex items-start gap-1.5">
+                            <Check size={12} className="text-green-600 mt-0.5 flex-shrink-0" />
+                            <span>{typeof cond === 'string' ? cond : (cond?.condition || cond?.title || cond?.description || '')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Documents requis par l'offre */}
+                  {offer.requiredDocuments?.length > 0 && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Documents requis par le programme</span>
+                      <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                        {offer.requiredDocuments.map((doc, idx) => (
+                          <li key={idx} className="text-xs text-gray-700 flex items-start gap-1.5">
+                            <FileText size={11} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                            <span>{doc}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
 
