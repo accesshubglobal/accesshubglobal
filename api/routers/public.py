@@ -453,9 +453,10 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
         cloudinary.config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret)
         try:
             contents = await file.read()
-            # PDFs and documents must use resource_type="raw" to be served correctly
+            # PDFs/docs MUST use resource_type="raw".
+            # HEIC/HEIF (iPhone) are not supported by Cloudinary free-plan image pipeline → upload as raw.
             file_ext = os.path.splitext(file.filename)[1].lower()
-            is_pdf_or_doc = file_ext in ('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv')
+            is_pdf_or_doc = file_ext in ('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv', '.heic', '.heif')
             res_type = "raw" if is_pdf_or_doc else "auto"
 
             upload_result = cloudinary.uploader.upload(

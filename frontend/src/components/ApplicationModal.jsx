@@ -164,54 +164,16 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   };
 
   const uploadFile = async (file) => {
-    const fileExt = (file.name || '').split('.').pop().toLowerCase();
-    const isPdfOrDoc = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'].includes(fileExt);
-
-    // PDFs/docs: always route through backend (Cloudinary blocks direct PDF delivery on free plans → 403).
-    // Images: try Cloudinary signed direct upload first for bandwidth, fallback to backend on any error.
-    if (isPdfOrDoc) {
-      const fd = new FormData();
-      fd.append('file', file);
-      const response = await axios.post(`${API}/upload`, fd, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        timeout: 60000,
-      });
-      return { url: response.data.url, filename: file.name };
-    }
-
-    let sigData;
-    try {
-      const sigRes = await axios.get(`${API}/upload/signature`, { headers: { 'Authorization': `Bearer ${token}` } });
-      sigData = sigRes.data;
-    } catch {
-      const fd = new FormData();
-      fd.append('file', file);
-      const response = await axios.post(`${API}/upload`, fd, { headers: { 'Authorization': `Bearer ${token}` }, timeout: 60000 });
-      return { url: response.data.url, filename: file.name };
-    }
-    const { signature, timestamp, cloud_name, api_key, folder } = sigData;
-    if (!api_key || !cloud_name || !signature) {
-      const fd = new FormData();
-      fd.append('file', file);
-      const response = await axios.post(`${API}/upload`, fd, { headers: { 'Authorization': `Bearer ${token}` }, timeout: 60000 });
-      return { url: response.data.url, filename: file.name };
-    }
-    const cloudFormData = new FormData();
-    cloudFormData.append('file', file);
-    cloudFormData.append('signature', signature);
-    cloudFormData.append('timestamp', String(timestamp));
-    cloudFormData.append('api_key', api_key);
-    cloudFormData.append('folder', folder);
-    const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, { method: 'POST', body: cloudFormData });
-    if (!cloudRes.ok) {
-      // Cloudinary failed (e.g. PDF restriction) → fallback to backend
-      const fd = new FormData();
-      fd.append('file', file);
-      const response = await axios.post(`${API}/upload`, fd, { headers: { 'Authorization': `Bearer ${token}` }, timeout: 60000 });
-      return { url: response.data.url, filename: file.name };
-    }
-    const cloudData = await cloudRes.json();
-    return { url: cloudData.secure_url, filename: file.name };
+    // Route every upload through the backend /api/upload endpoint.
+    // Backend uses Cloudinary with the proper resource_type (image/raw) and handles every format
+    // reliably (JPG, PNG, HEIC, PDF, DOCX, etc.) without any CORS/signature/signup-plan issue.
+    const fd = new FormData();
+    fd.append('file', file);
+    const response = await axios.post(`${API}/upload`, fd, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      timeout: 120000,
+    });
+    return { url: response.data.url, filename: file.name };
   };
 
   const handleDocUpload = async (e, docName) => {
@@ -870,7 +832,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     <p className="text-xs text-gray-600 mb-3">Photo récente sur fond clair, visage dégagé. Formats : JPG, JPEG, PNG. Taille max : 10 Mo.</p>
                     {uploadedDocs[ID_PHOTO_LABEL] && <p className="text-xs text-green-700 font-medium mb-2 truncate">✓ {uploadedDocs[ID_PHOTO_LABEL].name}</p>}
                     <label className="cursor-pointer inline-block">
-                      <input type="file" className="hidden" accept="image/jpeg,image/jpg,image/png" onChange={(e) => handleDocUpload(e, ID_PHOTO_LABEL)} disabled={uploadingDoc === ID_PHOTO_LABEL} data-testid="id-photo-input" />
+                      <input type="file" className="hidden" accept="image/*,.heic,.heif" onChange={(e) => handleDocUpload(e, ID_PHOTO_LABEL)} disabled={uploadingDoc === ID_PHOTO_LABEL} data-testid="id-photo-input" />
                       <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadedDocs[ID_PHOTO_LABEL] ? 'bg-white border border-green-300 text-green-700 hover:bg-green-50' : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'}`}>
                         {uploadingDoc === ID_PHOTO_LABEL ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                         {uploadedDocs[ID_PHOTO_LABEL] ? 'Modifier la photo' : 'Téléverser ma photo'}
@@ -901,7 +863,7 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                       </div>
                       <div className="flex items-center gap-2">
                         <label className="cursor-pointer">
-                          <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload(e, doc)} disabled={uploadingDoc === doc} />
+                          <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" onChange={(e) => handleDocUpload(e, doc)} disabled={uploadingDoc === doc} />
                           <span className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadedDocs[doc] ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'}`}>
                             {uploadingDoc === doc ? <Loader2 size={16} className="animate-spin inline" /> : uploadedDocs[doc] ? 'Modifier' : <><Upload size={14} className="inline mr-1" />Télécharger</>}
                           </span>
