@@ -19,6 +19,36 @@ const getStatusBadge = (status) => {
   return <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.color}`}>{c.label}</span>;
 };
 
+/**
+ * Force file download cross-origin by fetching → Blob → object URL.
+ * Avoids navigating the current tab (the default browser fallback when
+ * the server doesn't send Content-Disposition: attachment and the file is cross-origin).
+ */
+const forceDownload = async (url, filename = 'document') => {
+  if (!url) return;
+  try {
+    const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 2000);
+  } catch (err) {
+    // Fallback: Cloudinary fl_attachment forces Content-Disposition server-side
+    const isCloudinary = /res\.cloudinary\.com/.test(url);
+    const cdn = isCloudinary && !url.includes('fl_attachment')
+      ? url.replace('/upload/', '/upload/fl_attachment/')
+      : url;
+    // Open in new tab so admin doesn't lose their place
+    window.open(cdn, '_blank', 'noopener,noreferrer');
+  }
+};
+
 const InfoRow = ({ label, value }) => (
   value ? (
     <div>
@@ -421,7 +451,7 @@ const ApplicationsSection = () => {
                         <p className="text-sm font-medium text-gray-800 truncate">{selectedApp.firstName} {selectedApp.lastName}</p>
                         <div className="flex gap-2 mt-2">
                           <a href={idPhoto.url} target="_blank" rel="noopener noreferrer" data-testid="admin-id-photo-view" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-[#1e3a5f] hover:bg-blue-50"><Eye size={12} /> Agrandir</a>
-                          <a href={idPhoto.url} download data-testid="admin-id-photo-download" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3a5f] text-white rounded-lg text-xs font-medium hover:bg-[#0f1f35]"><Download size={12} /> Télécharger</a>
+                          <button type="button" onClick={() => forceDownload(idPhoto.url, `photo-identite-${selectedApp.firstName || 'candidat'}-${selectedApp.lastName || ''}.jpg`)} data-testid="admin-id-photo-download" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3a5f] text-white rounded-lg text-xs font-medium hover:bg-[#0f1f35]"><Download size={12} /> Télécharger</button>
                         </div>
                       </div>
                     </div>
@@ -442,7 +472,7 @@ const ApplicationsSection = () => {
                           {typeof docUrl === 'string' && docUrl.startsWith('http') && (
                             <div className="flex gap-2 mt-3">
                               <a href={docUrl} target="_blank" rel="noopener noreferrer" data-testid={`view-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-medium text-gray-700"><Eye size={14} /> Voir/See</a>
-                              <a href={docUrl} download data-testid={`download-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg text-xs font-medium text-[#1e3a5f]"><Download size={14} /> Télécharger/Download</a>
+                              <button type="button" onClick={() => forceDownload(docUrl, docName)} data-testid={`download-doc-${i}`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg text-xs font-medium text-[#1e3a5f]"><Download size={14} /> Télécharger/Download</button>
                             </div>
                           )}
                           {isImage && typeof docUrl === 'string' && <div className="mt-3 rounded-lg overflow-hidden border border-gray-100"><img src={docUrl} alt={docName} className="w-full h-32 object-cover" /></div>}

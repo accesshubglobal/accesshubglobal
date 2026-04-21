@@ -3,6 +3,7 @@ import { X, ChevronRight, ChevronLeft, Upload, Check, AlertCircle, Loader2, File
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { generateApplicationPDF } from '../utils/pdfGenerator';
+import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -39,6 +40,8 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const [error, setError] = useState('');
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [deadlineStatus, setDeadlineStatus] = useState(null);
+  const [alreadyApplied, setAlreadyApplied] = useState(null); // {status, id, offerTitle}
+  const [customDocs, setCustomDocs] = useState([]); // [{name: 'Traduction Passeport'}]
 
   const [formData, setFormData] = useState({
     // Personal Info
@@ -119,8 +122,26 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
     if (isOpen && offer) {
       loadPaymentSettings();
       checkDeadline();
+      checkExistingApplication();
+    } else {
+      setAlreadyApplied(null);
     }
   }, [isOpen, offer]);
+
+  const checkExistingApplication = async () => {
+    if (!offer?.id || !token) return;
+    try {
+      const response = await axios.get(`${API}/applications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const existing = (response.data || []).find(
+        (a) => a.offerId === offer.id && ['pending', 'reviewing', 'modify'].includes(a.status)
+      );
+      if (existing) setAlreadyApplied(existing);
+    } catch (err) {
+      // Silent — user will still get a 400 at submit time if duplicated
+    }
+  };
 
   const loadPaymentSettings = async () => {
     try {
@@ -260,8 +281,14 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
       }, { headers: { Authorization: `Bearer ${token}` } });
       if (onSuccess) onSuccess();
       setSubmissionSuccess(true);
+      toast.success('Candidature soumise avec succès !', {
+        description: 'Un email de confirmation avec le récapitulatif PDF vous a été envoyé.',
+        duration: 6000,
+      });
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erreur lors de la soumission');
+      const detail = err.response?.data?.detail || 'Erreur lors de la soumission';
+      setError(detail);
+      toast.error('Échec de la soumission', { description: detail });
     }
     setLoading(false);
   };
@@ -282,12 +309,60 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
   const ID_PHOTO_LABEL = "Photo d'identité";
   // Always require an ID photo on top of the offer's document list
   const offerDocs = offer?.requiredDocuments?.length > 0 ? offer.requiredDocuments : offer?.documents?.length > 0 ? offer.documents : ['Passeport', 'Diplômes', 'CV'];
-  const requiredDocs = [ID_PHOTO_LABEL, ...offerDocs.filter(d => d !== ID_PHOTO_LABEL)];
+  const customDocNames = customDocs.map(d => d.name).filter(Boolean);
+  const requiredDocs = [ID_PHOTO_LABEL, ...offerDocs.filter(d => d !== ID_PHOTO_LABEL), ...customDocNames];
   const canProceedStep2 = !!uploadedDocs[ID_PHOTO_LABEL] && formData.documents.length >= 1;
   const canProceedStep3 = formData.termsAccepted;
   const canSubmit = formData.paymentMethod && formData.paymentProof;
 
   if (!isOpen || !offer) return null;
+
+  // ───── Already Applied Block ─────
+  if (alreadyApplied) {
+    const statusLabels = {
+      pending: { label: 'en attente', color: 'from-amber-500 to-orange-500', icon: '⏳' },
+      reviewing: { label: 'en cours d\'examen', color: 'from-blue-500 to-indigo-500', icon: '🔍' },
+      modify: { label: 'à modifier', color: 'from-orange-500 to-red-500', icon: '✏️' },
+    };
+    const meta = statusLabels[alreadyApplied.status] || statusLabels.pending;
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" data-testid="already-applied-modal">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+          <div className={`bg-gradient-to-br ${meta.color} p-8 text-center text-white`}>
+            <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-white/30 text-4xl">
+              {meta.icon}
+            </div>
+            <h2 className="text-2xl font-bold mb-1">Candidature déjà en cours</h2>
+            <p className="text-white/90 text-sm">Vous avez déjà postulé à cette offre.</p>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Offre :</span>
+                <span className="font-semibold text-gray-900 text-right">{alreadyApplied.offerTitle}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Référence :</span>
+                <span className="font-mono text-gray-900">#{alreadyApplied.id?.substring(0, 8).toUpperCase()}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Statut actuel :</span>
+                <span className="font-semibold capitalize">{meta.label}</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Vous ne pouvez pas soumettre une nouvelle candidature tant que la précédente est toujours active. Consultez votre tableau de bord pour suivre son avancement ou échanger avec notre équipe.
+            </p>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button type="button" data-testid="already-applied-close-btn" onClick={onClose} className="px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Fermer</button>
+              <button type="button" data-testid="already-applied-dashboard-btn" onClick={() => { onClose(); window.location.href = '/dashboard'; }} className="px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#1a56db] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Mon tableau de bord</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ───── Success Popup ─────
   if (submissionSuccess) {
@@ -807,28 +882,94 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
 
               <div className="space-y-3 pt-2">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Autres documents requis</p>
-                {requiredDocs.filter(d => d !== ID_PHOTO_LABEL).map((doc, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-[#1a56db]/50 transition-colors">
+                {requiredDocs.filter(d => d !== ID_PHOTO_LABEL).map((doc, index) => {
+                  const isCustom = customDocNames.includes(doc);
+                  return (
+                  <div key={`${doc}-${index}`} className="border border-gray-200 rounded-lg p-4 hover:border-[#1a56db]/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${uploadedDocs[doc] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                           {uploadedDocs[doc] ? <Check size={16} /> : <FileText size={16} />}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{doc}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">{doc}</p>
+                            {isCustom && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold uppercase tracking-wide">Ajouté</span>}
+                          </div>
                           {uploadedDocs[doc] && <p className="text-xs text-green-600">{uploadedDocs[doc].name}</p>}
                         </div>
                       </div>
-                      <label className="cursor-pointer">
-                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload(e, doc)} disabled={uploadingDoc === doc} />
-                        <span className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadedDocs[doc] ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'}`}>
-                          {uploadingDoc === doc ? <Loader2 size={16} className="animate-spin inline" /> : uploadedDocs[doc] ? 'Modifier' : <><Upload size={14} className="inline mr-1" />Télécharger</>}
-                        </span>
-                      </label>
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer">
+                          <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload(e, doc)} disabled={uploadingDoc === doc} />
+                          <span className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadedDocs[doc] ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-[#1a56db] text-white hover:bg-[#1648b8]'}`}>
+                            {uploadingDoc === doc ? <Loader2 size={16} className="animate-spin inline" /> : uploadedDocs[doc] ? 'Modifier' : <><Upload size={14} className="inline mr-1" />Télécharger</>}
+                          </span>
+                        </label>
+                        {isCustom && (
+                          <button
+                            type="button"
+                            data-testid={`remove-custom-doc-${index}`}
+                            onClick={() => {
+                              setCustomDocs(prev => prev.filter(d => d.name !== doc));
+                              setUploadedDocs(prev => { const n = { ...prev }; delete n[doc]; return n; });
+                              setFormData(prev => ({ ...prev, documents: prev.documents.filter(d => d.name !== doc) }));
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Retirer ce document"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
+
+              {/* Add a custom document */}
+              <div className="mt-4 p-4 border-2 border-dashed border-gray-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nom du document (ex: Traduction du passeport)"
+                    data-testid="custom-doc-name-input"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1a56db] text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = e.target.value.trim();
+                        if (val && !requiredDocs.includes(val)) {
+                          setCustomDocs(prev => [...prev, { name: val }]);
+                          e.target.value = '';
+                        }
+                      }
+                    }}
+                    id="custom-doc-name"
+                  />
+                  <button
+                    type="button"
+                    data-testid="add-custom-doc-btn"
+                    onClick={() => {
+                      const input = document.getElementById('custom-doc-name');
+                      const val = input?.value.trim();
+                      if (val && !requiredDocs.includes(val)) {
+                        setCustomDocs(prev => [...prev, { name: val }]);
+                        input.value = '';
+                      } else if (requiredDocs.includes(val)) {
+                        toast.error('Ce document existe déjà dans la liste');
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#1a56db] text-white rounded-lg text-sm font-medium hover:bg-[#1648b8] transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Ajouter un document
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">💡 Ajoutez des documents supplémentaires comme les traductions ou tout justificatif complémentaire.</p>
+              </div>
+
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
                 <p className="text-sm text-yellow-800"><strong>Note :</strong> Vous devez soumettre votre candidature avec les documents originaux en langue originale et la version traduite en anglais au même moment. Si vous avez besoin d'une traduction, contactez-nous depuis votre compte.</p>
               </div>
@@ -1028,12 +1169,23 @@ const ApplicationModal = ({ offer, isOpen, onClose, onSuccess }) => {
                     <div className="pt-3 border-t border-gray-100">
                       <span className="text-gray-500 text-xs uppercase tracking-wide">Conditions d'admission</span>
                       <ul className="mt-2 space-y-1">
-                        {offer.admissionConditions.map((cond, idx) => (
-                          <li key={idx} className="text-xs text-gray-700 flex items-start gap-1.5">
-                            <Check size={12} className="text-green-600 mt-0.5 flex-shrink-0" />
-                            <span>{typeof cond === 'string' ? cond : (cond?.condition || cond?.title || cond?.description || '')}</span>
-                          </li>
-                        ))}
+                        {offer.admissionConditions.map((cond, idx) => {
+                          let label = '';
+                          let detail = '';
+                          if (typeof cond === 'string') {
+                            label = cond;
+                          } else if (cond && typeof cond === 'object') {
+                            label = cond.condition || cond.title || cond.text || cond.label || '';
+                            detail = cond.description || '';
+                          }
+                          if (!label && !detail) return null;
+                          return (
+                            <li key={idx} className="text-xs text-gray-700 flex items-start gap-1.5">
+                              <Check size={12} className="text-green-600 mt-0.5 flex-shrink-0" />
+                              <span><span className="font-medium">{label}</span>{detail && <span className="text-gray-500"> — {detail}</span>}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}

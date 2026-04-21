@@ -682,12 +682,26 @@ const UserDashboard = ({ onClose }) => {
                               Conditions d'Admission
                             </h3>
                             <ul className="bg-gray-50 rounded-lg p-5 border border-gray-100 space-y-2">
-                              {applicationOfferDetails.admissionConditions.map((cond, idx) => (
-                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                                  <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                                  {typeof cond === 'string' ? cond : (cond?.title || cond?.description || cond?.text || JSON.stringify(cond))}
-                                </li>
-                              ))}
+                              {applicationOfferDetails.admissionConditions.map((cond, idx) => {
+                                let label = '';
+                                let detail = '';
+                                if (typeof cond === 'string') {
+                                  label = cond;
+                                } else if (cond && typeof cond === 'object') {
+                                  label = cond.condition || cond.title || cond.text || cond.label || '';
+                                  detail = cond.description || '';
+                                }
+                                if (!label && !detail) return null;
+                                return (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                    <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                                    <span>
+                                      <span className="font-medium">{label}</span>
+                                      {detail && <span className="text-gray-500"> — {detail}</span>}
+                                    </span>
+                                  </li>
+                                );
+                              })}
                             </ul>
                           </div>
                         )}

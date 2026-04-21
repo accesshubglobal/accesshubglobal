@@ -20,6 +20,7 @@ import AuthModal from "./components/AuthModal";
 import UserDashboard from "./components/UserDashboard";
 import AdminCMS from "./components/AdminCMS";
 import LiveChat from "./components/LiveChat";
+import { Toaster } from "./components/ui/sonner";
 import BlogPage from "./components/BlogPage";
 import BlogDetailPage from "./components/BlogDetailPage";
 import CommunityPage from "./components/CommunityPage";
@@ -204,6 +205,7 @@ function App() {
               />
             </Routes>
           </BrowserRouter>
+          <Toaster position="top-right" richColors closeButton />
         </NotificationProvider>
       </AuthProvider>
     </div>
