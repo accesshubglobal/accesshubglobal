@@ -10,9 +10,7 @@
  */
 export async function generateApplicationPDF({ application, offer, user, output = 'save' }) {
   const html2pdf = (await import('html2pdf.js')).default;
-
-  const LOGO_URL =
-    'https://customer-assets.emergentagent.com/job_4edcad9a-c942-4f6e-a490-acaef4aadb7b/artifacts/ls0337o3_IMG_0438.png';
+  const LOGO_URL = (await import('../assets/accesshubLogo')).default;
   const COMPANY = {
     name: 'AccessHub Global',
     slogan: "Votre passerelle vers l'excellence académique internationale",
@@ -311,7 +309,7 @@ export async function generateApplicationPDF({ application, offer, user, output 
     <table style="width:100%;border-collapse:collapse;">
       <tr>
         <td style="vertical-align:middle;">
-          <img src="${LOGO_URL}" alt="${COMPANY.name}" crossorigin="anonymous" style="height:70px;width:auto;display:block;background:#fff;border-radius:10px;padding:8px 14px;"/>
+          <img src="${LOGO_URL}" alt="${COMPANY.name}" style="height:70px;width:auto;display:block;background:#fff;border-radius:10px;padding:8px 14px;"/>
         </td>
         <td style="vertical-align:middle;text-align:right;font-size:10px;color:#dbeafe;line-height:1.7;">
           <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:2px;">${COMPANY.name}</div>
