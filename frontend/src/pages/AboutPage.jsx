@@ -182,26 +182,26 @@ const AboutPage = () => {
         {/* ── Admissions ── */}
         {admissions.length > 0 && (
           <section className="bg-white rounded-3xl py-10 px-6 md:px-10">
-            {/* Purple ribbon banner — "Most Professional and Trustworthy" */}
+            {/* Brand-blue ribbon banner — "Nos admissions" */}
             <div className="relative inline-block mb-12">
               <div
-                className="bg-[#6b46c1] text-white px-10 py-4 pr-16 font-bold text-xl md:text-2xl tracking-tight shadow-md"
-                style={{ clipPath: 'polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%)' }}
+                className="bg-[#1a56db] text-white px-12 py-5 pr-20 font-bold text-2xl md:text-3xl tracking-tight shadow-md"
+                style={{ clipPath: 'polygon(0 0, calc(100% - 32px) 0, 100% 50%, calc(100% - 32px) 100%, 0 100%)' }}
               >
-                Most Professional and Trustworthy
+                Nos admissions
               </div>
               <div
-                className="absolute -bottom-2 left-0 h-2 w-1/2 bg-[#6b46c1]/40"
+                className="absolute -bottom-2 left-0 h-2 w-1/2 bg-[#1a56db]/40"
                 aria-hidden="true"
               />
             </div>
 
-            {/* Certificate / authorization paper grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 md:gap-6">
+            {/* Certificate / authorization paper grid — slightly larger */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
               {admissions.map((adm) => (
                 <div
                   key={adm.id}
-                  className="group relative aspect-[3/4] bg-white rounded-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(107,70,193,0.18)] transition-shadow duration-300 overflow-hidden border border-gray-100"
+                  className="group relative aspect-[3/4] bg-white rounded-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(26,86,219,0.18)] transition-shadow duration-300 overflow-hidden border border-gray-100"
                   title={adm.title}
                 >
                   {adm.imageUrl ? (
@@ -212,17 +212,17 @@ const AboutPage = () => {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50">
-                      <GraduationCap size={40} className="text-purple-200" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+                      <GraduationCap size={40} className="text-blue-200" />
                     </div>
                   )}
 
                   {/* Hover overlay with title — only visible on hover, doesn't change the paper aesthetic */}
                   {(adm.title || adm.university) && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent text-white p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <p className="text-[11px] font-semibold leading-tight line-clamp-2">{adm.title}</p>
+                      <p className="text-[12px] font-semibold leading-tight line-clamp-2">{adm.title}</p>
                       {adm.university && (
-                        <p className="text-[10px] text-purple-200 mt-1 line-clamp-1">
+                        <p className="text-[11px] text-blue-200 mt-1 line-clamp-1">
                           {adm.university}{adm.year ? ` · ${adm.year}` : ''}
                         </p>
                       )}
