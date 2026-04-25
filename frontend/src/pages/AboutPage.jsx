@@ -181,37 +181,53 @@ const AboutPage = () => {
 
         {/* ── Admissions ── */}
         {admissions.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <GraduationCap size={20} className="text-blue-600" />
+          <section className="bg-white rounded-3xl py-10 px-6 md:px-10">
+            {/* Purple ribbon banner — "Most Professional and Trustworthy" */}
+            <div className="relative inline-block mb-12">
+              <div
+                className="bg-[#6b46c1] text-white px-10 py-4 pr-16 font-bold text-xl md:text-2xl tracking-tight shadow-md"
+                style={{ clipPath: 'polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%)' }}
+              >
+                Most Professional and Trustworthy
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-gray-900">Admissions obtenues</h2>
-                <p className="text-gray-500 text-sm">Les succès de nos étudiants dans les meilleures universités mondiales</p>
-              </div>
+              <div
+                className="absolute -bottom-2 left-0 h-2 w-1/2 bg-[#6b46c1]/40"
+                aria-hidden="true"
+              />
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {admissions.map(adm => (
-                <div key={adm.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group hover:-translate-y-1">
+
+            {/* Certificate / authorization paper grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 md:gap-6">
+              {admissions.map((adm) => (
+                <div
+                  key={adm.id}
+                  className="group relative aspect-[3/4] bg-white rounded-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(107,70,193,0.18)] transition-shadow duration-300 overflow-hidden border border-gray-100"
+                  title={adm.title}
+                >
                   {adm.imageUrl ? (
-                    <div className="h-52 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4 overflow-hidden">
-                      <img src={adm.imageUrl} alt={adm.title} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" />
-                    </div>
+                    <img
+                      src={adm.imageUrl}
+                      alt={adm.title}
+                      className="w-full h-full object-contain bg-white p-2"
+                      loading="lazy"
+                    />
                   ) : (
-                    <div className="h-52 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-                      <GraduationCap size={48} className="text-blue-200" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50">
+                      <GraduationCap size={40} className="text-purple-200" />
                     </div>
                   )}
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{adm.title}</h3>
-                    {adm.university && (
-                      <p className="text-xs text-blue-600 font-semibold mb-1">
-                        {adm.university}{adm.year ? ` — ${adm.year}` : ''}
-                      </p>
-                    )}
-                    {adm.description && <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{adm.description}</p>}
-                  </div>
+
+                  {/* Hover overlay with title — only visible on hover, doesn't change the paper aesthetic */}
+                  {(adm.title || adm.university) && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent text-white p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <p className="text-[11px] font-semibold leading-tight line-clamp-2">{adm.title}</p>
+                      {adm.university && (
+                        <p className="text-[10px] text-purple-200 mt-1 line-clamp-1">
+                          {adm.university}{adm.year ? ` · ${adm.year}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
