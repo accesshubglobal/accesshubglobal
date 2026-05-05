@@ -4,7 +4,7 @@ import {
   LogOut, Award, Mail, Image, Star, MessageSquare, HelpCircle, PhoneCall,
   CreditCard, ChevronLeft, ChevronRight, ChevronDown,
   Layers, Megaphone, Wrench, FolderOpen, BookOpen, MessageSquarePlus, UserCheck, Headphones, Handshake, Briefcase,
-  Shield, Zap
+  Shield, Zap, UserX
 } from 'lucide-react';
 
 /* ─── Theme tokens ───────────────────────────────────────────────────── */
@@ -122,6 +122,7 @@ const AdminSidebar = ({
         { id: 'payment-settings', label: 'Paiements', icon: CreditCard },
         { id: 'terms-conditions', label: 'Conditions', icon: FileText },
         { id: 'pages', label: 'Pages du site', icon: Layers },
+        { id: 'inactive-users', label: 'Comptes inactifs', icon: UserX, badge: badges?.inactiveUsers || null },
       ],
     }] : []),
   ];

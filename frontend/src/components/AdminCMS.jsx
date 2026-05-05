@@ -33,6 +33,7 @@ import JobOffersAdminSection from './admin/JobOffersAdminSection';
 import AdminCompaniesSection from './admin/AdminCompaniesSection';
 import LogementPartnersSection from './admin/LogementPartnersSection';
 import CertificatesSection from './admin/CertificatesSection';
+import InactiveUsersSection from './admin/InactiveUsersSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -124,6 +125,8 @@ const AdminCMS = ({ onClose }) => {
         return isPrincipalAdmin ? <PagesSection /> : null;
       case 'certificates':
         return <CertificatesSection token={token} />;
+      case 'inactive-users':
+        return isPrincipalAdmin ? <InactiveUsersSection /> : null;
       default:
         return <DashboardSection stats={stats} onNavigate={handleNavigate} />;
     }
