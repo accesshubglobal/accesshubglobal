@@ -31,6 +31,7 @@ from _helpers import (
     generate_verification_code, send_verification_email, send_password_reset_email,
     broadcast_newsletter_offer, broadcast_newsletter_blog,
     send_application_status_update_email, send_payment_status_email,
+    purge_inactive_users, INACTIVITY_DAYS,
 )
 
 logger = logging.getLogger(__name__)
@@ -1132,3 +1133,32 @@ async def admin_delete_admission(admission_id: str, admin: dict = Depends(get_ad
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Admission non trouvée")
     return {"success": True}
+
+
+# ============= INACTIVITY PURGE (manual trigger + preview) =============
+
+@router.get("/admin/inactive-users/preview")
+async def admin_preview_inactive_users(admin: dict = Depends(get_admin_user)):
+    """List the non-admin accounts inactive for more than 7 months (eligible for auto-deletion)."""
+    db = get_db()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=INACTIVITY_DAYS)).isoformat()
+    query = {
+        "role": {"$ne": "admin"},
+        "$or": [
+            {"lastActiveAt": {"$lt": cutoff}},
+            {"lastActiveAt": {"$exists": False}, "createdAt": {"$lt": cutoff}},
+        ],
+    }
+    users = await db.users.find(
+        query,
+        {"_id": 0, "id": 1, "email": 1, "firstName": 1, "lastName": 1, "role": 1, "lastActiveAt": 1, "createdAt": 1},
+    ).to_list(500)
+    return {"cutoff": cutoff, "thresholdDays": INACTIVITY_DAYS, "count": len(users), "users": users}
+
+
+@router.post("/admin/inactive-users/purge")
+async def admin_run_inactivity_purge(admin: dict = Depends(get_principal_admin)):
+    """Manually trigger the inactivity purge (principal admin only)."""
+    deleted = await purge_inactive_users()
+    return {"success": True, "deleted": deleted, "thresholdDays": INACTIVITY_DAYS}
+

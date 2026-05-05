@@ -17,7 +17,7 @@ from starlette.middleware.cors import CORSMiddleware
 from typing import Dict
 import jwt
 
-from _helpers import init_db, close_db, get_db, register_hooks, SECRET_KEY, ALGORITHM
+from _helpers import init_db, close_db, get_db, register_hooks, SECRET_KEY, ALGORITHM, start_inactivity_purge
 from _routes import api_router
 
 # Initialize database
@@ -185,6 +185,12 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+@app.on_event("startup")
+async def startup_event():
+    # Schedule daily purge of inactive accounts (>7 months)
+    start_inactivity_purge()
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

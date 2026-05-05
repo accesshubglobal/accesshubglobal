@@ -190,8 +190,12 @@ async def login(credentials: UserLogin):
             detail="Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception."
         )
 
-    # Successful login — clear failed attempts
+    # Successful login — clear failed attempts and stamp lastActiveAt for inactivity tracking
     clear_failed_logins(email)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"lastActiveAt": datetime.now(timezone.utc).isoformat()}}
+    )
 
     access_token = create_access_token({"sub": user["id"]})
 

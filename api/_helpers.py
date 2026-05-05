@@ -777,6 +777,75 @@ def init_db(mongo_url: str, db_name: str):
     _db = _client[db_name]
 
 
+# ============= INACTIVE ACCOUNT PURGE =============
+# Auto-delete every user (any role: user/agent/employeur/partenaire_logement/partenaire)
+# whose lastActiveAt is older than 7 months. The "admin" role is exempt.
+INACTIVITY_DAYS = 7 * 30  # 7 months ≈ 210 days
+_purge_task_started = False
+
+
+async def purge_inactive_users():
+    """Delete every non-admin user inactive for more than INACTIVITY_DAYS days."""
+    db = get_db()
+    if db is None:
+        return 0
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=INACTIVITY_DAYS)).isoformat()
+    # Match either lastActiveAt < cutoff, or, if lastActiveAt is missing, fall back to createdAt
+    query = {
+        "role": {"$ne": "admin"},
+        "$or": [
+            {"lastActiveAt": {"$lt": cutoff}},
+            {"lastActiveAt": {"$exists": False}, "createdAt": {"$lt": cutoff}},
+        ],
+    }
+    try:
+        # Snapshot the list before deleting so we can clean up related records
+        candidates = await db.users.find(query, {"_id": 0, "id": 1, "email": 1, "role": 1}).to_list(1000)
+        if not candidates:
+            return 0
+        ids = [u["id"] for u in candidates]
+        await db.users.delete_many({"id": {"$in": ids}})
+        # Best-effort cleanup of dependent collections
+        for coll in ("notifications", "applications", "favorites", "messages"):
+            try:
+                await db[coll].delete_many({"userId": {"$in": ids}})
+            except Exception:
+                pass
+        logger.info(
+            f"[Inactivity purge] Deleted {len(ids)} inactive accounts "
+            f"(>{INACTIVITY_DAYS} days). Roles: "
+            + ", ".join(sorted({u.get('role', 'user') for u in candidates}))
+        )
+        return len(ids)
+    except Exception as e:
+        logger.error(f"[Inactivity purge] Failed: {e}")
+        return 0
+
+
+async def _inactivity_purge_loop():
+    """Run the purge once a day."""
+    while True:
+        try:
+            await purge_inactive_users()
+        except Exception as e:
+            logger.error(f"Purge loop error: {e}")
+        await asyncio.sleep(24 * 60 * 60)  # daily
+
+
+def start_inactivity_purge():
+    """Idempotent: starts the daily purge background task on the running loop."""
+    global _purge_task_started
+    if _purge_task_started:
+        return
+    _purge_task_started = True
+    try:
+        asyncio.create_task(_inactivity_purge_loop())
+        logger.info("[Inactivity purge] Daily background task scheduled.")
+    except RuntimeError:
+        # No running loop yet (will be started on first request)
+        _purge_task_started = False
+
+
 def get_db():
     return _db
 
