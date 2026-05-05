@@ -780,8 +780,126 @@ def init_db(mongo_url: str, db_name: str):
 # ============= INACTIVE ACCOUNT PURGE =============
 # Auto-delete every user (any role: user/agent/employeur/partenaire_logement/partenaire)
 # whose lastActiveAt is older than 7 months. The "admin" role is exempt.
+# A pre-warning email is sent once, 14 days before the deletion deadline.
 INACTIVITY_DAYS = 7 * 30  # 7 months ≈ 210 days
+INACTIVITY_WARNING_DAYS = 14  # warning sent when remaining time ≤ 14 days
 _purge_task_started = False
+
+
+def _build_inactivity_warning_email(user: dict, days_left: int) -> str:
+    first = user.get('firstName', '')
+    last = user.get('lastName', '')
+    full_name = f"{first} {last}".strip() or "Utilisateur"
+    site_url = SITE_URL
+    return f"""
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#0f1f35 0%,#f59e0b 100%);padding:30px;text-align:center;color:#fff;">
+    <div style="font-size:11px;letter-spacing:3px;color:#fff;opacity:0.85;text-transform:uppercase;margin-bottom:8px;">AccessHub Global</div>
+    <div style="font-size:42px;margin-bottom:6px;">⚠️</div>
+    <h1 style="margin:0;font-size:22px;font-weight:800;">Votre compte sera bientôt supprimé</h1>
+  </div>
+  <div style="padding:28px 32px;color:#374151;font-size:14px;line-height:1.7;">
+    <p style="margin:0 0 14px;">Bonjour <strong>{full_name}</strong>,</p>
+    <p style="margin:0 0 14px;">Votre compte AccessHub Global est inactif depuis près de 7 mois. Conformément à notre politique, les comptes restant inactifs <strong>plus de 7 mois</strong> sont automatiquement supprimés.</p>
+
+    <div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;padding:14px 18px;margin:18px 0;">
+      <div style="font-size:11px;color:#78350f;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:4px;">Délai restant</div>
+      <div style="font-size:18px;font-weight:800;color:#92400e;">{days_left} jour{'s' if days_left > 1 else ''} avant suppression définitive</div>
+    </div>
+
+    <p style="margin:0 0 14px;"><strong>Comment garder votre compte ?</strong> Il vous suffit de vous reconnecter une seule fois — votre compte sera automatiquement préservé pour 7 mois supplémentaires.</p>
+
+    <div style="text-align:center;margin:26px 0 8px;">
+      <a href="{site_url}" style="display:inline-block;background:linear-gradient(135deg,#0f1f35,#1a56db);color:#fff;font-size:15px;font-weight:700;padding:14px 36px;border-radius:50px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 15px rgba(26,86,219,0.4);">Me reconnecter maintenant →</a>
+    </div>
+
+    <p style="margin:18px 0 0;font-size:12px;color:#6b7280;line-height:1.6;">Si vous n'avez plus besoin de ce compte, aucune action n'est requise — il sera automatiquement supprimé à la fin du délai. Toutes vos données associées (candidatures, favoris, notifications) seront également effacées.</p>
+  </div>
+  {_newsletter_footer()}
+</div></body></html>"""
+
+
+async def send_inactivity_warning_email(user: dict, days_left: int):
+    try:
+        to_email = user.get("email")
+        if not to_email:
+            return None
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        sender = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        if not api_key:
+            return None
+        html = _build_inactivity_warning_email(user, days_left)
+        subject = f"⚠️ Votre compte AccessHub Global sera supprimé dans {days_left} jour{'s' if days_left > 1 else ''}"
+
+        import resend
+        resend.api_key = api_key
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: resend.Emails.send({"from": sender, "to": [to_email], "subject": subject, "html": html})
+        )
+        logger.info(f"[Inactivity warning] Email sent to {to_email} ({days_left}d left)")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send inactivity warning email: {e}")
+        return None
+
+
+async def warn_users_about_imminent_deletion():
+    """
+    Send a one-shot email to every non-admin account whose lastActiveAt falls in the
+    "warning window" (between 7 months − 14 days and 7 months ago).
+    A flag `inactivityWarningSentAt` prevents duplicate sends.
+    """
+    db = get_db()
+    if db is None:
+        return 0
+    now = datetime.now(timezone.utc)
+    deletion_cutoff = (now - timedelta(days=INACTIVITY_DAYS)).isoformat()  # before this → delete
+    warning_start = (now - timedelta(days=INACTIVITY_DAYS - INACTIVITY_WARNING_DAYS)).isoformat()  # before this → warn
+
+    # Users in the warning window (lastActiveAt between warning_start and deletion_cutoff exclusive),
+    # who have NOT been warned yet.
+    query = {
+        "role": {"$ne": "admin"},
+        "$or": [
+            {"lastActiveAt": {"$gte": deletion_cutoff, "$lt": warning_start}},
+            {
+                "lastActiveAt": {"$exists": False},
+                "createdAt": {"$gte": deletion_cutoff, "$lt": warning_start},
+            },
+        ],
+        "inactivityWarningSentAt": {"$exists": False},
+    }
+    try:
+        candidates = await db.users.find(
+            query,
+            {"_id": 0, "id": 1, "email": 1, "firstName": 1, "lastName": 1, "lastActiveAt": 1, "createdAt": 1},
+        ).to_list(1000)
+        if not candidates:
+            return 0
+        sent = 0
+        for u in candidates:
+            ref_ts = u.get("lastActiveAt") or u.get("createdAt")
+            try:
+                ref_dt = datetime.fromisoformat(ref_ts.replace('Z', '+00:00'))
+                deletion_dt = ref_dt + timedelta(days=INACTIVITY_DAYS)
+                days_left = max(1, (deletion_dt - now).days)
+            except Exception:
+                days_left = INACTIVITY_WARNING_DAYS
+            await send_inactivity_warning_email(u, days_left)
+            await db.users.update_one(
+                {"id": u["id"]},
+                {"$set": {"inactivityWarningSentAt": now.isoformat()}},
+            )
+            sent += 1
+        logger.info(f"[Inactivity warning] Sent {sent} pre-deletion warnings")
+        return sent
+    except Exception as e:
+        logger.error(f"[Inactivity warning] Failed: {e}")
+        return 0
 
 
 async def purge_inactive_users():
@@ -823,9 +941,10 @@ async def purge_inactive_users():
 
 
 async def _inactivity_purge_loop():
-    """Run the purge once a day."""
+    """Run the warning + purge once a day."""
     while True:
         try:
+            await warn_users_about_imminent_deletion()
             await purge_inactive_users()
         except Exception as e:
             logger.error(f"Purge loop error: {e}")

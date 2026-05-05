@@ -31,7 +31,8 @@ from _helpers import (
     generate_verification_code, send_verification_email, send_password_reset_email,
     broadcast_newsletter_offer, broadcast_newsletter_blog,
     send_application_status_update_email, send_payment_status_email,
-    purge_inactive_users, INACTIVITY_DAYS,
+    purge_inactive_users, warn_users_about_imminent_deletion,
+    INACTIVITY_DAYS, INACTIVITY_WARNING_DAYS,
 )
 
 logger = logging.getLogger(__name__)
@@ -1161,4 +1162,11 @@ async def admin_run_inactivity_purge(admin: dict = Depends(get_principal_admin))
     """Manually trigger the inactivity purge (principal admin only)."""
     deleted = await purge_inactive_users()
     return {"success": True, "deleted": deleted, "thresholdDays": INACTIVITY_DAYS}
+
+
+@router.post("/admin/inactive-users/send-warnings")
+async def admin_send_inactivity_warnings(admin: dict = Depends(get_admin_user)):
+    """Manually send pre-deletion warning emails to accounts inside the warning window."""
+    sent = await warn_users_about_imminent_deletion()
+    return {"success": True, "sent": sent, "warningWindowDays": INACTIVITY_WARNING_DAYS}
 

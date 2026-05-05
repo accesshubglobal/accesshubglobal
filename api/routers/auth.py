@@ -194,7 +194,10 @@ async def login(credentials: UserLogin):
     clear_failed_logins(email)
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"lastActiveAt": datetime.now(timezone.utc).isoformat()}}
+        {
+            "$set": {"lastActiveAt": datetime.now(timezone.utc).isoformat()},
+            "$unset": {"inactivityWarningSentAt": ""},
+        }
     )
 
     access_token = create_access_token({"sub": user["id"]})
