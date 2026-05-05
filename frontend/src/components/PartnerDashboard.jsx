@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X, Key, ShieldCheck, Eye, Shield, Upload } from 'lucide-react';
+import { Building2, GraduationCap, Plus, Edit2, Trash2, CheckCircle, Clock, Loader2, LogOut, AlertCircle, Handshake, MessageSquare, Send, ArrowLeft, Paperclip, Download, FileText, X, Key, ShieldCheck, Eye, Shield, Upload, Copy, MapPin, Languages, Award } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -266,6 +266,16 @@ const PartnerDashboard = () => {
     }
   };
 
+  const handleDuplicateOffer = async (offerId) => {
+    try {
+      await ax().post(`${API}/partner/offers/${offerId}/duplicate`);
+      await loadOffers();
+      await loadStats();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Erreur lors de la duplication');
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!messageText.trim() && !attachedFile) return;
     try {
@@ -480,48 +490,90 @@ const PartnerDashboard = () => {
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  {offers.map(offer => (
-                    <div key={offer.id} className="border border-gray-100 rounded-xl p-4 hover:border-gray-200 transition-colors"
-                      data-testid={`offer-item-${offer.id}`}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-medium text-gray-900 truncate">{offer.title}</h4>
+                {offers.length === 0 ? (
+                  <div className="text-center py-16 bg-gradient-to-br from-emerald-50/50 via-white to-blue-50/30 border-2 border-dashed border-emerald-200 rounded-2xl">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mx-auto mb-5 flex items-center justify-center shadow-lg">
+                      <GraduationCap size={36} className="text-white" />
+                    </div>
+                    <h4 className="font-bold text-gray-900 text-lg">Aucune offre pour l'instant</h4>
+                    <p className="text-sm text-gray-500 mt-1 max-w-xs mx-auto">Publiez votre première offre de formation pour attirer les étudiants internationaux.</p>
+                    <button onClick={() => { setEditingOffer(null); setShowOfferForm(true); }}
+                      className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                      <Plus size={15} /> Créer ma première offre
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {offers.map(offer => (
+                      <div key={offer.id} className="group relative bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                        data-testid={`offer-item-${offer.id}`}>
+
+                        {/* Top accent bar */}
+                        <div className={`h-1.5 ${offer.isApproved ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`} />
+
+                        {/* Cover image or gradient */}
+                        <div className="relative h-32 overflow-hidden">
+                          {offer.image ? (
+                            <img src={offer.image} alt={offer.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-emerald-500 via-teal-500 to-blue-500 flex items-center justify-center">
+                              <GraduationCap size={42} className="text-white/40" />
+                            </div>
+                          )}
+                          <div className="absolute top-3 right-3">
                             <StatusBadge isApproved={offer.isApproved} />
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">{offer.university} — {offer.city}, {offer.country}</p>
-                          <div className="flex gap-3 mt-2 text-xs text-gray-400">
-                            <span>{offer.degree}</span>
-                            <span>·</span>
-                            <span>{offer.duration}</span>
-                            <span>·</span>
-                            <span>{offer.teachingLanguage}</span>
+                          {offer.hasScholarship && (
+                            <div className="absolute top-3 left-3 px-2 py-1 bg-amber-400 text-amber-900 text-[10px] font-bold rounded-full shadow flex items-center gap-1">
+                              <Award size={10} /> Bourse
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-4">
+                          <h4 className="font-bold text-gray-900 line-clamp-1 group-hover:text-emerald-600 transition-colors" title={offer.title}>{offer.title}</h4>
+                          <p className="text-xs text-gray-500 mt-1 truncate flex items-center gap-1">
+                            <MapPin size={11} className="flex-shrink-0" /> {offer.university} · {offer.city}, {offer.country}
+                          </p>
+
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {offer.degree && (
+                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full">{offer.degree}</span>
+                            )}
+                            {offer.duration && (
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-full inline-flex items-center gap-1">
+                                <Clock size={9} /> {offer.duration}
+                              </span>
+                            )}
+                            {offer.teachingLanguage && (
+                              <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-semibold rounded-full inline-flex items-center gap-1">
+                                <Languages size={9} /> {offer.teachingLanguage}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-end gap-1 mt-4 pt-3 border-t border-gray-100">
+                            <button onClick={() => { setEditingOffer(offer); setShowOfferForm(true); }}
+                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              data-testid={`edit-offer-${offer.id}`} title="Modifier">
+                              <Edit2 size={15} />
+                            </button>
+                            <button onClick={() => handleDuplicateOffer(offer.id)}
+                              className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              data-testid={`duplicate-offer-${offer.id}`} title="Dupliquer">
+                              <Copy size={15} />
+                            </button>
+                            <button onClick={() => handleDeleteOffer(offer.id)}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              data-testid={`delete-offer-${offer.id}`} title="Supprimer">
+                              <Trash2 size={15} />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button onClick={() => { setEditingOffer(offer); setShowOfferForm(true); }}
-                            className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                            data-testid={`edit-offer-${offer.id}`} title="Modifier">
-                            <Edit2 size={15} />
-                          </button>
-                          <button onClick={() => handleDeleteOffer(offer.id)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            data-testid={`delete-offer-${offer.id}`} title="Supprimer">
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {offers.length === 0 && (
-                    <div className="text-center py-12 text-gray-400">
-                      <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">Vous n'avez pas encore soumis d'offres.</p>
-                      <p className="text-xs mt-1">Cliquez sur "Nouvelle offre" pour commencer.</p>
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -530,14 +582,30 @@ const PartnerDashboard = () => {
         {/* ── Messages Tab ── */}
         {activeTab === 'messages' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-              <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
-                <MessageSquare size={16} className="text-blue-700" />
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <MessageSquare size={16} className="text-blue-700" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Messagerie AccessHub Global</h3>
+                  <p className="text-xs text-gray-500">Communication avec l'équipe admin</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Messagerie AccessHub Global</h3>
-                <p className="text-xs text-gray-500">Communication avec l'équipe admin</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMessageText('');
+                  setAttachedFile(null);
+                  setTimeout(() => {
+                    document.querySelector('[data-testid="partner-message-input"]')?.focus();
+                  }, 50);
+                }}
+                data-testid="partner-new-message-btn"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                <Plus size={15} /> Nouveau message
+              </button>
             </div>
 
             {/* Messages list */}
@@ -547,10 +615,20 @@ const PartnerDashboard = () => {
                   <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
-                  <MessageSquare size={32} className="opacity-30" />
-                  <p className="text-sm">Aucun message pour l'instant.</p>
-                  <p className="text-xs">L'équipe vous contactera ici pour toute révision d'offre.</p>
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2 px-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-2 shadow-md">
+                    <MessageSquare size={28} className="text-white" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700">Aucune conversation pour l'instant</p>
+                  <p className="text-xs text-center max-w-xs">Démarrez la conversation avec l'équipe AccessHub Global ! Posez vos questions, signalez un problème ou demandez une révision d'offre.</p>
+                  <button
+                    type="button"
+                    onClick={() => document.querySelector('[data-testid="partner-message-input"]')?.focus()}
+                    data-testid="partner-start-conversation-btn"
+                    className="mt-3 inline-flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <Send size={14} /> Démarrer la conversation
+                  </button>
                 </div>
               ) : (
                 messages.map(msg => (

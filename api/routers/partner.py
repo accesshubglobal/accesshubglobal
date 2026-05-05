@@ -299,6 +299,29 @@ async def partner_delete_offer(offer_id: str, partner: dict = Depends(get_partne
     return {"message": "Offre supprimée"}
 
 
+@router.post("/partner/offers/{offer_id}/duplicate")
+async def partner_duplicate_offer(offer_id: str, partner: dict = Depends(get_partner_user)):
+    db = get_db()
+    offer = await db.offers.find_one({"id": offer_id, "partnerId": partner["id"]}, {"_id": 0})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offre non trouvée ou non autorisée")
+    import uuid
+    duplicate = {**offer}
+    duplicate["id"] = str(uuid.uuid4())
+    duplicate["title"] = f"{offer.get('title', 'Offre')} (Copie)"
+    duplicate["isApproved"] = False
+    duplicate["createdAt"] = datetime.now(timezone.utc).isoformat()
+    await db.offers.insert_one(duplicate)
+    duplicate.pop("_id", None)
+    await broadcast_to_admins({
+        "type": "partner_content",
+        "title": "Offre dupliquée par un partenaire",
+        "message": f"{partner['firstName']} {partner['lastName']} a dupliqué l'offre : {duplicate['title']}",
+        "data": {"offerId": duplicate["id"]}
+    })
+    return duplicate
+
+
 
 # ── Partner verify login code ─────────────────────────────────────────────────
 @router.post("/partner/verify-login-code")
