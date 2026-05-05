@@ -902,8 +902,77 @@ async def warn_users_about_imminent_deletion():
         return 0
 
 
+def _build_account_deletion_email(user: dict) -> str:
+    first = user.get('firstName', '')
+    last = user.get('lastName', '')
+    full_name = f"{first} {last}".strip() or "Utilisateur"
+    site_url = SITE_URL
+    return f"""
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#0f1f35 0%,#ef4444 100%);padding:30px;text-align:center;color:#fff;">
+    <div style="font-size:11px;letter-spacing:3px;color:#fff;opacity:0.85;text-transform:uppercase;margin-bottom:8px;">AccessHub Global</div>
+    <div style="font-size:42px;margin-bottom:6px;">🗑️</div>
+    <h1 style="margin:0;font-size:22px;font-weight:800;">Votre compte a été supprimé</h1>
+  </div>
+  <div style="padding:28px 32px;color:#374151;font-size:14px;line-height:1.7;">
+    <p style="margin:0 0 14px;">Bonjour <strong>{full_name}</strong>,</p>
+    <p style="margin:0 0 14px;">Votre compte AccessHub Global a été <strong>supprimé automatiquement</strong> suite à une période d'inactivité de plus de 7 mois, conformément à notre politique de gestion des données.</p>
+
+    <div style="background:#fee2e2;border-left:4px solid #ef4444;border-radius:8px;padding:14px 18px;margin:18px 0;">
+      <div style="font-size:11px;color:#7f1d1d;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px;">Données effacées</div>
+      <ul style="margin:0;padding-left:18px;font-size:13px;color:#991b1b;line-height:1.6;">
+        <li>Profil et identifiants de connexion</li>
+        <li>Candidatures et documents associés</li>
+        <li>Favoris, messages et notifications</li>
+      </ul>
+    </div>
+
+    <p style="margin:0 0 14px;">Cette suppression est <strong>définitive et irréversible</strong>. Les données associées à votre compte ont été effacées de nos serveurs conformément à notre politique de confidentialité.</p>
+
+    <p style="margin:0 0 14px;">Vous restez bien sûr le bienvenu sur AccessHub Global : vous pouvez à tout moment <strong>créer un nouveau compte</strong> et profiter à nouveau de l'ensemble de nos services.</p>
+
+    <div style="text-align:center;margin:26px 0 8px;">
+      <a href="{site_url}" style="display:inline-block;background:linear-gradient(135deg,#0f1f35,#1a56db);color:#fff;font-size:15px;font-weight:700;padding:14px 36px;border-radius:50px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 15px rgba(26,86,219,0.4);">Créer un nouveau compte →</a>
+    </div>
+
+    <p style="margin:18px 0 0;font-size:12px;color:#6b7280;line-height:1.6;">Si vous pensez que cette suppression est une erreur ou souhaitez en discuter, contactez-nous à <a href="mailto:accesshubglobal@gmail.com" style="color:#1a56db;text-decoration:none;">accesshubglobal@gmail.com</a>. Nous serons ravis de vous aider.</p>
+  </div>
+  {_newsletter_footer()}
+</div></body></html>"""
+
+
+async def send_account_deletion_email(user: dict):
+    """Send the final 'account deleted' confirmation email."""
+    try:
+        to_email = user.get("email")
+        if not to_email:
+            return None
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        sender = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        if not api_key:
+            return None
+        html = _build_account_deletion_email(user)
+        subject = "🗑️ Votre compte AccessHub Global a été supprimé"
+
+        import resend
+        resend.api_key = api_key
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: resend.Emails.send({"from": sender, "to": [to_email], "subject": subject, "html": html})
+        )
+        logger.info(f"[Inactivity purge] Deletion confirmation sent to {to_email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send account deletion email: {e}")
+        return None
+
+
 async def purge_inactive_users():
-    """Delete every non-admin user inactive for more than INACTIVITY_DAYS days."""
+    """Delete every non-admin user inactive for more than INACTIVITY_DAYS days.
+    Sends a final deletion confirmation email to each user before removal."""
     db = get_db()
     if db is None:
         return 0
@@ -917,11 +986,20 @@ async def purge_inactive_users():
         ],
     }
     try:
-        # Snapshot the list before deleting so we can clean up related records
-        candidates = await db.users.find(query, {"_id": 0, "id": 1, "email": 1, "role": 1}).to_list(1000)
+        # Snapshot the full list (with names/email) before deleting — needed for email + cleanup
+        candidates = await db.users.find(
+            query,
+            {"_id": 0, "id": 1, "email": 1, "firstName": 1, "lastName": 1, "role": 1},
+        ).to_list(1000)
         if not candidates:
             return 0
         ids = [u["id"] for u in candidates]
+        # Send the deletion confirmation email BEFORE removing the record
+        for u in candidates:
+            try:
+                await send_account_deletion_email(u)
+            except Exception as ex:
+                logger.error(f"Failed to send deletion email to {u.get('email')}: {ex}")
         await db.users.delete_many({"id": {"$in": ids}})
         # Best-effort cleanup of dependent collections
         for coll in ("notifications", "applications", "favorites", "messages"):
